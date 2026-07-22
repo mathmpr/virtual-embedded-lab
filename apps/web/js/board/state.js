@@ -40,6 +40,8 @@ export function createInitialBoardState() {
       trig: 0,
       echo: 0,
       led: 0
-    }
+    },
+    signalsByComponent: new Map(),
+    signalsByNet: new Map()
   };
 }

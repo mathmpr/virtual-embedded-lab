@@ -56,6 +56,8 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
       const result = await runWasmSimulationFrame({ firmwareWasm, serialRx });
 
       state.signals = result.signals;
+      state.signalsByComponent = result.signalsByComponent ?? new Map();
+      state.signalsByNet = result.signalsByNet ?? new Map();
       applyLedStates(result.ledStates);
       applyBuiltInLedStates(result.builtInLedStates);
       animateBuiltInLedEvents(result.builtInLedEvents);
@@ -93,6 +95,8 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     wasmSimulationSession = null;
     previousFrameTimeUs = 0;
     state.signals = { trig: 0, echo: 0, led: 0 };
+    state.signalsByComponent = new Map();
+    state.signalsByNet = new Map();
     state.electrical = {
       componentReadings: new Map(),
       netReadings: new Map()

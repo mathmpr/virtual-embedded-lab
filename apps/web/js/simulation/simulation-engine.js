@@ -18,6 +18,7 @@ import {
   resolveAnalogPinConnectedToTerminal,
   resolveDigitalPinConnectedToTerminal
 } from './pin-capability-resolver.js';
+import { createSignalSnapshot } from './signal-snapshot.js';
 import { EventScheduler, VirtualClock } from './virtual-time.js';
 import { createWasmFirmwareSession } from './wasm-firmware-runner.js';
 
@@ -138,6 +139,7 @@ export function bindSimulationInputs({ graph, environment, runtime, clock, sched
 
 export function finalizeSimulationResult({ clock, graph, runtime, environment, firmwareResult, diagnostics, pins, source = 'wasm' }) {
   const electrical = solveElectricalState({ graph, runtime });
+  const signalSnapshot = createSignalSnapshot({ graph, runtime, electrical });
   diagnostics.push(...electrical.diagnostics);
 
   return {
@@ -153,6 +155,8 @@ export function finalizeSimulationResult({ clock, graph, runtime, environment, f
       light: lightSignal(environment),
       lightAnalog: lightAnalogSignal(graph, runtime)
     },
+    signalsByComponent: signalSnapshot.signalsByComponent,
+    signalsByNet: signalSnapshot.signalsByNet,
     ledStates: electrical.ledStates,
     builtInLedStates: builtInLedStates({ graph, runtime }),
     builtInLedEvents: builtInLedEvents({ graph, pinEvents: firmwareResult.pinEvents }),

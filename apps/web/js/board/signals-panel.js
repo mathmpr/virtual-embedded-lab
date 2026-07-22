@@ -24,15 +24,32 @@ export function createSignalsPanel({ state, signalMonitor, componentDefinitions,
       return;
     }
 
-    const cards = [
-      propertySignalCard(component),
-      terminalSignalCard(component),
-      electricalSignalCard(component)
-    ].filter(Boolean);
+    const snapshot = state.signalsByComponent?.get(component.id);
+    const cards = snapshot
+      ? signalCardsForComponentSnapshot(snapshot)
+      : [
+          propertySignalCard(component),
+          terminalSignalCard(component),
+          electricalSignalCard(component)
+        ].filter(Boolean);
 
     signalMonitor.innerHTML = cards.length > 0
       ? cards.join('')
       : '<p class="muted">Este componente ainda não possui sinais derivados do projeto.</p>';
+  }
+
+  function signalCardsForComponentSnapshot(snapshot) {
+    return [
+      snapshotSignalCard('Propriedades', snapshot.properties),
+      snapshotSignalCard('Terminais e conexões', snapshot.terminals),
+      snapshotSignalCard('Elétrico', snapshot.electrical)
+    ].filter(Boolean);
+  }
+
+  function snapshotSignalCard(title, signals) {
+    const rows = (signals ?? []).map((signal) => signalRow(signal.label, signal.value, signal.text));
+
+    return rows.length > 0 ? signalCard(title, rows) : null;
   }
 
   function propertySignalCard(component) {
@@ -92,6 +109,12 @@ export function createSignalsPanel({ state, signalMonitor, componentDefinitions,
 
     if (netRuntime) {
       return netRuntime;
+    }
+
+    const netSignal = net ? state.signalsByNet?.get(net.id) : null;
+
+    if (netSignal) {
+      return netSignal;
     }
 
     const reading = net ? state.electrical.netReadings.get(net.id) : null;

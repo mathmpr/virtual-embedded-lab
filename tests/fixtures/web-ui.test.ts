@@ -560,8 +560,16 @@ test('web UI renders contextual signals in the inspector', () => {
   const signals = readFileSync(join(root, 'apps/web/js/board/signals-panel.js'), 'utf8');
   const pinResolver = readFileSync(join(root, 'apps/web/js/board/pin-resolver.js'), 'utf8');
   const css = readFileSync(join(root, 'apps/web/styles.css'), 'utf8');
+  const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
+  const signalSnapshot = readFileSync(join(root, 'apps/web/js/simulation/signal-snapshot.js'), 'utf8');
 
   assert.match(editor, /createSignalsPanel/);
+  assert.match(engine, /signalsByComponent: signalSnapshot\.signalsByComponent/);
+  assert.match(engine, /signalsByNet: signalSnapshot\.signalsByNet/);
+  assert.match(signalSnapshot, /createSignalSnapshot/);
+  assert.match(signals, /state\.signalsByComponent\?\.get\(component\.id\)/);
+  assert.match(signals, /signalCardsForComponentSnapshot\(snapshot\)/);
+  assert.match(signals, /state\.signalsByNet\?\.get\(net\.id\)/);
   assert.match(signals, /terminalSignalCard\(component\)/);
   assert.match(signals, /terminalSignalRow\(component, terminal\)/);
   assert.match(signals, /signalForTerminalNet\(terminalRef, net\)/);

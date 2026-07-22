@@ -525,6 +525,8 @@ export function createBoardEditor(document) {
   }
 
   function onSimulationResult(result) {
+    state.signalsByComponent = result.signalsByComponent ?? state.signalsByComponent ?? new Map();
+    state.signalsByNet = result.signalsByNet ?? state.signalsByNet ?? new Map();
     state.electrical = {
       componentReadings: result.electrical?.componentReadings ?? new Map(),
       netReadings: result.electrical?.netReadings ?? new Map()
