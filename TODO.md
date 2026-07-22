@@ -228,7 +228,16 @@ npm test
 - [x] Adicionar Rain Environment com toggle ON/OFF.
 - [x] Adicionar exemplo FC-37 Rain Digital.
 - [ ] Adicionar DHT11/DHT22.
-- [ ] Adicionar LDR/fotorresistor.
+- [x] Adicionar LDR/fotorresistor.
+- [x] Adicionar Light Environment com intensidade ajustável.
+- [x] Adicionar exemplo LDR Light Analog com `analogRead(A0)` via WASM.
+- [x] Adicionar BMP280 Pressure/Temperature com leitura por API simulada sobre I2C/WASM.
+- [x] Adicionar Climate Environment com temperatura/pressão ajustáveis.
+- [x] Adicionar exemplo BMP280 Weather I2C.
+- [x] Adicionar Analog Voltage Source reutilizável para ADCs externos.
+- [x] Adicionar ADS1015 ADC com leitura I2C/WASM.
+- [x] Adicionar ADS1115 ADC com leitura I2C/WASM.
+- [x] Adicionar MCP3008 ADC com leitura SPI/WASM.
 - [ ] Adicionar potenciômetro.
 - [ ] Adicionar botão/push button.
 - [ ] Adicionar buzzer.

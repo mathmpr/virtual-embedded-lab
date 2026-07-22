@@ -1,10 +1,22 @@
 export class ArduinoRuntime {
   #pins = new Map();
+  #analogPins = new Map();
   #pinEvents = [];
   #serial = {
     baudRate: null,
     events: [],
     rxBuffer: []
+  };
+  #i2c = {
+    started: false,
+    transmissionAddress: null,
+    txBuffer: [],
+    rxBuffer: [],
+    devices: new Map()
+  };
+  #spi = {
+    started: false,
+    devices: new Map()
   };
   #wifi = {
     environment: {
@@ -51,6 +63,20 @@ export class ArduinoRuntime {
 
   digitalRead(pin) {
     return this.getPin(pin).value;
+  }
+
+  driveAnalogInput(pin, value, metadata = {}) {
+    const normalizedValue = Math.max(0, Math.min(1023, Math.round(Number(value) || 0)));
+    this.#analogPins.set(pin, {
+      value: normalizedValue,
+      voltageVolts: Number.isFinite(metadata.voltageVolts) ? metadata.voltageVolts : null,
+      resistanceOhms: Number.isFinite(metadata.resistanceOhms) ? metadata.resistanceOhms : null,
+      sourceComponentId: metadata.sourceComponentId ?? null
+    });
+  }
+
+  analogRead(pin) {
+    return this.#analogPins.get(pin)?.value ?? 0;
   }
 
   micros() {
@@ -105,6 +131,10 @@ export class ArduinoRuntime {
 
   getPinsSnapshot() {
     return Object.fromEntries([...this.#pins.entries()].map(([pin, state]) => [pin, { ...state }]));
+  }
+
+  getAnalogPinsSnapshot() {
+    return Object.fromEntries([...this.#analogPins.entries()].map(([pin, state]) => [pin, { ...state }]));
   }
 
   getPinEventsSnapshot() {
@@ -178,6 +208,96 @@ export class ArduinoRuntime {
 
   serialRead() {
     return this.#serial.rxBuffer.shift() ?? -1;
+  }
+
+  wireBegin() {
+    this.#i2c.started = true;
+  }
+
+  wireBeginTransmission(address) {
+    this.#i2c.transmissionAddress = Number(address);
+    this.#i2c.txBuffer = [];
+  }
+
+  wireWrite(value) {
+    this.#i2c.txBuffer.push(Number(value) & 0xff);
+    return 1;
+  }
+
+  wireEndTransmission() {
+    const device = this.#i2c.devices.get(this.#i2c.transmissionAddress);
+    this.#i2c.transmissionAddress = null;
+    return device ? 0 : 2;
+  }
+
+  wireRequestFrom(address, count) {
+    const device = this.#i2c.devices.get(Number(address));
+    const bytes = typeof device?.readBytes === 'function' ? device.readBytes(Number(count), this.#i2c.txBuffer) : [];
+
+    this.#i2c.rxBuffer = bytes.slice(0, Number(count)).map((value) => Number(value) & 0xff);
+    return this.#i2c.rxBuffer.length;
+  }
+
+  wireAvailable() {
+    return this.#i2c.rxBuffer.length;
+  }
+
+  wireRead() {
+    return this.#i2c.rxBuffer.shift() ?? -1;
+  }
+
+  registerI2cDevice(address, device) {
+    this.#i2c.devices.set(Number(address), { ...device, address: Number(address) });
+  }
+
+  bmp280Begin(address) {
+    return this.#i2c.devices.get(Number(address))?.type === 'bmp280';
+  }
+
+  bmp280ReadTemperature(address) {
+    const device = this.#i2c.devices.get(Number(address));
+    return typeof device?.readTemperature === 'function' ? device.readTemperature() : 0;
+  }
+
+  bmp280ReadPressure(address) {
+    const device = this.#i2c.devices.get(Number(address));
+    return typeof device?.readPressure === 'function' ? device.readPressure() : 0;
+  }
+
+  adcBegin(address, expectedType) {
+    const device = this.#i2c.devices.get(Number(address));
+    return device?.type === expectedType;
+  }
+
+  adcReadSingleEnded(address, channel) {
+    const device = this.#i2c.devices.get(Number(address));
+    return typeof device?.readChannel === 'function' ? device.readChannel(Number(channel)) : 0;
+  }
+
+  adcComputeVolts(address, raw) {
+    const device = this.#i2c.devices.get(Number(address));
+    return typeof device?.computeVolts === 'function' ? device.computeVolts(Number(raw)) : 0;
+  }
+
+  spiBegin() {
+    this.#spi.started = true;
+  }
+
+  spiTransfer(value) {
+    return Number(value) & 0xff;
+  }
+
+  registerSpiDevice(chipSelectPin, device) {
+    this.#spi.devices.set(Number(chipSelectPin), { ...device, chipSelectPin: Number(chipSelectPin) });
+  }
+
+  mcp3008Begin(chipSelectPin) {
+    return this.#spi.devices.get(Number(chipSelectPin))?.type === 'mcp3008';
+  }
+
+  mcp3008Read(chipSelectPin, channel) {
+    const device = this.#spi.devices.get(Number(chipSelectPin));
+    return typeof device?.readChannel === 'function' ? device.readChannel(Number(channel)) : 0;
   }
 
   configureWifiEnvironment(environment) {
@@ -267,6 +387,26 @@ export class ArduinoRuntime {
       accessPoint: this.#wifi.accessPoint ? { ...this.#wifi.accessPoint } : null,
       status: this.wifiStatus(),
       rssi: this.wifiRssi()
+    };
+  }
+
+  getI2cSnapshot() {
+    return {
+      started: this.#i2c.started,
+      devices: [...this.#i2c.devices.entries()].map(([address, device]) => ({
+        address,
+        type: device.type
+      }))
+    };
+  }
+
+  getSpiSnapshot() {
+    return {
+      started: this.#spi.started,
+      devices: [...this.#spi.devices.entries()].map(([chipSelectPin, device]) => ({
+        chipSelectPin,
+        type: device.type
+      }))
     };
   }
 

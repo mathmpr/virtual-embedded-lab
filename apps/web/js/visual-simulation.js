@@ -97,6 +97,10 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
       componentReadings: new Map(),
       netReadings: new Map()
     };
+    state.runtime = {
+      pinStates: {},
+      analogPinStates: {}
+    };
     clearSerialRx();
     clearSerialHistory();
     clearBuiltInLedAnimation();
@@ -115,6 +119,18 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
 
   function updateRainValue(componentId, value) {
     wasmSimulationSession?.updateRainValue?.(componentId, value);
+  }
+
+  function updateLightValue(componentId, value) {
+    wasmSimulationSession?.updateLightValue?.(componentId, value);
+  }
+
+  function updateClimateValue(componentId, value) {
+    wasmSimulationSession?.updateClimateValue?.(componentId, value);
+  }
+
+  function updateAnalogVoltageValue(componentId, value) {
+    wasmSimulationSession?.updateAnalogVoltageValue?.(componentId, value);
   }
 
   function applyLedStates(ledStates) {
@@ -234,6 +250,9 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     pauseSimulation,
     resetSimulation,
     updateDistanceValue,
-    updateRainValue
+    updateRainValue,
+    updateLightValue,
+    updateClimateValue,
+    updateAnalogVoltageValue
   };
 }

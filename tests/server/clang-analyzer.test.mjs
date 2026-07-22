@@ -153,6 +153,62 @@ test('clang frontend accepts LED_PIN and PIN as implicit LED_BUILTIN aliases whe
   assert.equal(result.program.pins.led, 13);
 });
 
+test('clang analyzer accepts Arduino analog pins and analogRead', async () => {
+  const result = await analyzeFirmwareWithClang(`
+    const int LIGHT_PIN = A0;
+
+    void setup() {
+      pinMode(LIGHT_PIN, INPUT);
+    }
+
+    void loop() {
+      int lightValue = analogRead(LIGHT_PIN);
+      Serial.println(lightValue);
+    }
+  `);
+
+  assert.equal(result.available, true);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.diagnostics, []);
+});
+
+test('clang analyzer accepts LDR light analog example', async () => {
+  const project = JSON.parse(
+    readFileSync(join(root, 'examples/ldr-light-analog/project.json'), 'utf8')
+  );
+  const result = await analyzeFirmwareWithClang(normalizeProjectCode(project.code.files['main.ino']));
+
+  assert.equal(result.available, true);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.diagnostics, []);
+});
+
+test('clang analyzer accepts BMP280 Wire example', async () => {
+  const project = JSON.parse(
+    readFileSync(join(root, 'examples/bmp280-weather-i2c/project.json'), 'utf8')
+  );
+  const result = await analyzeFirmwareWithClang(normalizeProjectCode(project.code.files['main.ino']));
+
+  assert.equal(result.available, true);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.diagnostics, []);
+});
+
+test('clang analyzer accepts external ADC examples', async () => {
+  for (const examplePath of [
+    'examples/ads1015-single-ended/project.json',
+    'examples/ads1115-single-ended/project.json',
+    'examples/mcp3008-single-ended/project.json'
+  ]) {
+    const project = JSON.parse(readFileSync(join(root, examplePath), 'utf8'));
+    const result = await analyzeFirmwareWithClang(normalizeProjectCode(project.code.files['main.ino']));
+
+    assert.equal(result.available, true, examplePath);
+    assert.equal(result.ok, true, examplePath);
+    assert.deepEqual(result.diagnostics, [], examplePath);
+  }
+});
+
 test('clang wasm compiler invokes wasm32 freestanding build and returns base64 wasm', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'virtual-lab-fake-wasm-clang-'));
   const fakeClang = join(dir, 'clang++');
@@ -407,4 +463,50 @@ test('clang wasm compiler supports FC-37 rain digital example', async () => {
   assert.ok(result.imports.includes('digitalRead'));
   assert.ok(result.imports.includes('serialBegin'));
   assert.equal(result.diagnostics.length, 0);
+});
+
+test('clang wasm compiler supports LDR light analog example', async () => {
+  const project = JSON.parse(
+    readFileSync(join(root, 'examples/ldr-light-analog/project.json'), 'utf8')
+  );
+  const result = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+
+  assert.equal(result.available, true);
+  assert.equal(result.ok, true);
+  assert.ok(result.imports.includes('analogRead'));
+  assert.ok(result.imports.includes('serialBegin'));
+  assert.equal(result.diagnostics.length, 0);
+});
+
+test('clang wasm compiler supports BMP280 Wire example', async () => {
+  const project = JSON.parse(
+    readFileSync(join(root, 'examples/bmp280-weather-i2c/project.json'), 'utf8')
+  );
+  const result = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+
+  assert.equal(result.available, true);
+  assert.equal(result.ok, true);
+  assert.ok(result.imports.includes('wireBegin'));
+  assert.ok(result.imports.includes('bmp280Begin'));
+  assert.ok(result.imports.includes('bmp280ReadTemperature'));
+  assert.ok(result.imports.includes('bmp280ReadPressure'));
+  assert.equal(result.diagnostics.length, 0);
+});
+
+test('clang wasm compiler supports external ADC examples', async () => {
+  const expectations = [
+    ['examples/ads1015-single-ended/project.json', 'adcReadSingleEnded'],
+    ['examples/ads1115-single-ended/project.json', 'adcComputeVolts'],
+    ['examples/mcp3008-single-ended/project.json', 'mcp3008Read']
+  ];
+
+  for (const [examplePath, expectedImport] of expectations) {
+    const project = JSON.parse(readFileSync(join(root, examplePath), 'utf8'));
+    const result = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+
+    assert.equal(result.available, true, examplePath);
+    assert.equal(result.ok, true, examplePath);
+    assert.ok(result.imports.includes(expectedImport), examplePath);
+    assert.equal(result.diagnostics.length, 0, examplePath);
+  }
 });

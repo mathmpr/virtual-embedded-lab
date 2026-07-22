@@ -377,6 +377,12 @@ const int HIGH = 1;
 const int INPUT = 0;
 const int OUTPUT = 1;
 const int LED_BUILTIN = 13;
+const int A0 = 14;
+const int A1 = 15;
+const int A2 = 16;
+const int A3 = 17;
+const int A4 = 18;
+const int A5 = 19;
 const int WIFI_STA = 1;
 const int WIFI_AP = 2;
 const int WIFI_AP_STA = 3;
@@ -391,6 +397,7 @@ const int WL_DISCONNECTED = 6;
 void pinMode(int, int);
 void digitalWrite(int, int);
 int digitalRead(int);
+int analogRead(int);
 unsigned long pulseIn(int, int, unsigned long = 1000000);
 unsigned long millis();
 unsigned long micros();
@@ -422,6 +429,54 @@ public:
 
 extern HardwareSerial Serial;
 
+class TwoWire {
+public:
+  void begin();
+  void beginTransmission(int);
+  int write(int);
+  int endTransmission();
+  int requestFrom(int, int);
+  int available();
+  int read();
+};
+
+extern TwoWire Wire;
+
+class BMP280 {
+public:
+  bool begin(int = 0x76);
+  float readTemperature();
+  float readPressure();
+};
+
+class ADS1015 {
+public:
+  bool begin(int = 0x48);
+  int readADC_SingleEnded(int);
+  float computeVolts(int);
+};
+
+class ADS1115 {
+public:
+  bool begin(int = 0x48);
+  int readADC_SingleEnded(int);
+  float computeVolts(int);
+};
+
+class SPIClass {
+public:
+  void begin();
+  int transfer(int);
+};
+
+extern SPIClass SPI;
+
+class MCP3008 {
+public:
+  bool begin(int = 10);
+  int read(int);
+};
+
 class WiFiClass {
 public:
   void mode(int);
@@ -445,7 +500,7 @@ function shimLineOffset() {
 }
 
 function stripArduinoIncludes(code) {
-  return code.replace(/^\s*#include\s+[<"](?:Arduino|WiFi)\.h[>"].*$/gm, '');
+  return code.replace(/^\s*#include\s+[<"](?:Arduino|WiFi|Wire|SPI)\.h[>"].*$/gm, '');
 }
 
 function normalizeFirmwareSource(code) {

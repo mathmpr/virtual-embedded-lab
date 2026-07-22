@@ -58,6 +58,10 @@ export function createBoardEditor(document) {
       componentReadings: new Map(),
       netReadings: new Map()
     },
+    runtime: {
+      pinStates: {},
+      analogPinStates: {}
+    },
     running: false,
     signals: {
       trig: 0,
@@ -322,7 +326,10 @@ export function createBoardEditor(document) {
       id: componentId,
       type,
       electricalPrimitive: definition.electricalPrimitive,
+      electricalModel: definition.electricalModel,
       behavior: definition.behavior ?? {},
+      simulation: definition.simulation ?? {},
+      propertySchema: definition.propertySchema ?? {},
       x,
       y,
       properties: { ...(definition.properties ?? {}) },
@@ -354,7 +361,19 @@ export function createBoardEditor(document) {
                 ? `<div class="rain-readout"><span>Chuva</span><strong data-rain-output>${definition.properties.active ? 'ON' : 'OFF'}</strong></div><label class="wifi-checkbox-row"><input data-rain-active type="checkbox" ${definition.properties.active ? 'checked' : ''}> Chuva ativa</label><input data-rain-intensity type="range" min="0" max="100" value="${definition.properties.intensityPercent}">`
                 : definition.className === 'fc37-rain-sensor'
                   ? `<div class="rain-sensor-readout"><span>FC-37</span><strong data-rain-sensor-state>DRY</strong></div><div class="rain-sensor-plate"></div>`
-                  : `<div class="component-visual">${definition.body}${renderBuiltInLeds(definition)}</div>`;
+                  : definition.className === 'light-level'
+                    ? `<div class="light-readout"><span>Luz</span><strong data-light-output>${definition.properties.enabled ? `${definition.properties.intensityPercent}%` : 'OFF'}</strong></div><label class="wifi-checkbox-row"><input data-light-enabled type="checkbox" ${definition.properties.enabled ? 'checked' : ''}> Luz ativa</label><input data-light-intensity type="range" min="0" max="100" value="${definition.properties.intensityPercent}">`
+                    : definition.className === 'ldr-light-sensor'
+                      ? `<div class="light-sensor-readout"><span>LDR</span><strong data-ldr-state>DIM</strong></div><div class="ldr-photoresistor"></div>`
+                      : definition.className === 'climate-environment'
+                        ? `<div class="climate-readout"><span>Clima</span><strong data-climate-output>${definition.properties.enabled ? `${definition.properties.temperatureC} °C` : 'OFF'}</strong></div><label class="wifi-checkbox-row"><input data-climate-enabled type="checkbox" ${definition.properties.enabled ? 'checked' : ''}> Clima ativo</label><label class="compact-slider-row"><span>°C</span><input data-climate-temperature type="range" min="-40" max="85" step="1" value="${definition.properties.temperatureC}"></label><label class="compact-slider-row"><span>hPa</span><input data-climate-pressure type="range" min="300" max="1100" step="1" value="${definition.properties.pressureHpa}"></label>`
+                        : definition.className === 'bmp280-sensor'
+                          ? `<div class="bmp280-readout"><span>BMP280</span><strong data-bmp280-state>--</strong></div><div class="bmp280-chip"><span data-bmp280-temp>-- °C</span><span data-bmp280-pressure>-- hPa</span></div>`
+                          : definition.className === 'analog-voltage-source'
+                            ? `<div class="analog-readout"><span>Fonte</span><strong data-analog-output>${definition.properties.enabled ? `${definition.properties.voltageVolts} V` : 'OFF'}</strong></div><label class="wifi-checkbox-row"><input data-analog-enabled type="checkbox" ${definition.properties.enabled ? 'checked' : ''}> Saída ativa</label><input data-analog-voltage type="range" min="0" max="5" step="0.001" value="${definition.properties.voltageVolts}">`
+                            : definition.className?.includes('adc-module')
+                              ? `<div class="adc-readout"><span>${definition.title}</span><strong data-adc-state>CH0</strong></div><div class="adc-chip"><span data-adc-raw>-- raw</span><span data-adc-voltage>-- V</span></div>`
+                          : `<div class="component-visual">${definition.body}${renderBuiltInLeds(definition)}</div>`;
 
     const terminals = definition.terminals.map((terminal) => {
       const style = terminal.side === 'left' || terminal.side === 'right'
@@ -566,6 +585,91 @@ export function createBoardEditor(document) {
         recordHistory();
       });
     }
+
+    const lightEnabled = element.querySelector('[data-light-enabled]');
+    const lightIntensity = element.querySelector('[data-light-intensity]');
+
+    if (lightEnabled) {
+      lightEnabled.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      lightEnabled.addEventListener('change', () => {
+        updateLightEnabled(model, lightEnabled.checked, true);
+      });
+    }
+
+    if (lightIntensity) {
+      lightIntensity.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      lightIntensity.addEventListener('input', () => {
+        updateLightIntensity(model, Number(lightIntensity.value));
+      });
+      lightIntensity.addEventListener('change', () => {
+        recordHistory();
+      });
+    }
+
+    const climateEnabled = element.querySelector('[data-climate-enabled]');
+    const climateTemperature = element.querySelector('[data-climate-temperature]');
+    const climatePressure = element.querySelector('[data-climate-pressure]');
+
+    if (climateEnabled) {
+      climateEnabled.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      climateEnabled.addEventListener('change', () => {
+        updateClimateEnabled(model, climateEnabled.checked, true);
+      });
+    }
+
+    if (climateTemperature) {
+      climateTemperature.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      climateTemperature.addEventListener('input', () => {
+        updateClimateTemperature(model, Number(climateTemperature.value));
+      });
+      climateTemperature.addEventListener('change', () => {
+        recordHistory();
+      });
+    }
+
+    if (climatePressure) {
+      climatePressure.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      climatePressure.addEventListener('input', () => {
+        updateClimatePressure(model, Number(climatePressure.value));
+      });
+      climatePressure.addEventListener('change', () => {
+        recordHistory();
+      });
+    }
+
+    const analogEnabled = element.querySelector('[data-analog-enabled]');
+    const analogVoltage = element.querySelector('[data-analog-voltage]');
+
+    if (analogEnabled) {
+      analogEnabled.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      analogEnabled.addEventListener('change', () => {
+        updateAnalogEnabled(model, analogEnabled.checked, true);
+      });
+    }
+
+    if (analogVoltage) {
+      analogVoltage.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      analogVoltage.addEventListener('input', () => {
+        updateAnalogVoltage(model, Number(analogVoltage.value));
+      });
+      analogVoltage.addEventListener('change', () => {
+        recordHistory();
+      });
+    }
   }
 
   function handleTerminalClick(componentId, terminalId) {
@@ -730,176 +834,337 @@ export function createBoardEditor(document) {
   }
 
   function renderEditableProperties(component) {
-    if (component.type === 'distance') {
-      return `
-        <label class="property-row editable-property">
-          <span>Distância</span>
-          <input data-inspector-distance type="range" min="${component.properties.minCm}" max="${component.properties.maxCm}" value="${component.properties.valueCm}">
-        </label>
-        <div class="property-row"><span>Valor</span><code data-inspector-distance-output>${component.properties.valueCm} cm</code></div>
-      `;
+    const definition = componentDefinitions[component.type];
+    const schemaEntries = Object.entries(definition?.propertySchema ?? {});
+
+    if (schemaEntries.length === 0) {
+      return Object.entries(component.properties).map(([key, value]) => {
+        return `<div class="property-row"><span>${labelFromPropertyName(key)}</span><code>${formatInspectorPropertyValue(key, value, null)}</code></div>`;
+      }).join('');
     }
 
-    if (component.type === 'resistor') {
-      return `
-        <label class="property-row editable-property">
-          <span>Resistência</span>
-          ${renderVariantSelect('resistor', 'resistanceOhms', component.properties.resistanceOhms, 'data-inspector-resistor')}
-        </label>
-        <div class="property-row"><span>Potência máx.</span><code>${component.properties.maximumPowerWatts} W</code></div>
-      `;
-    }
-
-    if (component.type === 'capacitor') {
-      return `
-        <label class="property-row editable-property">
-          <span>Capacitância</span>
-          ${renderVariantSelect('capacitor', 'capacitanceMicrofarads', component.properties.capacitanceMicrofarads, 'data-inspector-capacitor')}
-        </label>
-        <div class="property-row"><span>Tensão máx.</span><code>${component.properties.maximumVoltageVolts} V</code></div>
-      `;
-    }
-
-    if (component.type === 'wifi-signal') {
-      return `
-        <label class="property-row editable-property">
-          <span>SSID</span>
-          <input data-inspector-wifi-ssid type="text" value="${escapeHtml(component.properties.ssid)}">
-        </label>
-        <label class="property-row editable-property">
-          <span>Internet ativa</span>
-          <input data-inspector-wifi-connected type="checkbox" ${component.properties.connected ? 'checked' : ''}>
-        </label>
-        <label class="property-row editable-property">
-          <span>Sinal</span>
-          <input data-inspector-wifi-strength type="range" min="0" max="100" value="${component.properties.strengthPercent}">
-        </label>
-        <div class="property-row"><span>Força</span><code data-inspector-wifi-output>${component.properties.strengthPercent}%</code></div>
-      `;
-    }
-
-    if (component.type === 'rain-toggle') {
-      return `
-        <label class="property-row editable-property">
-          <span>Chuva ativa</span>
-          <input data-inspector-rain-active type="checkbox" ${component.properties.active ? 'checked' : ''}>
-        </label>
-        <label class="property-row editable-property">
-          <span>Intensidade</span>
-          <input data-inspector-rain-intensity type="range" min="0" max="100" value="${component.properties.intensityPercent}">
-        </label>
-        <div class="property-row"><span>Estado</span><code data-inspector-rain-output>${component.properties.active ? 'ON' : 'OFF'} / ${component.properties.intensityPercent}%</code></div>
-      `;
-    }
-
-    if (component.type === 'fc37-rain-sensor') {
-      return `
-        <label class="property-row editable-property">
-          <span>Ativo em LOW</span>
-          <input data-inspector-rain-sensor-active-low type="checkbox" ${component.properties.activeLow ? 'checked' : ''}>
-        </label>
-        <label class="property-row editable-property">
-          <span>Threshold</span>
-          <input data-inspector-rain-sensor-threshold type="range" min="0" max="100" value="${component.properties.thresholdPercent}">
-        </label>
-        <div class="property-row"><span>Threshold</span><code data-inspector-rain-sensor-threshold-output>${component.properties.thresholdPercent}%</code></div>
-        <div class="property-row"><span>AO molhado</span><code>${component.properties.wetAnalogValue}</code></div>
-        <div class="property-row"><span>AO seco</span><code>${component.properties.dryAnalogValue}</code></div>
-      `;
-    }
-
-    return Object.entries(component.properties).map(([key, value]) => {
-      return `<div class="property-row"><span>${key}</span><code>${value}</code></div>`;
+    return schemaEntries.map(([propertyName, propertySchema]) => {
+      return renderInspectorPropertyControl(component, definition, propertyName, propertySchema);
     }).join('');
   }
 
   function bindInspectorPropertyControls(component) {
-    const distanceInput = inspectorContent.querySelector('[data-inspector-distance]');
+    inspectorContent.querySelectorAll('[data-inspector-property]').forEach((input) => {
+      const propertyName = input.dataset.inspectorProperty;
+      const eventName = input.matches('input[type="range"]') ? 'input' : 'change';
 
-    if (distanceInput) {
-      distanceInput.addEventListener('input', () => {
-        updateDistanceValue(component, Number(distanceInput.value));
+      if (eventName === 'input') {
+        input.addEventListener('input', () => {
+          updateComponentProperty(component, propertyName, inspectorInputValue(input));
+        });
+        input.addEventListener('change', () => {
+          updateComponentProperty(component, propertyName, inspectorInputValue(input), true);
+        });
+        return;
+      }
+
+      input.addEventListener('change', () => {
+        updateComponentProperty(component, propertyName, inspectorInputValue(input), true);
       });
-      distanceInput.addEventListener('change', () => {
-        recordHistory();
-      });
+    });
+  }
+
+  function renderInspectorPropertyControl(component, definition, propertyName, propertySchema) {
+    const value = component.properties[propertyName];
+    const label = propertySchema.label ?? labelFromPropertyName(propertyName);
+    const variants = definition.variants?.[propertyName] ?? [];
+
+    if (variants.length > 0) {
+      return `
+        <label class="property-row editable-property">
+          <span>${escapeHtml(label)}</span>
+          <select data-inspector-property="${propertyName}">
+            ${variants.map((variant) => `
+              <option value="${escapeHtml(variant.value)}" ${String(value) === String(variant.value) ? 'selected' : ''}>${escapeHtml(variant.label)}</option>
+            `).join('')}
+          </select>
+        </label>
+      `;
     }
 
-    const resistorSelect = inspectorContent.querySelector('[data-inspector-resistor]');
-
-    if (resistorSelect) {
-      resistorSelect.addEventListener('change', () => {
-        updateResistorValue(component, Number(resistorSelect.value), true);
-      });
+    if (propertySchema.type === 'boolean') {
+      return `
+        <label class="property-row editable-property">
+          <span>${escapeHtml(label)}</span>
+          <input data-inspector-property="${propertyName}" type="checkbox" ${value ? 'checked' : ''}>
+        </label>
+      `;
     }
 
-    const capacitorSelect = inspectorContent.querySelector('[data-inspector-capacitor]');
+    if (propertySchema.type === 'number') {
+      const inputType = shouldUseRangeInput(propertyName, propertySchema) ? 'range' : 'number';
+      const min = Number.isFinite(Number(propertySchema.minimum)) ? ` min="${propertySchema.minimum}"` : '';
+      const max = Number.isFinite(Number(propertySchema.maximum)) ? ` max="${propertySchema.maximum}"` : '';
+      const step = inspectorPropertyStep(propertyName, propertySchema);
 
-    if (capacitorSelect) {
-      capacitorSelect.addEventListener('change', () => {
-        updateCapacitorValue(component, Number(capacitorSelect.value), true);
-      });
+      return `
+        <label class="property-row editable-property">
+          <span>${escapeHtml(label)}</span>
+          <input data-inspector-property="${propertyName}" type="${inputType}"${min}${max} step="${step}" value="${escapeHtml(value)}">
+        </label>
+        <div class="property-row"><span>${escapeHtml(label)}</span><code data-inspector-property-output="${propertyName}">${formatInspectorPropertyValue(propertyName, value, propertySchema)}</code></div>
+      `;
     }
 
-    const wifiStrength = inspectorContent.querySelector('[data-inspector-wifi-strength]');
-    const wifiConnected = inspectorContent.querySelector('[data-inspector-wifi-connected]');
-    const wifiSsid = inspectorContent.querySelector('[data-inspector-wifi-ssid]');
-
-    if (wifiStrength) {
-      wifiStrength.addEventListener('input', () => {
-        updateWifiStrength(component, Number(wifiStrength.value));
-      });
-      wifiStrength.addEventListener('change', () => {
-        recordHistory();
-      });
+    if (propertySchema.type === 'string') {
+      return `
+        <label class="property-row editable-property">
+          <span>${escapeHtml(label)}</span>
+          <input data-inspector-property="${propertyName}" type="text" value="${escapeHtml(value)}">
+        </label>
+      `;
     }
 
-    if (wifiConnected) {
-      wifiConnected.addEventListener('change', () => {
-        updateWifiInternetAvailable(component, wifiConnected.checked, true);
-      });
+    return `<div class="property-row"><span>${escapeHtml(label)}</span><code>${formatInspectorPropertyValue(propertyName, value, propertySchema)}</code></div>`;
+  }
+
+  function shouldUseRangeInput(propertyName, propertySchema) {
+    if (!Number.isFinite(Number(propertySchema.minimum)) || !Number.isFinite(Number(propertySchema.maximum))) {
+      return false;
     }
 
-    if (wifiSsid) {
-      wifiSsid.addEventListener('change', () => {
-        updateWifiSsid(component, wifiSsid.value, true);
-      });
+    return propertyName.toLowerCase().includes('percent')
+      || propertyName === 'valueCm'
+      || propertyName === 'temperatureC'
+      || propertyName === 'pressureHpa'
+      || propertyName === 'voltageVolts'
+      || propertyName === 'gamma';
+  }
+
+  function inspectorPropertyStep(propertyName, propertySchema) {
+    if (Number.isFinite(Number(propertySchema.step))) {
+      return propertySchema.step;
     }
 
-    const rainActive = inspectorContent.querySelector('[data-inspector-rain-active]');
-    const rainIntensity = inspectorContent.querySelector('[data-inspector-rain-intensity]');
-    const rainSensorActiveLow = inspectorContent.querySelector('[data-inspector-rain-sensor-active-low]');
-    const rainSensorThreshold = inspectorContent.querySelector('[data-inspector-rain-sensor-threshold]');
-
-    if (rainActive) {
-      rainActive.addEventListener('change', () => {
-        updateRainActive(component, rainActive.checked, true);
-      });
+    if (propertyName === 'voltageVolts') {
+      return 0.001;
     }
 
-    if (rainIntensity) {
-      rainIntensity.addEventListener('input', () => {
-        updateRainIntensity(component, Number(rainIntensity.value));
-      });
-      rainIntensity.addEventListener('change', () => {
-        recordHistory();
-      });
+    if (propertyName === 'gamma') {
+      return 0.1;
     }
 
-    if (rainSensorActiveLow) {
-      rainSensorActiveLow.addEventListener('change', () => {
-        updateRainSensorActiveLow(component, rainSensorActiveLow.checked, true);
-      });
+    return propertySchema.type === 'number' ? 'any' : 1;
+  }
+
+  function inspectorInputValue(input) {
+    if (input.type === 'checkbox') {
+      return input.checked;
     }
 
-    if (rainSensorThreshold) {
-      rainSensorThreshold.addEventListener('input', () => {
-        updateRainSensorThreshold(component, Number(rainSensorThreshold.value));
-      });
-      rainSensorThreshold.addEventListener('change', () => {
-        recordHistory();
-      });
+    if (input.type === 'number' || input.type === 'range') {
+      return Number(input.value);
     }
+
+    return input.value;
+  }
+
+  function updateComponentProperty(component, propertyName, value, shouldRecord = false) {
+    const definition = componentDefinitions[component.type];
+    const propertySchema = definition?.propertySchema?.[propertyName] ?? {};
+    const normalizedValue = normalizeInspectorPropertyValue(value, propertySchema);
+
+    if (definition?.behavior?.channel === 'distance' && propertyName === definition.behavior.valueProperty) {
+      updateDistanceValue(component, normalizedValue, shouldRecord);
+      syncInspectorPropertyControls(component);
+      return;
+    }
+
+    if (definition?.electricalPrimitive === 'resistor' && propertyName === definition.electricalModel?.resistanceProperty) {
+      updateResistorValue(component, normalizedValue, shouldRecord);
+      return;
+    }
+
+    if (definition?.electricalPrimitive === 'capacitor' && propertyName === definition.electricalModel?.capacitanceProperty) {
+      updateCapacitorValue(component, normalizedValue, shouldRecord);
+      return;
+    }
+
+    if (definition?.behavior?.type === 'wireless-environment') {
+      updateWirelessEnvironmentProperty(component, propertyName, normalizedValue, shouldRecord);
+      return;
+    }
+
+    if (definition?.behavior?.type === 'environment-source') {
+      updateEnvironmentSourceProperty(component, propertyName, normalizedValue, shouldRecord);
+      return;
+    }
+
+    if (definition?.behavior?.type === 'analog-voltage-source') {
+      updateAnalogSourceProperty(component, propertyName, normalizedValue, shouldRecord);
+      return;
+    }
+
+    if (definition?.behavior?.type === 'ldr-light-sensor') {
+      updateLdrProperty(component, propertyName, normalizedValue, shouldRecord);
+      syncInspectorPropertyControls(component);
+      return;
+    }
+
+    if (definition?.behavior?.type === 'bmp280-sensor') {
+      updateBmp280Property(component, propertyName, normalizedValue, shouldRecord);
+      syncInspectorPropertyControls(component);
+      return;
+    }
+
+    if (definition?.behavior?.type === 'adc-i2c' || definition?.behavior?.type === 'adc-spi') {
+      updateAdcProperty(component, propertyName, normalizedValue, shouldRecord);
+      syncInspectorPropertyControls(component);
+      return;
+    }
+
+    component.properties[propertyName] = normalizedValue;
+    syncInspectorPropertyControls(component);
+    renderSignals();
+
+    if (state.running && definition?.simulation?.effects?.some((effect) => ['firmware', 'electrical', 'environment'].includes(effect))) {
+      simulation.runSimulation();
+    }
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateWirelessEnvironmentProperty(component, propertyName, value, shouldRecord) {
+    if (propertyName === 'strengthPercent') {
+      updateWifiStrength(component, value, shouldRecord);
+      return;
+    }
+
+    if (propertyName === 'connected') {
+      updateWifiInternetAvailable(component, value, shouldRecord);
+      return;
+    }
+
+    if (propertyName === 'ssid') {
+      updateWifiSsid(component, value, shouldRecord);
+      return;
+    }
+
+    component.properties[propertyName] = value;
+    syncInspectorPropertyControls(component);
+  }
+
+  function updateEnvironmentSourceProperty(component, propertyName, value, shouldRecord) {
+    const definition = componentDefinitions[component.type];
+    component.properties[propertyName] = value;
+    syncEnvironmentControl(component);
+    syncInspectorPropertyControls(component);
+    renderSignals();
+
+    if (state.running) {
+      if (definition.behavior.channel === 'rain') {
+        simulation.updateRainValue(component.id, {
+          active: component.properties[definition.behavior.activeProperty],
+          intensityPercent: component.properties[definition.behavior.intensityProperty]
+        });
+      } else if (definition.behavior.channel === 'light') {
+        simulation.updateLightValue(component.id, {
+          enabled: component.properties[definition.behavior.activeProperty],
+          intensityPercent: component.properties[definition.behavior.intensityProperty]
+        });
+      } else if (definition.behavior.channel === 'climate') {
+        simulation.updateClimateValue(component.id, climatePayload(component));
+        applyBmp280SensorStates();
+      }
+    }
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateAnalogSourceProperty(component, propertyName, value, shouldRecord) {
+    component.properties[propertyName] = value;
+    syncAnalogControl(component);
+    syncInspectorPropertyControls(component);
+    renderSignals();
+
+    if (state.running) {
+      simulation.updateAnalogVoltageValue(component.id, analogPayload(component));
+    }
+
+    applyAdcStates();
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function syncEnvironmentControl(component) {
+    const definition = componentDefinitions[component.type];
+
+    if (definition?.behavior?.channel === 'rain') {
+      syncRainControl(component);
+      return;
+    }
+
+    if (definition?.behavior?.channel === 'light') {
+      syncLightControl(component);
+      return;
+    }
+
+    if (definition?.behavior?.channel === 'climate') {
+      syncClimateControl(component);
+    }
+  }
+
+  function syncInspectorPropertyControls(component) {
+    const definition = componentDefinitions[component.type];
+
+    for (const [propertyName, propertySchema] of Object.entries(definition?.propertySchema ?? {})) {
+      const input = inspectorContent.querySelector(`[data-inspector-property="${propertyName}"]`);
+      const output = inspectorContent.querySelector(`[data-inspector-property-output="${propertyName}"]`);
+      const value = component.properties[propertyName];
+
+      if (input) {
+        if (input.type === 'checkbox') {
+          input.checked = Boolean(value);
+        } else {
+          input.value = String(value);
+        }
+      }
+
+      if (output) {
+        output.textContent = formatInspectorPropertyValue(propertyName, value, propertySchema);
+      }
+    }
+  }
+
+  function normalizeInspectorPropertyValue(value, propertySchema) {
+    if (propertySchema.type === 'boolean') {
+      return Boolean(value);
+    }
+
+    if (propertySchema.type === 'number') {
+      const min = Number.isFinite(Number(propertySchema.minimum)) ? Number(propertySchema.minimum) : Number.NEGATIVE_INFINITY;
+      const max = Number.isFinite(Number(propertySchema.maximum)) ? Number(propertySchema.maximum) : Number.POSITIVE_INFINITY;
+      return Math.max(min, Math.min(max, Number(value)));
+    }
+
+    return String(value ?? '');
+  }
+
+  function formatInspectorPropertyValue(propertyName, value, propertySchema) {
+    if (propertySchema?.type === 'boolean') {
+      return value ? 'ON' : 'OFF';
+    }
+
+    if (propertySchema?.unit) {
+      return `${value} ${propertySchema.unit}`;
+    }
+
+    if (propertyName === 'i2cAddress' && Number.isFinite(Number(value))) {
+      return `0x${Number(value).toString(16).toUpperCase()}`;
+    }
+
+    return String(value);
   }
 
   function renderNetInspector(netId) {
@@ -1186,63 +1451,174 @@ export function createBoardEditor(document) {
     const component = state.components.get(state.selectedId);
 
     if (!component) {
-      signalMonitor.innerHTML = '<p class="muted">Selecione Arduino, HC-SR04 ou LED para ver sinais.</p>';
+      signalMonitor.innerHTML = '<p class="muted">Selecione um componente para ver sinais derivados das conexões.</p>';
       return;
     }
 
-    if (component.type === 'arduino') {
-      signalMonitor.innerHTML = [
-        signalCard('Ultrassom', [
-          signalRow('D7 / TRIG', state.signals.trig),
-          signalRow('D6 / ECHO', state.signals.echo)
-        ]),
-        signalCard('LED', [
-          signalRow('D13', state.signals.led, state.signals.led ? 'ON' : 'OFF')
-        ])
-      ].join('');
-      return;
+    const cards = [
+      propertySignalCard(component),
+      terminalSignalCard(component),
+      electricalSignalCard(component)
+    ].filter(Boolean);
+
+    signalMonitor.innerHTML = cards.length > 0
+      ? cards.join('')
+      : '<p class="muted">Este componente ainda não possui sinais derivados do projeto.</p>';
+  }
+
+  function propertySignalCard(component) {
+    const rows = Object.entries(component.properties ?? {})
+      .filter(([, value]) => typeof value === 'boolean' || Number.isFinite(Number(value)))
+      .map(([key, value]) => {
+        if (typeof value === 'boolean') {
+          return signalRow(labelFromPropertyName(key), value ? 1 : 0, value ? 'ON' : 'OFF');
+        }
+
+        return signalRow(labelFromPropertyName(key), normalizePropertySignal(key, Number(value)), formatPropertySignal(key, Number(value)));
+      });
+
+    return rows.length > 0 ? signalCard('Propriedades', rows) : null;
+  }
+
+  function terminalSignalCard(component) {
+    const definition = componentDefinitions[component.type];
+    const rows = (definition?.terminals ?? []).map((terminal) => terminalSignalRow(component, terminal));
+
+    return rows.length > 0 ? signalCard('Terminais e conexões', rows) : null;
+  }
+
+  function terminalSignalRow(component, terminal) {
+    const terminalRef = { componentId: component.id, terminalId: terminal.id };
+    const net = netForTerminal(terminalRef);
+    const signal = signalForTerminalNet(terminalRef, net);
+    const connected = connectedTerminalLabels(component.id, net);
+    const label = `${terminal.label ?? terminal.id}${connected ? ` -> ${connected}` : ''}`;
+
+    return signalRow(label, signal.value, signal.text);
+  }
+
+  function electricalSignalCard(component) {
+    const reading = state.electrical.componentReadings.get(component.id);
+
+    if (!reading) {
+      return null;
     }
 
-    if (component.type === 'hcsr04') {
-      signalMonitor.innerHTML = signalCard('HC-SR04', [
-        signalRow('TRIG', state.signals.trig),
-        signalRow('ECHO', state.signals.echo)
-      ]);
-      return;
+    return signalCard('Elétrico', [
+      signalRow('Tensão', normalizeVoltage(reading.voltageVolts), formatVoltage(reading.voltageVolts)),
+      signalRow('Corrente', normalizeCurrent(reading.currentAmps), formatCurrent(reading.currentAmps)),
+      signalRow('Potência', normalizePower(reading.powerWatts), formatPower(reading.powerWatts))
+    ]);
+  }
+
+  function signalForTerminalNet(terminal, net) {
+    const directRuntime = runtimeSignalForTerminal(terminal);
+
+    if (directRuntime) {
+      return directRuntime;
     }
 
-    if (isLedComponent(component)) {
-      signalMonitor.innerHTML = signalCard('LED', [
-        signalRow('Estado', state.signals.led, state.signals.led ? 'ON' : 'OFF')
-      ]);
-      return;
+    const netRuntime = runtimeSignalForNet(net);
+
+    if (netRuntime) {
+      return netRuntime;
     }
 
-    if (component.type === 'wifi-signal') {
-      signalMonitor.innerHTML = signalCard('Wi-Fi Signal', [
-        signalRow('Internet', component.properties.connected ? 1 : 0, component.properties.connected ? 'ON' : 'OFF'),
-        signalRow('Força', Number(component.properties.strengthPercent) / 100, `${component.properties.strengthPercent}%`)
-      ]);
-      return;
+    const reading = net ? state.electrical.netReadings.get(net.id) : null;
+
+    if (reading) {
+      return {
+        value: normalizeVoltage(reading.voltageVolts),
+        text: reading.voltageVolts === null ? reading.state : `${formatVoltage(reading.voltageVolts)} / ${reading.state}`
+      };
     }
 
-    if (component.type === 'rain-toggle') {
-      signalMonitor.innerHTML = signalCard('Chuva', [
-        signalRow('Estado', component.properties.active ? 1 : 0, component.properties.active ? 'ON' : 'OFF'),
-        signalRow('Intensidade', Number(component.properties.intensityPercent) / 100, `${component.properties.intensityPercent}%`)
-      ]);
-      return;
+    const kind = terminalKind(terminal);
+
+    if (kind === 'power') {
+      return { value: 1, text: 'VCC' };
     }
 
-    if (component.type === 'fc37-rain-sensor') {
-      signalMonitor.innerHTML = signalCard('FC-37', [
-        signalRow('Chuva', state.signals.rain ?? 0, state.signals.rain ? 'WET' : 'DRY'),
-        signalRow('DO', state.signals.rainDo ?? 0)
-      ]);
-      return;
+    if (kind === 'ground') {
+      return { value: 0, text: 'GND' };
     }
 
-    signalMonitor.innerHTML = '<p class="muted">Este componente ainda não expõe sinais monitoráveis.</p>';
+    return {
+      value: 0,
+      text: net ? 'conectado' : 'desconectado'
+    };
+  }
+
+  function runtimeSignalForNet(net) {
+    if (!net) {
+      return null;
+    }
+
+    for (const terminal of net.terminals) {
+      const signal = runtimeSignalForTerminal(terminal);
+
+      if (signal) {
+        return signal;
+      }
+    }
+
+    return null;
+  }
+
+  function runtimeSignalForTerminal(terminal) {
+    const digitalPin = digitalPinFromTerminal(terminal);
+
+    if (Number.isInteger(digitalPin) && state.runtime.pinStates[digitalPin]) {
+      const pin = state.runtime.pinStates[digitalPin];
+      const value = pin.value === 'HIGH' ? 1 : 0;
+      return { value, text: `${pin.value} / ${pin.mode}` };
+    }
+
+    const analogPin = analogPinFromTerminal(terminal);
+
+    if (Number.isInteger(analogPin) && state.runtime.analogPinStates[analogPin]) {
+      const analog = state.runtime.analogPinStates[analogPin];
+      return {
+        value: normalizeAnalog(analog.value),
+        text: `${analog.value} / ${formatVoltage(analog.voltageVolts)}`
+      };
+    }
+
+    return null;
+  }
+
+  function connectedTerminalLabels(componentId, net) {
+    if (!net) {
+      return '';
+    }
+
+    return net.terminals
+      .filter((terminal) => terminal.componentId !== componentId)
+      .slice(0, 3)
+      .map((terminal) => terminalReference(terminal))
+      .join(', ');
+  }
+
+  function netForTerminal(terminal) {
+    return getNets().find((net) => {
+      return net.terminals.some((item) => item.componentId === terminal.componentId && item.terminalId === terminal.terminalId);
+    }) ?? null;
+  }
+
+  function digitalPinFromTerminal(terminal) {
+    const match = terminal.terminalId.match(/^d(\d+)$/);
+    return match ? Number(match[1]) : null;
+  }
+
+  function analogPinFromTerminal(terminal) {
+    const arduinoMatch = terminal.terminalId.match(/^a([0-5])$/);
+
+    if (arduinoMatch) {
+      return 14 + Number(arduinoMatch[1]);
+    }
+
+    const espMatch = terminal.terminalId.match(/^io(\d+)$/);
+    return espMatch ? Number(espMatch[1]) : null;
   }
 
   function signalCard(title, rows) {
@@ -1255,10 +1631,12 @@ export function createBoardEditor(document) {
   }
 
   function signalRow(label, value, text = null) {
+    const normalizedValue = Math.max(0, Math.min(1, Number(value) || 0));
+
     return `
       <div class="signal-row">
         <span>${label}</span>
-        <div class="signal-track"><div class="signal-fill" style="width:${Math.round(value * 100)}%"></div></div>
+        <div class="signal-track"><div class="signal-fill" style="width:${Math.round(normalizedValue * 100)}%"></div></div>
         <span class="signal-value">${text ?? (value ? 'HIGH' : 'LOW')}</span>
       </div>
     `;
@@ -1342,7 +1720,14 @@ export function createBoardEditor(document) {
       componentReadings: result.electrical?.componentReadings ?? new Map(),
       netReadings: result.electrical?.netReadings ?? new Map()
     };
+    state.runtime = {
+      pinStates: result.firmwareResult?.pinStates ?? {},
+      analogPinStates: result.firmwareResult?.analogPinStates ?? {}
+    };
     applyRainSensorStates();
+    applyLdrSensorStates();
+    applyBmp280SensorStates();
+    applyAdcStates();
     renderInspector();
   }
 
@@ -1378,8 +1763,139 @@ export function createBoardEditor(document) {
     }
   }
 
+  function applyLdrSensorStates() {
+    const raw = Math.round((state.signals.lightAnalog ?? 0) * 1023);
+    const label = raw < 300 ? 'DARK' : raw < 700 ? 'DIM' : 'BRIGHT';
+
+    for (const component of state.components.values()) {
+      if (component.type !== 'ldr-light-sensor') {
+        continue;
+      }
+
+      component.element.classList.toggle('dark', label === 'DARK');
+      component.element.classList.toggle('dim', label === 'DIM');
+      component.element.classList.toggle('bright', label === 'BRIGHT');
+      const stateOutput = component.element.querySelector('[data-ldr-state]');
+
+      if (stateOutput) {
+        stateOutput.textContent = label;
+      }
+    }
+  }
+
+  function applyBmp280SensorStates() {
+    const climate = firstClimateComponent();
+
+    for (const component of state.components.values()) {
+      if (component.type !== 'bmp280-sensor') {
+        continue;
+      }
+
+      const enabled = Boolean(climate?.properties.enabled ?? false);
+      const temperature = enabled
+        ? Number(climate.properties.temperatureC ?? 25) + Number(component.properties.temperatureOffsetC ?? 0)
+        : 0;
+      const pressure = enabled
+        ? Number(climate.properties.pressureHpa ?? 1013.25) + Number(component.properties.pressureOffsetHpa ?? 0)
+        : 0;
+
+      component.element.classList.toggle('online', enabled);
+      component.element.classList.toggle('offline', !enabled);
+      const stateOutput = component.element.querySelector('[data-bmp280-state]');
+      const temperatureOutput = component.element.querySelector('[data-bmp280-temp]');
+      const pressureOutput = component.element.querySelector('[data-bmp280-pressure]');
+
+      if (stateOutput) {
+        stateOutput.textContent = enabled ? `0x${Number(component.properties.i2cAddress).toString(16).toUpperCase()}` : 'OFF';
+      }
+
+      if (temperatureOutput) {
+        temperatureOutput.textContent = `${temperature.toFixed(1)} °C`;
+      }
+
+      if (pressureOutput) {
+        pressureOutput.textContent = `${pressure.toFixed(0)} hPa`;
+      }
+    }
+  }
+
+  function applyAdcStates() {
+    for (const component of state.components.values()) {
+      if (!isAdcComponent(component)) {
+        continue;
+      }
+
+      const source = firstAnalogSourceComponent();
+      const voltage = source?.properties.enabled ? Number(source.properties.voltageVolts ?? 0) : 0;
+      const raw = adcRawForComponent(component, voltage);
+
+      component.element.classList.toggle('online', Boolean(source?.properties.enabled));
+      const stateOutput = component.element.querySelector('[data-adc-state]');
+      const rawOutput = component.element.querySelector('[data-adc-raw]');
+      const voltageOutput = component.element.querySelector('[data-adc-voltage]');
+
+      if (stateOutput) {
+        stateOutput.textContent = 'CH0';
+      }
+
+      if (rawOutput) {
+        rawOutput.textContent = `${raw} raw`;
+      }
+
+      if (voltageOutput) {
+        voltageOutput.textContent = `${voltage.toFixed(3)} V`;
+      }
+    }
+  }
+
   function formatVoltage(value) {
     return value === null ? 'flutuante' : `${value.toFixed(2)} V`;
+  }
+
+  function normalizeVoltage(value) {
+    return Number.isFinite(value) ? Math.max(0, Math.min(1, value / 5)) : 0;
+  }
+
+  function normalizeCurrent(value) {
+    return Number.isFinite(value) ? Math.max(0, Math.min(1, value / 0.04)) : 1;
+  }
+
+  function normalizePower(value) {
+    return Number.isFinite(value) ? Math.max(0, Math.min(1, value / 0.25)) : 1;
+  }
+
+  function normalizeAnalog(value) {
+    return Math.max(0, Math.min(1, Number(value) / 1023));
+  }
+
+  function normalizePropertySignal(key, value) {
+    if (key.toLowerCase().includes('percent')) {
+      return Math.max(0, Math.min(1, value / 100));
+    }
+
+    if (key.toLowerCase().includes('ohms')) {
+      return Math.max(0, Math.min(1, Math.log10(Math.max(1, value)) / 6));
+    }
+
+    return Number.isFinite(value) ? Math.max(0, Math.min(1, value / 1023)) : 0;
+  }
+
+  function formatPropertySignal(key, value) {
+    if (key.toLowerCase().includes('percent')) {
+      return `${value}%`;
+    }
+
+    if (key.toLowerCase().includes('ohms')) {
+      return `${value} Ω`;
+    }
+
+    return String(value);
+  }
+
+  function labelFromPropertyName(key) {
+    return key
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/^./, (char) => char.toUpperCase());
   }
 
   function formatCurrent(value) {
@@ -1435,7 +1951,7 @@ export function createBoardEditor(document) {
   function updateDistanceValue(component, valueCm, shouldRecord = false) {
     component.properties.valueCm = valueCm;
     syncDistanceControl(component);
-    syncInspectorDistanceOutput(component);
+    syncInspectorPropertyControls(component);
 
     if (state.running) {
       simulation.updateDistanceValue(component.id, valueCm);
@@ -1477,7 +1993,7 @@ export function createBoardEditor(document) {
   function updateWifiStrength(component, strengthPercent, shouldRecord = false) {
     component.properties.strengthPercent = Math.max(0, Math.min(100, strengthPercent));
     syncWifiSignalControl(component);
-    syncInspectorWifiOutput(component);
+    syncInspectorPropertyControls(component);
     renderSignals();
 
     if (state.running) {
@@ -1492,7 +2008,7 @@ export function createBoardEditor(document) {
   function updateWifiInternetAvailable(component, internetAvailable, shouldRecord = false) {
     component.properties.connected = Boolean(internetAvailable);
     syncWifiSignalControl(component);
-    syncInspectorWifiOutput(component);
+    syncInspectorPropertyControls(component);
     renderSignals();
 
     if (state.running) {
@@ -1521,7 +2037,7 @@ export function createBoardEditor(document) {
   function updateRainActive(component, active, shouldRecord = false) {
     component.properties.active = Boolean(active);
     syncRainControl(component);
-    syncInspectorRainOutput(component);
+    syncInspectorPropertyControls(component);
     renderSignals();
 
     if (state.running) {
@@ -1539,7 +2055,7 @@ export function createBoardEditor(document) {
   function updateRainIntensity(component, intensityPercent, shouldRecord = false) {
     component.properties.intensityPercent = Math.max(0, Math.min(100, intensityPercent));
     syncRainControl(component);
-    syncInspectorRainOutput(component);
+    syncInspectorPropertyControls(component);
     renderSignals();
 
     if (state.running) {
@@ -1569,7 +2085,183 @@ export function createBoardEditor(document) {
 
   function updateRainSensorThreshold(component, thresholdPercent, shouldRecord = false) {
     component.properties.thresholdPercent = Math.max(0, Math.min(100, thresholdPercent));
-    syncInspectorRainSensorOutput(component);
+    syncInspectorPropertyControls(component);
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateLightEnabled(component, enabled, shouldRecord = false) {
+    component.properties.enabled = Boolean(enabled);
+    syncLightControl(component);
+    syncInspectorPropertyControls(component);
+    renderSignals();
+
+    if (state.running) {
+      simulation.updateLightValue(component.id, {
+        enabled: component.properties.enabled,
+        intensityPercent: component.properties.intensityPercent
+      });
+    }
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateLightIntensity(component, intensityPercent, shouldRecord = false) {
+    component.properties.intensityPercent = Math.max(0, Math.min(100, intensityPercent));
+    syncLightControl(component);
+    syncInspectorPropertyControls(component);
+    renderSignals();
+
+    if (state.running) {
+      simulation.updateLightValue(component.id, {
+        enabled: component.properties.enabled,
+        intensityPercent: component.properties.intensityPercent
+      });
+    }
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateLdrProperty(component, property, value, shouldRecord = false) {
+    const limits = {
+      darkResistanceOhms: [1000, 1000000],
+      brightResistanceOhms: [100, 10000],
+      gamma: [0.1, 2]
+    };
+    const [min, max] = limits[property] ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY];
+
+    component.properties[property] = Math.max(min, Math.min(max, Number(value)));
+    syncInspectorPropertyControls(component);
+
+    if (state.running) {
+      simulation.runSimulation();
+    }
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateClimateEnabled(component, enabled, shouldRecord = false) {
+    component.properties.enabled = Boolean(enabled);
+    syncClimateControl(component);
+    syncInspectorPropertyControls(component);
+    renderSignals();
+
+    if (state.running) {
+      simulation.updateClimateValue(component.id, climatePayload(component));
+    }
+
+    applyBmp280SensorStates();
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateClimateTemperature(component, temperatureC, shouldRecord = false) {
+    component.properties.temperatureC = Math.max(-40, Math.min(85, temperatureC));
+    syncClimateControl(component);
+    syncInspectorPropertyControls(component);
+    renderSignals();
+
+    if (state.running) {
+      simulation.updateClimateValue(component.id, climatePayload(component));
+    }
+
+    applyBmp280SensorStates();
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateClimatePressure(component, pressureHpa, shouldRecord = false) {
+    component.properties.pressureHpa = Math.max(300, Math.min(1100, pressureHpa));
+    syncClimateControl(component);
+    syncInspectorPropertyControls(component);
+    renderSignals();
+
+    if (state.running) {
+      simulation.updateClimateValue(component.id, climatePayload(component));
+    }
+
+    applyBmp280SensorStates();
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateBmp280Property(component, property, value, shouldRecord = false) {
+    const limits = {
+      i2cAddress: [118, 119],
+      temperatureOffsetC: [-20, 20],
+      pressureOffsetHpa: [-100, 100]
+    };
+    const [min, max] = limits[property] ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY];
+
+    component.properties[property] = Math.max(min, Math.min(max, Number(value)));
+    syncInspectorPropertyControls(component);
+    applyBmp280SensorStates();
+
+    if (state.running) {
+      simulation.runSimulation();
+    }
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateAnalogEnabled(component, enabled, shouldRecord = false) {
+    component.properties.enabled = Boolean(enabled);
+    syncAnalogControl(component);
+    syncInspectorPropertyControls(component);
+    renderSignals();
+
+    if (state.running) {
+      simulation.updateAnalogVoltageValue(component.id, analogPayload(component));
+    }
+
+    applyAdcStates();
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateAnalogVoltage(component, voltageVolts, shouldRecord = false) {
+    component.properties.voltageVolts = Math.max(0, Math.min(5, voltageVolts));
+    syncAnalogControl(component);
+    syncInspectorPropertyControls(component);
+    renderSignals();
+
+    if (state.running) {
+      simulation.updateAnalogVoltageValue(component.id, analogPayload(component));
+    }
+
+    applyAdcStates();
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function updateAdcProperty(component, property, value, shouldRecord = false) {
+    component.properties[property] = value;
+    syncInspectorPropertyControls(component);
+    applyAdcStates();
+
+    if (state.running) {
+      simulation.runSimulation();
+    }
 
     if (shouldRecord) {
       recordHistory();
@@ -1590,19 +2282,6 @@ export function createBoardEditor(document) {
 
     slider.value = component.properties.valueCm;
     output.textContent = `${component.properties.valueCm} cm`;
-  }
-
-  function syncInspectorDistanceOutput(component) {
-    const output = inspectorContent.querySelector('[data-inspector-distance-output]');
-    const input = inspectorContent.querySelector('[data-inspector-distance]');
-
-    if (input && component.type === 'distance') {
-      input.value = String(component.properties.valueCm);
-    }
-
-    if (output && component.type === 'distance') {
-      output.textContent = `${component.properties.valueCm} cm`;
-    }
   }
 
   function syncResistorControl(component) {
@@ -1669,53 +2348,120 @@ export function createBoardEditor(document) {
     }
   }
 
-  function syncInspectorRainOutput(component) {
-    const output = inspectorContent.querySelector('[data-inspector-rain-output]');
-    const checkbox = inspectorContent.querySelector('[data-inspector-rain-active]');
-    const input = inspectorContent.querySelector('[data-inspector-rain-intensity]');
-
-    if (checkbox && component.type === 'rain-toggle') {
-      checkbox.checked = Boolean(component.properties.active);
+  function syncLightControl(component) {
+    if (component.type !== 'light-level') {
+      return;
     }
 
-    if (input && component.type === 'rain-toggle') {
-      input.value = String(component.properties.intensityPercent);
+    const checkbox = component.element.querySelector('[data-light-enabled]');
+    const slider = component.element.querySelector('[data-light-intensity]');
+    const output = component.element.querySelector('[data-light-output]');
+
+    if (checkbox) {
+      checkbox.checked = Boolean(component.properties.enabled);
     }
 
-    if (output && component.type === 'rain-toggle') {
-      output.textContent = `${component.properties.active ? 'ON' : 'OFF'} / ${component.properties.intensityPercent}%`;
-    }
-  }
-
-  function syncInspectorRainSensorOutput(component) {
-    const output = inspectorContent.querySelector('[data-inspector-rain-sensor-threshold-output]');
-    const input = inspectorContent.querySelector('[data-inspector-rain-sensor-threshold]');
-
-    if (input && component.type === 'fc37-rain-sensor') {
-      input.value = String(component.properties.thresholdPercent);
+    if (slider) {
+      slider.value = String(component.properties.intensityPercent);
     }
 
-    if (output && component.type === 'fc37-rain-sensor') {
-      output.textContent = `${component.properties.thresholdPercent}%`;
+    if (output) {
+      output.textContent = component.properties.enabled ? `${component.properties.intensityPercent}%` : 'OFF';
     }
   }
 
-  function syncInspectorWifiOutput(component) {
-    const output = inspectorContent.querySelector('[data-inspector-wifi-output]');
-    const input = inspectorContent.querySelector('[data-inspector-wifi-strength]');
-    const checkbox = inspectorContent.querySelector('[data-inspector-wifi-connected]');
-
-    if (input && component.type === 'wifi-signal') {
-      input.value = String(component.properties.strengthPercent);
+  function syncClimateControl(component) {
+    if (component.type !== 'climate-environment') {
+      return;
     }
 
-    if (output && component.type === 'wifi-signal') {
-      output.textContent = `${component.properties.strengthPercent}%`;
+    const checkbox = component.element.querySelector('[data-climate-enabled]');
+    const temperature = component.element.querySelector('[data-climate-temperature]');
+    const pressure = component.element.querySelector('[data-climate-pressure]');
+    const output = component.element.querySelector('[data-climate-output]');
+
+    if (checkbox) {
+      checkbox.checked = Boolean(component.properties.enabled);
     }
 
-    if (checkbox && component.type === 'wifi-signal') {
-      checkbox.checked = Boolean(component.properties.connected);
+    if (temperature) {
+      temperature.value = String(component.properties.temperatureC);
     }
+
+    if (pressure) {
+      pressure.value = String(component.properties.pressureHpa);
+    }
+
+    if (output) {
+      output.textContent = component.properties.enabled ? `${component.properties.temperatureC} °C` : 'OFF';
+    }
+  }
+
+  function syncAnalogControl(component) {
+    if (component.type !== 'analog-voltage-source') {
+      return;
+    }
+
+    const checkbox = component.element.querySelector('[data-analog-enabled]');
+    const slider = component.element.querySelector('[data-analog-voltage]');
+    const output = component.element.querySelector('[data-analog-output]');
+
+    if (checkbox) {
+      checkbox.checked = Boolean(component.properties.enabled);
+    }
+
+    if (slider) {
+      slider.value = String(component.properties.voltageVolts);
+    }
+
+    if (output) {
+      output.textContent = component.properties.enabled ? `${component.properties.voltageVolts} V` : 'OFF';
+    }
+  }
+
+  function climatePayload(component) {
+    return {
+      enabled: component.properties.enabled,
+      temperatureC: component.properties.temperatureC,
+      pressureHpa: component.properties.pressureHpa
+    };
+  }
+
+  function firstClimateComponent() {
+    return [...state.components.values()].find((component) => component.type === 'climate-environment') ?? null;
+  }
+
+  function analogPayload(component) {
+    return {
+      enabled: component.properties.enabled,
+      voltageVolts: component.properties.voltageVolts
+    };
+  }
+
+  function firstAnalogSourceComponent() {
+    return [...state.components.values()].find((component) => component.type === 'analog-voltage-source') ?? null;
+  }
+
+  function isAdcComponent(component) {
+    return ['ads1015-adc', 'ads1115-adc', 'mcp3008-adc'].includes(component?.type);
+  }
+
+  function adcInspectorLabel(component) {
+    if (component.type === 'mcp3008-adc') {
+      return `10-bit / VREF ${component.properties.referenceVoltageVolts} V`;
+    }
+
+    return `${component.type === 'ads1015-adc' ? '12' : '16'}-bit / 0x${Number(component.properties.i2cAddress).toString(16).toUpperCase()} / ${component.properties.gain}`;
+  }
+
+  function adcRawForComponent(component, voltage) {
+    if (component.type === 'mcp3008-adc') {
+      return Math.round(Math.max(0, Math.min(1, voltage / Number(component.properties.referenceVoltageVolts ?? 5))) * 1023);
+    }
+
+    const maxRaw = component.type === 'ads1015-adc' ? 2047 : 32767;
+    const fullScale = Number(String(component.properties.gain ?? '2.048V').replace('V', '')) || 2.048;
+    return Math.round(Math.max(0, Math.min(1, voltage / fullScale)) * maxRaw);
   }
 
   function nextComponentId(type) {

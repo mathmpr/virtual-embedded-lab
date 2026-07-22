@@ -345,6 +345,52 @@ button:disabled {
     linear-gradient(135deg, #c0a05a, #5f4722);
 }
 
+.light-icon {
+  background:
+    radial-gradient(circle at 50% 38%, #fff6b0 0 22%, rgb(255 200 84 / 0.7) 23% 42%, transparent 43%),
+    linear-gradient(135deg, #5b4520, #1f2731);
+}
+
+.ldr-icon {
+  background:
+    repeating-linear-gradient(135deg, #d9b15e 0 5px, #47351e 5px 9px),
+    radial-gradient(circle at 50% 50%, #ffe68a, #936a21);
+}
+
+.bmp280-icon {
+  background:
+    radial-gradient(circle at 68% 36%, #d8e4ff 0 8%, transparent 9%),
+    linear-gradient(90deg, rgb(255 255 255 / 0.18) 0 10%, transparent 11% 89%, rgb(255 255 255 / 0.18) 90%),
+    linear-gradient(135deg, #2a756c, #1d3f4b);
+}
+
+.climate-icon {
+  background:
+    radial-gradient(circle at 34% 34%, #ffcf70 0 14%, transparent 15%),
+    radial-gradient(ellipse at 62% 60%, #d9e7ff 0 28%, transparent 29%),
+    linear-gradient(135deg, #31465e, #202a35);
+}
+
+.analog-source-icon {
+  background:
+    linear-gradient(90deg, transparent 0 18%, #ffb454 19% 24%, transparent 25% 75%, #ffb454 76% 81%, transparent 82%),
+    radial-gradient(circle at 50% 52%, #ffd280, #8b5b20);
+}
+
+.ads1015-icon,
+.ads1115-icon {
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 0.18) 0 10%, transparent 11% 89%, rgb(255 255 255 / 0.18) 90%),
+    linear-gradient(135deg, #355d7d, #20324b);
+}
+
+.mcp3008-icon {
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 0.18) 0 8%, transparent 9% 91%, rgb(255 255 255 / 0.18) 92%),
+    repeating-linear-gradient(90deg, transparent 0 10px, rgb(255 180 84 / 0.35) 10px 13px),
+    linear-gradient(135deg, #5d4b27, #252b34);
+}
+
 .esp32-icon {
   background:
     linear-gradient(90deg, rgb(255 255 255 / 0.18) 0 12%, transparent 13% 87%, rgb(255 255 255 / 0.18) 88%),
@@ -568,6 +614,35 @@ button:disabled {
   background: linear-gradient(145deg, #5a4826, #2d271d);
 }
 
+.light-level {
+  width: 180px;
+  background: linear-gradient(145deg, #554224, #242832);
+}
+
+.ldr-light-sensor {
+  width: 134px;
+  background: linear-gradient(145deg, #5a4826, #2b271d);
+}
+
+.bmp280-sensor {
+  width: 170px;
+  background: linear-gradient(145deg, #245f5a, #1f3037);
+}
+
+.climate-environment {
+  width: 210px;
+  background: linear-gradient(145deg, #31465e, #202a35);
+}
+
+.analog-voltage-source {
+  width: 180px;
+  background: linear-gradient(145deg, #5a4826, #252b34);
+}
+
+.adc-module {
+  background: linear-gradient(145deg, #2f4054, #202832);
+}
+
 .terminal {
   appearance: none;
   position: absolute;
@@ -762,7 +837,13 @@ button:disabled {
 
 .wifi-readout,
 .rain-readout,
-.rain-sensor-readout {
+.rain-sensor-readout,
+.light-readout,
+.light-sensor-readout,
+.climate-readout,
+.bmp280-readout,
+.analog-readout,
+.adc-readout {
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -787,9 +868,22 @@ button:disabled {
 
 .distance input,
 .wifi-signal input[type="range"],
-.rain-toggle input[type="range"] {
+.rain-toggle input[type="range"],
+.light-level input[type="range"],
+.climate-environment input[type="range"],
+.analog-voltage-source input[type="range"] {
   width: 100%;
   accent-color: var(--accent);
+}
+
+.compact-slider-row {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  color: #dce0e8;
+  font: 10px var(--mono);
 }
 
 .rain-sensor-plate {
@@ -808,6 +902,77 @@ button:disabled {
     radial-gradient(circle at 35% 35%, rgb(97 201 255 / 0.36), transparent 42%),
     linear-gradient(135deg, #21364f, #141b24);
   box-shadow: 0 0 22px rgb(97 201 255 / 0.32);
+}
+
+.ldr-photoresistor {
+  height: 44px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, transparent 0 14%, #d8b25f 15% 19%, transparent 20% 80%, #d8b25f 81% 85%, transparent 86%),
+    repeating-linear-gradient(135deg, transparent 0 8px, rgb(216 178 95 / 0.62) 8px 11px),
+    radial-gradient(circle at 50% 50%, rgb(255 180 84 / 0.14), transparent 45%),
+    linear-gradient(135deg, #352a1d, #151512);
+  transition: box-shadow 180ms ease, background 180ms ease, opacity 180ms ease;
+}
+
+.ldr-light-sensor.dark .ldr-photoresistor {
+  opacity: 0.62;
+}
+
+.ldr-light-sensor.dim .ldr-photoresistor {
+  box-shadow: 0 0 14px rgb(255 180 84 / 0.18);
+}
+
+.ldr-light-sensor.bright .ldr-photoresistor {
+  background:
+    linear-gradient(90deg, transparent 0 14%, #ffe59a 15% 19%, transparent 20% 80%, #ffe59a 81% 85%, transparent 86%),
+    repeating-linear-gradient(135deg, transparent 0 8px, rgb(255 229 154 / 0.72) 8px 11px),
+    radial-gradient(circle at 50% 50%, rgb(255 230 138 / 0.38), transparent 48%),
+    linear-gradient(135deg, #47361f, #1b1710);
+  box-shadow: 0 0 24px rgb(255 210 92 / 0.32);
+}
+
+.bmp280-chip {
+  height: 50px;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 8px;
+  color: #dce0e8;
+  font: 700 11px var(--mono);
+  background:
+    radial-gradient(circle at 78% 28%, rgb(216 228 255 / 0.16), transparent 18%),
+    linear-gradient(135deg, #20343d, #121a1f);
+  transition: box-shadow 180ms ease, opacity 180ms ease;
+}
+
+.bmp280-sensor.online .bmp280-chip {
+  box-shadow: 0 0 22px rgb(69 214 196 / 0.24);
+}
+
+.bmp280-sensor.offline .bmp280-chip {
+  opacity: 0.55;
+}
+
+.adc-chip {
+  height: 48px;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 8px;
+  color: #dce0e8;
+  font: 700 11px var(--mono);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 9px, rgb(76 141 255 / 0.14) 9px 12px),
+    linear-gradient(135deg, #202b3a, #121820);
+  transition: box-shadow 180ms ease;
+}
+
+.adc-module.online .adc-chip {
+  box-shadow: 0 0 22px rgb(76 141 255 / 0.22);
 }
 
 .inspector {

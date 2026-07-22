@@ -494,21 +494,13 @@ test('FC-37 rain WASM session updates rain without resetting virtual time', asyn
           type: 'arduino',
           properties: {}
         }],
-        ['rain-sensor-1', {
-          id: 'rain-sensor-1',
-          type: 'fc37-rain-sensor',
-          properties: {
+        ['rain-sensor-1', officialComponent('rain-sensor-1', 'fc37-rain-sensor', {
             activeLow: true
-          }
-        }],
-        ['rain-1', {
-          id: 'rain-1',
-          type: 'rain-toggle',
-          properties: {
+        })],
+        ['rain-1', officialComponent('rain-1', 'rain-toggle', {
             active: false,
             intensityPercent: 100
-          }
-        }]
+        })]
       ])
     },
     nets: [
@@ -539,10 +531,247 @@ test('FC-37 rain WASM session updates rain without resetting virtual time', asyn
   assert.equal(wet.signals.rainDo, 0);
 });
 
+test('LDR light WASM session updates analogRead without resetting virtual time', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/ldr-light-analog/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['arduino-1', {
+          id: 'arduino-1',
+          type: 'arduino',
+          properties: {}
+        }],
+        ['ldr-1', officialComponent('ldr-1', 'ldr-light-sensor', {
+            darkResistanceOhms: 100000,
+            brightResistanceOhms: 1000,
+            gamma: 0.7
+        })],
+        ['resistor-1', officialComponent('resistor-1', 'resistor', {
+            resistanceOhms: 10000
+        })],
+        ['light-1', officialComponent('light-1', 'light-level', {
+            enabled: true,
+            intensityPercent: 0
+        })]
+      ])
+    },
+    nets: [
+      {
+        id: 'net-vcc',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: '5v' },
+          { componentId: 'ldr-1', terminalId: 'a' }
+        ]
+      },
+      {
+        id: 'net-mid',
+        terminals: [
+          { componentId: 'ldr-1', terminalId: 'b' },
+          { componentId: 'arduino-1', terminalId: 'a0' },
+          { componentId: 'resistor-1', terminalId: 'a' }
+        ]
+      },
+      {
+        id: 'net-gnd',
+        terminals: [
+          { componentId: 'resistor-1', terminalId: 'b' },
+          { componentId: 'arduino-1', terminalId: 'gnd' }
+        ]
+      }
+    ],
+    terminalKind(terminal) {
+      if (terminal.terminalId === '5v') {
+        return 'power';
+      }
+
+      if (terminal.terminalId === 'gnd') {
+        return 'ground';
+      }
+
+      return 'signal';
+    },
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const dark = session.runFrame();
+  session.updateLightValue('light-1', { enabled: true, intensityPercent: 100 });
+  const bright = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.ok(bright.timeUs > dark.timeUs);
+  assert.match(serialText(dark), /DARK/);
+  assert.match(serialText(bright), /BRIGHT/);
+  assert.ok(dark.signals.lightAnalog < 0.3);
+  assert.ok(bright.signals.lightAnalog > 0.7);
+});
+
+test('BMP280 WASM session updates climate readings without resetting virtual time', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/bmp280-weather-i2c/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['arduino-1', {
+          id: 'arduino-1',
+          type: 'arduino',
+          properties: {}
+        }],
+        ['bmp280-1', officialComponent('bmp280-1', 'bmp280-sensor', {
+            i2cAddress: 118,
+            temperatureOffsetC: 0,
+            pressureOffsetHpa: 0
+        })],
+        ['climate-1', officialComponent('climate-1', 'climate-environment', {
+            enabled: true,
+            temperatureC: 20,
+            pressureHpa: 1013.25
+        })]
+      ])
+    },
+    nets: [
+      {
+        id: 'net-sda',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: 'a4' },
+          { componentId: 'bmp280-1', terminalId: 'sda' }
+        ]
+      },
+      {
+        id: 'net-scl',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: 'a5' },
+          { componentId: 'bmp280-1', terminalId: 'scl' }
+        ]
+      }
+    ],
+    terminalKind() {
+      return 'signal';
+    },
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const normal = session.runFrame();
+  session.updateClimateValue('climate-1', { enabled: true, temperatureC: 35, pressureHpa: 1000 });
+  const hot = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.ok(hot.timeUs > normal.timeUs);
+  assert.match(serialText(normal), /Temperature C: 20/);
+  assert.match(serialText(normal), /Pressure hPa: 1013\.25/);
+  assert.match(serialText(hot), /Temperature C: 35/);
+  assert.match(serialText(hot), /Pressure hPa: 1000/);
+});
+
+test('external ADC WASM sessions update analog source without resetting virtual time', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const cases = [
+    {
+      example: 'examples/ads1115-single-ended/project.json',
+      adcId: 'ads1115-1',
+      adcType: 'ads1115-adc',
+      adcProps: { i2cAddress: 72, gain: '2.048V' },
+      channelTerminal: 'a0',
+      expectedLow: /ADS1115 A0 raw: 16384/,
+      expectedHigh: /ADS1115 A0 raw: 32767/
+    },
+    {
+      example: 'examples/ads1015-single-ended/project.json',
+      adcId: 'ads1015-1',
+      adcType: 'ads1015-adc',
+      adcProps: { i2cAddress: 72, gain: '2.048V' },
+      channelTerminal: 'a0',
+      expectedLow: /ADS1015 A0 raw: 1024/,
+      expectedHigh: /ADS1015 A0 raw: 2047/
+    },
+    {
+      example: 'examples/mcp3008-single-ended/project.json',
+      adcId: 'mcp3008-1',
+      adcType: 'mcp3008-adc',
+      adcProps: { referenceVoltageVolts: 5 },
+      channelTerminal: 'ch0',
+      expectedLow: /MCP3008 CH0 raw: 512/,
+      expectedHigh: /MCP3008 CH0 raw: 1023/
+    }
+  ];
+
+  for (const item of cases) {
+    const project = JSON.parse(readFileSync(join(root, item.example), 'utf8'));
+    const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+    const session = await createProjectWasmSimulationSession({
+      state: {
+        components: new Map([
+          ['arduino-1', { id: 'arduino-1', type: 'arduino', properties: {} }],
+          [item.adcId, officialComponent(item.adcId, item.adcType, item.adcProps)],
+          ['analog-1', officialComponent('analog-1', 'analog-voltage-source', { enabled: true, voltageVolts: item.adcType === 'mcp3008-adc' ? 2.5 : 1.024 })]
+        ])
+      },
+      nets: adcTestNets(item),
+      terminalKind() {
+        return 'signal';
+      },
+      wasmBase64: wasm.wasmBase64
+    });
+
+    const low = session.runFrame();
+    session.updateAnalogVoltageValue('analog-1', { enabled: true, voltageVolts: 5 });
+    const high = session.runFrame();
+
+    assert.equal(wasm.ok, true, item.example);
+    assert.ok(high.timeUs > low.timeUs, item.example);
+    assert.match(serialText(low), item.expectedLow, item.example);
+    assert.match(serialText(high), item.expectedHigh, item.example);
+  }
+});
+
 async function runHcsr04WasmDistance(wasmBase64, valueCm) {
   const session = await createHcsr04WasmSession(wasmBase64, valueCm);
 
   return session.runFrame();
+}
+
+function adcTestNets(item) {
+  const nets = [
+    {
+      id: 'net-analog',
+      terminals: [
+        { componentId: 'analog-1', terminalId: 'out' },
+        { componentId: item.adcId, terminalId: item.channelTerminal }
+      ]
+    }
+  ];
+
+  if (item.adcType === 'mcp3008-adc') {
+    nets.push({
+      id: 'net-cs',
+      terminals: [
+        { componentId: 'arduino-1', terminalId: 'd10' },
+        { componentId: item.adcId, terminalId: 'cs' }
+      ]
+    });
+    return nets;
+  }
+
+  nets.push(
+    {
+      id: 'net-sda',
+      terminals: [
+        { componentId: 'arduino-1', terminalId: 'a4' },
+        { componentId: item.adcId, terminalId: 'sda' }
+      ]
+    },
+    {
+      id: 'net-scl',
+      terminals: [
+        { componentId: 'arduino-1', terminalId: 'a5' },
+        { componentId: item.adcId, terminalId: 'scl' }
+      ]
+    }
+  );
+
+  return nets;
 }
 
 async function createHcsr04WasmSession(wasmBase64, valueCm) {
@@ -554,18 +783,10 @@ async function createHcsr04WasmSession(wasmBase64, valueCm) {
           type: 'arduino',
           properties: {}
         }],
-        ['sensor-1', {
-          id: 'sensor-1',
-          type: 'hcsr04',
-          properties: {}
-        }],
-        ['distance-1', {
-          id: 'distance-1',
-          type: 'distance',
-          properties: {
+        ['sensor-1', officialComponent('sensor-1', 'hcsr04', {})],
+        ['distance-1', officialComponent('distance-1', 'distance', {
             valueCm
-          }
-        }]
+        })]
       ])
     },
     nets: [
@@ -596,4 +817,43 @@ async function createHcsr04WasmSession(wasmBase64, valueCm) {
 
 function serialText(result) {
   return result.serial.events.map((event) => event.data).join('');
+}
+
+function officialComponent(id, type, properties) {
+  const manifest = officialManifestByVisualType(type);
+
+  return {
+    id,
+    type,
+    behavior: manifest.behavior ?? {},
+    simulation: manifest.simulation ?? {},
+    electricalModel: manifest.electricalModel ?? null,
+    electricalPrimitive: manifest.electricalModel?.primitive ?? null,
+    propertySchema: manifest.properties ?? {},
+    properties
+  };
+}
+
+function officialManifestByVisualType(type) {
+  const manifestPath = {
+    'analog-voltage-source': 'components/official/analog-voltage-source/component.json',
+    'ads1015-adc': 'components/official/ads1015/component.json',
+    'ads1115-adc': 'components/official/ads1115/component.json',
+    'bmp280-sensor': 'components/official/bmp280/component.json',
+    'climate-environment': 'components/official/climate/component.json',
+    'distance': 'components/official/distance-range/component.json',
+    'fc37-rain-sensor': 'components/official/fc-37-rain-sensor/component.json',
+    'hcsr04': 'components/official/hc-sr04/component.json',
+    'ldr-light-sensor': 'components/official/ldr-light-sensor/component.json',
+    'light-level': 'components/official/light-level/component.json',
+    'mcp3008-adc': 'components/official/mcp3008/component.json',
+    'rain-toggle': 'components/official/rain-toggle/component.json',
+    'resistor': 'components/official/resistor/component.json'
+  }[type];
+
+  if (!manifestPath) {
+    throw new Error(`Fixture sem manifest oficial mapeado: ${type}`);
+  }
+
+  return JSON.parse(readFileSync(join(root, manifestPath), 'utf8'));
 }

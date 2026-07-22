@@ -10,23 +10,36 @@ const officialComponentsRoot = join(root, 'components/official');
 const jsonFiles = [
   'schemas/project.schema.json',
   'schemas/component.schema.json',
+  'components/official/ads1015/component.json',
+  'components/official/ads1115/component.json',
+  'components/official/analog-voltage-source/component.json',
   'components/official/arduino-uno/component.json',
+  'components/official/bmp280/component.json',
   'components/official/resistor/component.json',
   'components/official/capacitor/component.json',
+  'components/official/climate/component.json',
   'components/official/esp32-devkit/component.json',
   'components/official/fc-37-rain-sensor/component.json',
+  'components/official/ldr-light-sensor/component.json',
   'components/official/led-red/component.json',
   'components/official/led-green/component.json',
   'components/official/led-blue/component.json',
+  'components/official/light-level/component.json',
+  'components/official/mcp3008/component.json',
   'components/official/rain-toggle/component.json',
   'components/official/hc-sr04/component.json',
   'components/official/distance-range/component.json',
   'components/official/wifi-signal/component.json',
+  'examples/bmp280-weather-i2c/project.json',
+  'examples/ads1015-single-ended/project.json',
+  'examples/ads1115-single-ended/project.json',
   'examples/esp32-counter-blink/project.json',
   'examples/esp32-wifi-failover/project.json',
   'examples/esp32-wifi-signal/project.json',
   'examples/fc-37-rain-digital/project.json',
-  'examples/hc-sr04-led-distance/project.json'
+  'examples/hc-sr04-led-distance/project.json',
+  'examples/ldr-light-analog/project.json',
+  'examples/mcp3008-single-ended/project.json'
 ];
 
 function officialComponentPaths() {
@@ -233,6 +246,126 @@ test('FC-37 rain package exposes sensor, environment and digital example', () =>
   assert.match(project.code.files['main.ino'], /digitalRead\(RAIN_PIN\)/);
   assert.match(project.code.files['main.ino'], /RAIN DETECTED/);
   assert.match(project.code.files['main.ino'], /NO RAIN/);
+});
+
+test('LDR light package exposes sensor, environment and analog example', () => {
+  const sensor = JSON.parse(
+    readFileSync(join(root, 'components/official/ldr-light-sensor/component.json'), 'utf8')
+  );
+  const light = JSON.parse(
+    readFileSync(join(root, 'components/official/light-level/component.json'), 'utf8')
+  );
+  const project = JSON.parse(
+    readFileSync(join(root, 'examples/ldr-light-analog/project.json'), 'utf8')
+  );
+
+  assert.equal(sensor.identity.id, 'sensor.light.ldr');
+  assert.equal(sensor.simulation.kind, 'behavioral-sensor');
+  assert.deepEqual(sensor.simulation.effects, ['firmware', 'environment', 'electrical', 'visual-state']);
+  assert.equal(sensor.behavior.type, 'light-sensor');
+  assert.equal(sensor.electricalModel.type, 'variable-resistor');
+  assert.equal(sensor.electricalModel.primitive, 'ldr');
+  assert.deepEqual(sensor.terminals.map((terminal: { id: string }) => terminal.id), ['a', 'b']);
+  assert.equal(sensor.visual.palette.group, 'Sensors');
+  assert.equal(sensor.visual.palette.subgroup, 'Light');
+
+  assert.equal(light.identity.id, 'environment.light-level');
+  assert.equal(light.simulation.kind, 'environment-source');
+  assert.deepEqual(light.terminals, []);
+  assert.deepEqual(light.visual.terminals, []);
+  assert.equal(light.properties.intensityPercent.default, 50);
+  assert.equal(light.visual.palette.subgroup, 'Light');
+
+  assert.deepEqual(
+    project.components.map((component: { componentId: string }) => component.componentId).sort(),
+    [
+      'board.arduino.uno',
+      'electronic.resistor',
+      'environment.light-level',
+      'sensor.light.ldr'
+    ].sort()
+  );
+  assert.match(project.code.files['main.ino'], /const int LIGHT_PIN = A0/);
+  assert.match(project.code.files['main.ino'], /analogRead\(LIGHT_PIN\)/);
+  assert.match(project.code.files['main.ino'], /DARK/);
+  assert.match(project.code.files['main.ino'], /BRIGHT/);
+});
+
+test('BMP280 package exposes sensor, climate environment and I2C example', () => {
+  const sensor = JSON.parse(
+    readFileSync(join(root, 'components/official/bmp280/component.json'), 'utf8')
+  );
+  const climate = JSON.parse(
+    readFileSync(join(root, 'components/official/climate/component.json'), 'utf8')
+  );
+  const project = JSON.parse(
+    readFileSync(join(root, 'examples/bmp280-weather-i2c/project.json'), 'utf8')
+  );
+
+  assert.equal(sensor.identity.id, 'sensor.environment.bmp280');
+  assert.equal(sensor.simulation.kind, 'behavioral-sensor');
+  assert.deepEqual(sensor.simulation.effects, ['firmware', 'environment', 'electrical', 'visual-state']);
+  assert.equal(sensor.behavior.type, 'bmp280-sensor');
+  assert.equal(sensor.electricalModel.bus, 'i2c');
+  assert.deepEqual(sensor.terminals.map((terminal: { id: string }) => terminal.id).sort(), ['csb', 'gnd', 'scl', 'sda', 'sdo', 'vcc'].sort());
+  assert.equal(sensor.visual.palette.group, 'Sensors');
+  assert.equal(sensor.visual.palette.subgroup, 'Environment');
+
+  assert.equal(climate.identity.id, 'environment.climate');
+  assert.equal(climate.simulation.kind, 'environment-source');
+  assert.deepEqual(climate.terminals, []);
+  assert.deepEqual(climate.visual.terminals, []);
+  assert.equal(climate.properties.temperatureC.default, 25);
+  assert.equal(climate.properties.pressureHpa.default, 1013.25);
+  assert.equal(climate.visual.palette.subgroup, 'Weather');
+
+  assert.deepEqual(
+    project.components.map((component: { componentId: string }) => component.componentId).sort(),
+    [
+      'board.arduino.uno',
+      'environment.climate',
+      'sensor.environment.bmp280'
+    ].sort()
+  );
+  assert.match(project.code.files['main.ino'], /#include <Wire\.h>/);
+  assert.match(project.code.files['main.ino'], /BMP280 bmp/);
+  assert.match(project.code.files['main.ino'], /bmp\.begin\(0x76\)/);
+  assert.match(project.code.files['main.ino'], /bmp\.readTemperature\(\)/);
+  assert.match(project.code.files['main.ino'], /bmp\.readPressure\(\)/);
+});
+
+test('external ADC package exposes ADS1015, ADS1115, MCP3008 and analog source examples', () => {
+  const ads1015 = readJson('components/official/ads1015/component.json');
+  const ads1115 = readJson('components/official/ads1115/component.json');
+  const mcp3008 = readJson('components/official/mcp3008/component.json');
+  const analogSource = readJson('components/official/analog-voltage-source/component.json');
+  const projects = [
+    readJson('examples/ads1015-single-ended/project.json'),
+    readJson('examples/ads1115-single-ended/project.json'),
+    readJson('examples/mcp3008-single-ended/project.json')
+  ];
+
+  assert.equal(ads1015.identity.id, 'converter.adc.ads1015');
+  assert.equal(ads1015.electricalModel.resolutionBits, 12);
+  assert.equal(ads1015.electricalModel.bus, 'i2c');
+  assert.equal(ads1015.visual.palette.subgroup, 'ADCs');
+  assert.equal(ads1115.identity.id, 'converter.adc.ads1115');
+  assert.equal(ads1115.electricalModel.resolutionBits, 16);
+  assert.equal(ads1115.electricalModel.bus, 'i2c');
+  assert.equal(mcp3008.identity.id, 'converter.adc.mcp3008');
+  assert.equal(mcp3008.electricalModel.resolutionBits, 10);
+  assert.equal(mcp3008.electricalModel.bus, 'spi');
+  assert.equal(analogSource.identity.id, 'environment.analog-voltage-source');
+  assert.equal(analogSource.visual.palette.subgroup, 'Analog');
+
+  for (const project of projects) {
+    assert.ok(project.components.some((component: { componentId: string }) => component.componentId === 'environment.analog-voltage-source'));
+    assert.match(project.code.files['main.ino'], /Serial\.println/);
+  }
+
+  assert.match(projects[0].code.files['main.ino'], /ADS1015 ads/);
+  assert.match(projects[1].code.files['main.ino'], /ADS1115 ads/);
+  assert.match(projects[2].code.files['main.ino'], /MCP3008 adc/);
 });
 
 test('ESP32 Wi-Fi example contains standalone Wi-Fi signal and firmware', () => {

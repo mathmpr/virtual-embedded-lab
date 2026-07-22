@@ -57,6 +57,9 @@ function createImports(runtime, getMemory) {
       __vl_digitalRead(pin) {
         return runtime.digitalRead(Number(pin)) === 'HIGH' ? 1 : 0;
       },
+      __vl_analogRead(pin) {
+        return runtime.analogRead(Number(pin));
+      },
       __vl_delay(milliseconds) {
         runtime.delay(Number(milliseconds));
       },
@@ -87,6 +90,12 @@ function createImports(runtime, getMemory) {
       __vl_serialPrintlnInt(value) {
         runtime.serialPrint(Number(value), true);
       },
+      __vl_serialPrintFloat(value) {
+        runtime.serialPrint(formatFirmwareFloat(Number(value)));
+      },
+      __vl_serialPrintlnFloat(value) {
+        runtime.serialPrint(formatFirmwareFloat(Number(value)), true);
+      },
       __vl_serialWrite(value) {
         runtime.serialWrite(Number(value));
       },
@@ -95,6 +104,58 @@ function createImports(runtime, getMemory) {
       },
       __vl_serialRead() {
         return runtime.serialRead();
+      },
+      __vl_wireBegin() {
+        runtime.wireBegin();
+      },
+      __vl_wireBeginTransmission(address) {
+        runtime.wireBeginTransmission(Number(address));
+      },
+      __vl_wireWrite(value) {
+        return runtime.wireWrite(Number(value));
+      },
+      __vl_wireEndTransmission() {
+        return runtime.wireEndTransmission();
+      },
+      __vl_wireRequestFrom(address, count) {
+        return runtime.wireRequestFrom(Number(address), Number(count));
+      },
+      __vl_wireAvailable() {
+        return runtime.wireAvailable();
+      },
+      __vl_wireRead() {
+        return runtime.wireRead();
+      },
+      __vl_bmp280Begin(address) {
+        return runtime.bmp280Begin(Number(address)) ? 1 : 0;
+      },
+      __vl_bmp280ReadTemperature(address) {
+        return runtime.bmp280ReadTemperature(Number(address));
+      },
+      __vl_bmp280ReadPressure(address) {
+        return runtime.bmp280ReadPressure(Number(address));
+      },
+      __vl_adcBegin(address, type) {
+        const expectedType = Number(type) === 1015 ? 'ads1015' : 'ads1115';
+        return runtime.adcBegin(Number(address), expectedType) ? 1 : 0;
+      },
+      __vl_adcReadSingleEnded(address, channel) {
+        return runtime.adcReadSingleEnded(Number(address), Number(channel));
+      },
+      __vl_adcComputeVolts(address, raw) {
+        return runtime.adcComputeVolts(Number(address), Number(raw));
+      },
+      __vl_spiBegin() {
+        runtime.spiBegin();
+      },
+      __vl_spiTransfer(value) {
+        return runtime.spiTransfer(Number(value));
+      },
+      __vl_mcp3008Begin(chipSelectPin) {
+        return runtime.mcp3008Begin(Number(chipSelectPin)) ? 1 : 0;
+      },
+      __vl_mcp3008Read(chipSelectPin, channel) {
+        return runtime.mcp3008Read(Number(chipSelectPin), Number(channel));
       },
       __vl_wifiMode(mode) {
         runtime.wifiMode(Number(mode));
@@ -137,11 +198,22 @@ function wasmFirmwareResult(runtime, snapshots) {
       }
     ],
     pinStates: runtime.getPinsSnapshot(),
+    analogPinStates: runtime.getAnalogPinsSnapshot(),
     pinEvents: snapshots.pinEvents,
     serial: snapshots.serial,
+    i2c: runtime.getI2cSnapshot(),
+    spi: runtime.getSpiSnapshot(),
     wifi: runtime.getWifiSnapshot(),
     source: 'wasm'
   };
+}
+
+function formatFirmwareFloat(value) {
+  if (!Number.isFinite(value)) {
+    return '0.00';
+  }
+
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, '');
 }
 
 function base64ToBytes(value) {

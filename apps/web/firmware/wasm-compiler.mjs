@@ -68,7 +68,7 @@ export async function compileFirmwareWasmWithClang(code, options = {}) {
       bytes: wasm.byteLength,
       exports: ['__vl_setup', '__vl_loop', 'memory', ...constantExports.map((name) => `__vl_const_${name}`)],
       constantExports,
-      imports: ['digitalRead', 'digitalWrite', 'pinMode', 'delay', 'delayMicroseconds', 'millis', 'micros', 'pulseIn', 'serialBegin', 'serialAvailable', 'serialRead', 'serialWrite', 'serialPrint', 'serialPrintln', 'wifiMode', 'wifiBegin', 'wifiStatus', 'wifiSoftAP', 'wifiScanNetworks', 'wifiRssi', 'wifiRssiForSsid', 'wifiInternetAvailable'],
+      imports: ['digitalRead', 'digitalWrite', 'pinMode', 'analogRead', 'delay', 'delayMicroseconds', 'millis', 'micros', 'pulseIn', 'serialBegin', 'serialAvailable', 'serialRead', 'serialWrite', 'serialPrint', 'serialPrintln', 'serialPrintFloat', 'serialPrintlnFloat', 'wireBegin', 'wireBeginTransmission', 'wireWrite', 'wireEndTransmission', 'wireRequestFrom', 'wireAvailable', 'wireRead', 'bmp280Begin', 'bmp280ReadTemperature', 'bmp280ReadPressure', 'adcBegin', 'adcReadSingleEnded', 'adcComputeVolts', 'spiBegin', 'spiTransfer', 'mcp3008Begin', 'mcp3008Read', 'wifiMode', 'wifiBegin', 'wifiStatus', 'wifiSoftAP', 'wifiScanNetworks', 'wifiRssi', 'wifiRssiForSsid', 'wifiInternetAvailable'],
       cacheHit: false,
       cacheKey,
       sandbox: sandbox.name
@@ -278,6 +278,7 @@ using uint32_t = unsigned int;
 extern "C" void __vl_pinMode(int pin, int mode);
 extern "C" void __vl_digitalWrite(int pin, int value);
 extern "C" int __vl_digitalRead(int pin);
+extern "C" int __vl_analogRead(int pin);
 extern "C" void __vl_delay(unsigned long milliseconds);
 extern "C" void __vl_delayMicroseconds(unsigned long microseconds);
 extern "C" unsigned long __vl_pulseIn(int pin, int value, unsigned long timeout);
@@ -288,9 +289,28 @@ extern "C" void __vl_serialPrint(const char *value);
 extern "C" void __vl_serialPrintln(const char *value);
 extern "C" void __vl_serialPrintInt(int value);
 extern "C" void __vl_serialPrintlnInt(int value);
+extern "C" void __vl_serialPrintFloat(double value);
+extern "C" void __vl_serialPrintlnFloat(double value);
 extern "C" void __vl_serialWrite(int value);
 extern "C" int __vl_serialAvailable();
 extern "C" int __vl_serialRead();
+extern "C" void __vl_wireBegin();
+extern "C" void __vl_wireBeginTransmission(int address);
+extern "C" int __vl_wireWrite(int value);
+extern "C" int __vl_wireEndTransmission();
+extern "C" int __vl_wireRequestFrom(int address, int count);
+extern "C" int __vl_wireAvailable();
+extern "C" int __vl_wireRead();
+extern "C" bool __vl_bmp280Begin(int address);
+extern "C" double __vl_bmp280ReadTemperature(int address);
+extern "C" double __vl_bmp280ReadPressure(int address);
+extern "C" bool __vl_adcBegin(int address, int type);
+extern "C" int __vl_adcReadSingleEnded(int address, int channel);
+extern "C" double __vl_adcComputeVolts(int address, int raw);
+extern "C" void __vl_spiBegin();
+extern "C" int __vl_spiTransfer(int value);
+extern "C" bool __vl_mcp3008Begin(int chipSelectPin);
+extern "C" int __vl_mcp3008Read(int chipSelectPin, int channel);
 extern "C" void __vl_wifiMode(int mode);
 extern "C" int __vl_wifiBegin(const char *ssid, const char *password);
 extern "C" int __vl_wifiStatus();
@@ -305,6 +325,12 @@ const int HIGH = 1;
 const int INPUT = 0;
 const int OUTPUT = 1;
 const int LED_BUILTIN = ${ledBuiltin};
+const int A0 = 14;
+const int A1 = 15;
+const int A2 = 16;
+const int A3 = 17;
+const int A4 = 18;
+const int A5 = 19;
 const int WIFI_STA = 1;
 const int WIFI_AP = 2;
 const int WIFI_AP_STA = 3;
@@ -319,6 +345,7 @@ const int WL_DISCONNECTED = 6;
 void pinMode(int pin, int mode) { __vl_pinMode(pin, mode); }
 void digitalWrite(int pin, int value) { __vl_digitalWrite(pin, value); }
 int digitalRead(int pin) { return __vl_digitalRead(pin); }
+int analogRead(int pin) { return __vl_analogRead(pin); }
 void delay(unsigned long milliseconds) { __vl_delay(milliseconds); }
 void delayMicroseconds(unsigned long microseconds) { __vl_delayMicroseconds(microseconds); }
 unsigned long pulseIn(int pin, int value, unsigned long timeout = 1000000) { return __vl_pulseIn(pin, value, timeout); }
@@ -333,22 +360,105 @@ public:
   void print(int value) { __vl_serialPrintInt(value); }
   void print(long value) { __vl_serialPrintInt((int)value); }
   void print(unsigned long value) { __vl_serialPrintInt((int)value); }
-  void print(float value) { __vl_serialPrintInt((int)value); }
-  void print(double value) { __vl_serialPrintInt((int)value); }
+  void print(float value) { __vl_serialPrintFloat((double)value); }
+  void print(double value) { __vl_serialPrintFloat(value); }
   void println() { __vl_serialPrintln(""); }
   void println(const char *value) { __vl_serialPrintln(value); }
   void println(char value) { __vl_serialWrite((int)value); __vl_serialPrintln(""); }
   void println(int value) { __vl_serialPrintlnInt(value); }
   void println(long value) { __vl_serialPrintlnInt((int)value); }
   void println(unsigned long value) { __vl_serialPrintlnInt((int)value); }
-  void println(float value) { __vl_serialPrintlnInt((int)value); }
-  void println(double value) { __vl_serialPrintlnInt((int)value); }
+  void println(float value) { __vl_serialPrintlnFloat((double)value); }
+  void println(double value) { __vl_serialPrintlnFloat(value); }
   void write(int value) { __vl_serialWrite(value); }
   int available() { return __vl_serialAvailable(); }
   int read() { return __vl_serialRead(); }
 };
 
 HardwareSerial Serial;
+
+class TwoWire {
+public:
+  void begin() { __vl_wireBegin(); }
+  void beginTransmission(int address) { __vl_wireBeginTransmission(address); }
+  int write(int value) { return __vl_wireWrite(value); }
+  int endTransmission() { return __vl_wireEndTransmission(); }
+  int requestFrom(int address, int count) { return __vl_wireRequestFrom(address, count); }
+  int available() { return __vl_wireAvailable(); }
+  int read() { return __vl_wireRead(); }
+};
+
+TwoWire Wire;
+
+class BMP280 {
+public:
+  BMP280() : address(0x76), initialized(false) {}
+  bool begin(int requestedAddress = 0x76) {
+    address = requestedAddress;
+    initialized = __vl_bmp280Begin(address);
+    return initialized;
+  }
+  double readTemperature() { return initialized ? __vl_bmp280ReadTemperature(address) : 0; }
+  double readPressure() { return initialized ? __vl_bmp280ReadPressure(address) : 0; }
+private:
+  int address;
+  bool initialized;
+};
+
+const int __VL_ADC_ADS1015 = 1015;
+const int __VL_ADC_ADS1115 = 1115;
+
+class ADS1015 {
+public:
+  ADS1015() : address(0x48), initialized(false) {}
+  bool begin(int requestedAddress = 0x48) {
+    address = requestedAddress;
+    initialized = __vl_adcBegin(address, __VL_ADC_ADS1015);
+    return initialized;
+  }
+  int readADC_SingleEnded(int channel) { return initialized ? __vl_adcReadSingleEnded(address, channel) : 0; }
+  double computeVolts(int raw) { return initialized ? __vl_adcComputeVolts(address, raw) : 0; }
+private:
+  int address;
+  bool initialized;
+};
+
+class ADS1115 {
+public:
+  ADS1115() : address(0x48), initialized(false) {}
+  bool begin(int requestedAddress = 0x48) {
+    address = requestedAddress;
+    initialized = __vl_adcBegin(address, __VL_ADC_ADS1115);
+    return initialized;
+  }
+  int readADC_SingleEnded(int channel) { return initialized ? __vl_adcReadSingleEnded(address, channel) : 0; }
+  double computeVolts(int raw) { return initialized ? __vl_adcComputeVolts(address, raw) : 0; }
+private:
+  int address;
+  bool initialized;
+};
+
+class SPIClass {
+public:
+  void begin() { __vl_spiBegin(); }
+  int transfer(int value) { return __vl_spiTransfer(value); }
+};
+
+SPIClass SPI;
+
+class MCP3008 {
+public:
+  MCP3008() : chipSelectPin(10), initialized(false) {}
+  bool begin(int requestedChipSelectPin = 10) {
+    chipSelectPin = requestedChipSelectPin;
+    initialized = __vl_mcp3008Begin(chipSelectPin);
+    return initialized;
+  }
+  int read(int channel) { return initialized ? __vl_mcp3008Read(chipSelectPin, channel) : 0; }
+private:
+  int chipSelectPin;
+  bool initialized;
+};
 
 class WiFiClass {
 public:
@@ -408,7 +518,7 @@ function firmwareConstantExports(code) {
 }
 
 function stripArduinoIncludes(code) {
-  return code.replace(/^\s*#include\s+[<"](?:Arduino|WiFi)\.h[>"].*$/gm, '');
+  return code.replace(/^\s*#include\s+[<"](?:Arduino|WiFi|Wire|SPI)\.h[>"].*$/gm, '');
 }
 
 function normalizeFirmwareSource(code) {

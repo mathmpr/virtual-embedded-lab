@@ -32,6 +32,9 @@
 - HC-SR04 e controle ambiental de distância.
 - ESP32 DevKitC V4 e controle ambiental Wi-Fi Signal.
 - FC-37 Rain Sensor e controle ambiental Rain Environment.
+- LDR Light Sensor, controle ambiental Light Environment e exemplo analógico com `analogRead(A0)`.
+- BMP280 Pressure/Temperature, Climate Environment e exemplo I2C com classe shim `BMP280`.
+- ADS1015, ADS1115, MCP3008 e Analog Voltage Source para validar ADCs externos por I2C/SPI.
 - API `GET /api/components`.
 - API `GET /api/examples` e `GET /api/examples/:id`.
 - Exemplo HC-SR04 + LED carregado a partir de `examples/hc-sr04-led-distance/project.json`.

@@ -2,7 +2,7 @@
 
 Ambiente visual local-first para criação, programação e simulação comportamental de projetos eletrônicos embarcados.
 
-O projeto já possui um protótipo web funcional com board visual, catálogo oficial de componentes, editor CodeMirror, runtime Arduino inicial, análise de firmware com Clang local, Serial TX/RX, Wi-Fi simulado para ESP32, solver elétrico incremental e exemplo completo HC-SR04 + LED.
+O projeto já possui um protótipo web funcional com board visual, catálogo oficial de componentes, editor CodeMirror, runtime Arduino inicial, análise de firmware com Clang local, Serial TX/RX, Wi-Fi simulado para ESP32, entradas analógicas por WASM, I2C/SPI inicial para sensores e ADCs, solver elétrico incremental e exemplos completos HC-SR04 + LED, FC-37, LDR, BMP280 e ADCs externos.
 
 ## Requirements
 
@@ -129,9 +129,9 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 - A UI carrega componentes oficiais por `GET /api/components`.
 - Exemplos ficam em `examples/**/project.json` e são carregados pelo modal `Exemplos`.
 - O exemplo default atual é `examples/hc-sr04-led-distance/project.json`.
-- Há exemplos WASM para HC-SR04, ESP32 counter blink, ESP32 Wi-Fi Signal, ESP32 Wi-Fi Failover e FC-37 Rain Digital.
+- Há exemplos WASM para HC-SR04, ESP32 counter blink, ESP32 Wi-Fi Signal, ESP32 Wi-Fi Failover, FC-37 Rain Digital, LDR Light Analog, BMP280 Weather I2C, ADS1015/ADS1115 Single Ended e MCP3008 Single Ended.
 - Componentes oficiais ficam em `components/official/**/component.json`.
-- O catálogo oficial já inclui Arduino UNO, ESP32 DevKitC V4, HC-SR04, FC-37 Rain Sensor, distância, Rain Environment, Wi-Fi Signal, resistores, capacitores e LEDs vermelho/verde/azul.
+- O catálogo oficial já inclui Arduino UNO, ESP32 DevKitC V4, HC-SR04, FC-37 Rain Sensor, LDR Light Sensor, BMP280, ADS1015, ADS1115, MCP3008, distância, Rain Environment, Light Environment, Climate Environment, Analog Voltage Source, Wi-Fi Signal, resistores, capacitores e LEDs vermelho/verde/azul.
 - O Arduino UNO expõe LED built-in `L` em D13/`LED_BUILTIN`; o ESP32 DevKitC V4 expõe `PWR` e LED programável `LD` em GPIO2/`LED_BUILTIN`.
 - Sketches de blink em LED built-in rodam continuamente até Pause/Reset, respeitando `delay()` por tempo virtual e animando a timeline de `digitalWrite`; `LED_PIN`/`PIN` sem declaração são tratados como aliases de `LED_BUILTIN`.
 - O board suporta pan/zoom, drag-and-drop, fios coloridos, remoção de fios/componentes, Undo/Redo em memória e import/export JSON.
@@ -144,6 +144,9 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 - Builds WASM bem-sucedidos são cacheados em memória por hash do código, constantes e configuração de toolchain/sandbox.
 - O suporte ESP32/Wi-Fi cobre `WiFi.mode`, `WiFi.begin`, `WiFi.status`, `WiFi.softAP`, `WiFi.scanNetworks`, `WiFi.RSSI`, `WiFi.RSSI(ssid)` e `WiFi.internetAvailable()` via imports WASM conectados ao `ArduinoRuntime`, usando componentes ambientais Wi-Fi Signal standalone como fontes de SSID, internet ativa e força de sinal.
 - O suporte FC-37 cobre leitura digital por `digitalRead` em `DO`, alimentada pelo Rain Environment standalone sem resetar o tempo virtual quando a chuva muda.
+- O suporte LDR cobre `analogRead(A0)` via divisor de tensão com resistor, alimentado pelo Light Environment standalone sem resetar o tempo virtual quando a luminosidade muda.
+- O suporte BMP280 cobre `Wire.begin()` e uma classe shim `BMP280` mínima, registrada por endereço I2C, alimentada pelo Climate Environment standalone sem resetar o tempo virtual quando temperatura/pressão mudam.
+- O suporte a ADCs externos cobre `ADS1015`, `ADS1115` e `MCP3008` por classes shim mínimas, alimentadas por Analog Voltage Source sem resetar o tempo virtual quando a tensão muda.
 
 ## Limites Atuais
 
@@ -152,7 +155,8 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 - A conexão ambiental ainda é desenhada como fio visual comum, apesar de ser serializada separadamente.
 - O ESP32 ainda não substitui o Arduino UNO no solver de GPIO; o mapeamento genérico de pinos por manifest continua pendente.
 - O firmware WASM ainda cobre um subset de Arduino/C++; APIs fora do shim bloqueiam a simulação até serem implementadas no caminho WASM.
-- O FC-37 já expõe `AO` no manifest, mas leitura analógica por `analogRead` ainda está fora da entrega inicial.
+- O suporte I2C/SPI ainda é inicial: `Wire`/`SPI` existem como subsets mínimos para dispositivos registrados pelo runtime; não há barramento bruto completo nem bibliotecas Adafruit/MCP completas.
+- O FC-37 já expõe `AO` no manifest, mas leitura analógica do FC-37 ainda está fora da entrega inicial.
 - Fallback de compilação no browser foi avaliado e não faz parte do MVP público; o caminho recomendado é servidor com `clang++`/`wasm-ld` isolado por container.
 - Undo/Redo existe apenas durante a sessão atual.
 - O monitor de sinais ainda é contextual/ilustrativo, sem waveform temporal real.

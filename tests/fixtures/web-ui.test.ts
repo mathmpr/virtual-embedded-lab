@@ -59,16 +59,24 @@ test('web UI script defines the MVP components', () => {
   const css = readFileSync(join(root, 'apps/web/styles.css'), 'utf8');
 
   for (const manifest of [
+    'components/official/ads1015/component.json',
+    'components/official/ads1115/component.json',
+    'components/official/analog-voltage-source/component.json',
     'components/official/arduino-uno/component.json',
+    'components/official/bmp280/component.json',
     'components/official/esp32-devkit/component.json',
     'components/official/hc-sr04/component.json',
     'components/official/fc-37-rain-sensor/component.json',
+    'components/official/ldr-light-sensor/component.json',
     'components/official/resistor/component.json',
     'components/official/capacitor/component.json',
     'components/official/led-red/component.json',
     'components/official/led-green/component.json',
     'components/official/led-blue/component.json',
+    'components/official/climate/component.json',
     'components/official/distance-range/component.json',
+    'components/official/light-level/component.json',
+    'components/official/mcp3008/component.json',
     'components/official/rain-toggle/component.json',
     'components/official/wifi-signal/component.json'
   ]) {
@@ -99,6 +107,20 @@ test('web UI script defines the MVP components', () => {
   assert.match(css, /\.rain-toggle/);
   assert.match(css, /\.rain-sensor-icon/);
   assert.match(css, /\.fc37-rain-sensor/);
+  assert.match(css, /\.light-icon/);
+  assert.match(css, /\.light-level/);
+  assert.match(css, /\.ldr-icon/);
+  assert.match(css, /\.ldr-light-sensor/);
+  assert.match(css, /\.bmp280-icon/);
+  assert.match(css, /\.bmp280-sensor/);
+  assert.match(css, /\.climate-icon/);
+  assert.match(css, /\.climate-environment/);
+  assert.match(css, /\.analog-source-icon/);
+  assert.match(css, /\.analog-voltage-source/);
+  assert.match(css, /\.ads1015-icon/);
+  assert.match(css, /\.ads1115-icon/);
+  assert.match(css, /\.mcp3008-icon/);
+  assert.match(css, /\.adc-module/);
   assert.match(css, /\.esp32-icon/);
   assert.match(css, /\.esp32-devkit/);
   assert.match(css, /\.built-in-led/);
@@ -148,14 +170,28 @@ test('web UI exposes editable distance, resistor and capacitor properties', () =
   assert.match(capacitor, /4700 µF/);
   assert.match(script, /data-resistor-select/);
   assert.match(script, /data-capacitor-select/);
-  assert.match(script, /data-inspector-resistor/);
-  assert.match(script, /data-inspector-capacitor/);
-  assert.match(script, /data-inspector-distance/);
+  assert.match(script, /propertySchema/);
+  assert.match(script, /data-inspector-property/);
+  assert.match(script, /renderInspectorPropertyControl/);
+  assert.match(script, /updateComponentProperty/);
+  assert.doesNotMatch(script, /data-inspector-resistor/);
+  assert.doesNotMatch(script, /data-inspector-capacitor/);
+  assert.doesNotMatch(script, /data-inspector-distance/);
   assert.match(script, /updateDistanceValue\(component, valueCm/);
   assert.match(script, /updateResistorValue\(component, resistanceOhms/);
   assert.match(script, /updateCapacitorValue\(component, capacitanceMicrofarads/);
   assert.match(css, /\.component-select-row/);
   assert.match(css, /\.editable-property/);
+});
+
+test('web UI renders editable properties from component schemas', () => {
+  const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const editableProperties = script.match(/function renderEditableProperties\(component\) \{[\s\S]*?\n  \}\n\n  function bindInspectorPropertyControls/)?.[0] ?? '';
+
+  assert.match(editableProperties, /propertySchema/);
+  assert.match(editableProperties, /renderInspectorPropertyControl/);
+  assert.doesNotMatch(editableProperties, /if\s*\([^)]*component\.type/);
+  assert.doesNotMatch(editableProperties, /data-inspector-[a-z-]+/);
 });
 
 test('web UI exposes editable Wi-Fi signal controls', () => {
@@ -168,12 +204,14 @@ test('web UI exposes editable Wi-Fi signal controls', () => {
   assert.match(script, /data-wifi-slider/);
   assert.match(script, /data-wifi-connected/);
   assert.match(script, /Internet ativa/);
-  assert.match(script, /data-inspector-wifi-strength/);
-  assert.match(script, /data-inspector-wifi-connected/);
+  assert.match(script, /data-inspector-property/);
+  assert.match(script, /updateWirelessEnvironmentProperty/);
+  assert.doesNotMatch(script, /data-inspector-wifi-strength/);
+  assert.doesNotMatch(script, /data-inspector-wifi-connected/);
   assert.match(script, /updateWifiStrength\(component, strengthPercent/);
   assert.match(script, /updateWifiInternetAvailable\(component, internetAvailable/);
   assert.match(engine, /bindWifiEnvironment\(/);
-  assert.match(engine, /graph\.findComponentsByType\('hcsr04'\)\.length > 0/);
+  assert.match(engine, /environmentChannelValue\(component\)/);
   assert.match(runtime, /configureWifiEnvironment\(environment\)/);
   assert.match(runtime, /wifiBegin\(ssid, password/);
   assert.match(runtime, /wifiSoftAp\(ssid, password/);
@@ -196,16 +234,95 @@ test('web UI exposes FC-37 rain controls and runtime bindings', () => {
   assert.match(script, /data-rain-active/);
   assert.match(script, /data-rain-intensity/);
   assert.match(script, /data-rain-sensor-state/);
-  assert.match(script, /data-inspector-rain-active/);
-  assert.match(script, /data-inspector-rain-sensor-active-low/);
+  assert.match(script, /data-inspector-property/);
+  assert.doesNotMatch(script, /data-inspector-rain-active/);
+  assert.doesNotMatch(script, /data-inspector-rain-sensor-active-low/);
   assert.match(script, /updateRainActive\(component/);
   assert.match(script, /updateRainSensorActiveLow\(component/);
-  assert.match(script, /signalCard\('FC-37'/);
+  assert.match(script, /terminalSignalCard\(component\)/);
+  assert.match(script, /runtimeSignalForNet\(net\)/);
   assert.match(engine, /bindRainSensors\(/);
   assert.match(engine, /digitalPinConnectedToTerminal/);
   assert.match(engine, /runtime\.driveInput\(binding\.pin, value\)/);
   assert.match(engine, /normalizeRainValue/);
   assert.match(adapter, /updateRainValue\(componentId, value\)/);
+});
+
+test('web UI exposes LDR light controls and analog runtime bindings', () => {
+  const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
+  const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
+  const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
+  const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
+
+  assert.match(script, /data-light-enabled/);
+  assert.match(script, /data-light-intensity/);
+  assert.match(script, /data-ldr-state/);
+  assert.match(script, /data-inspector-property/);
+  assert.doesNotMatch(script, /data-inspector-light-enabled/);
+  assert.doesNotMatch(script, /data-inspector-ldr-dark/);
+  assert.match(script, /updateLightIntensity\(component/);
+  assert.match(script, /updateLdrProperty\(component/);
+  assert.match(script, /terminalSignalCard\(component\)/);
+  assert.match(script, /analogPinFromTerminal/);
+  assert.match(script, /state\.runtime\.analogPinStates/);
+  assert.match(engine, /bindLightSensors\(/);
+  assert.match(engine, /analogPinConnectedToTerminal/);
+  assert.match(engine, /runtime\.driveAnalogInput/);
+  assert.match(engine, /normalizeLightValue/);
+  assert.match(runtime, /analogRead\(pin\)/);
+  assert.match(adapter, /updateLightValue\(componentId, value\)/);
+  assert.match(wasmCompiler, /const int A0 = 14/);
+  assert.match(wasmCompiler, /int analogRead\(int pin\)/);
+});
+
+test('web UI exposes BMP280 climate controls and I2C runtime bindings', () => {
+  const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
+  const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
+  const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
+  const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
+
+  assert.match(script, /data-climate-enabled/);
+  assert.match(script, /data-climate-temperature/);
+  assert.match(script, /data-climate-pressure/);
+  assert.match(script, /data-bmp280-state/);
+  assert.match(script, /data-inspector-property/);
+  assert.doesNotMatch(script, /data-inspector-bmp280-address/);
+  assert.match(script, /updateClimateTemperature\(component/);
+  assert.match(script, /updateBmp280Property\(component/);
+  assert.match(engine, /bindBmp280Sensors\(/);
+  assert.match(engine, /runtime\.registerI2cDevice/);
+  assert.match(engine, /normalizeClimateValue/);
+  assert.match(runtime, /wireBegin\(\)/);
+  assert.match(runtime, /bmp280ReadTemperature\(address\)/);
+  assert.match(adapter, /updateClimateValue\(componentId, value\)/);
+  assert.match(wasmCompiler, /class TwoWire/);
+  assert.match(wasmCompiler, /class BMP280/);
+});
+
+test('web UI exposes external ADC controls and runtime bindings', () => {
+  const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
+  const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
+  const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
+  const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
+
+  assert.match(script, /data-analog-voltage/);
+  assert.match(script, /data-adc-raw/);
+  assert.match(script, /data-inspector-property/);
+  assert.doesNotMatch(script, /data-inspector-adc-address/);
+  assert.match(script, /updateAnalogVoltage\(component/);
+  assert.match(script, /updateAdcProperty\(component/);
+  assert.match(engine, /bindAdcConverters\(/);
+  assert.match(engine, /runtime\.registerSpiDevice/);
+  assert.match(engine, /externalAdcRaw/);
+  assert.match(runtime, /adcReadSingleEnded\(address, channel\)/);
+  assert.match(runtime, /mcp3008Read\(chipSelectPin, channel\)/);
+  assert.match(adapter, /updateAnalogVoltageValue\(componentId, value\)/);
+  assert.match(wasmCompiler, /class ADS1015/);
+  assert.match(wasmCompiler, /class ADS1115/);
+  assert.match(wasmCompiler, /class MCP3008/);
 });
 
 test('web UI exposes board deletion and history operations', () => {
@@ -234,7 +351,8 @@ test('web UI resolves distance controls dynamically and renders round terminals'
   assert.match(environment, /write\(id, value\)/);
   assert.match(adapter, /wasmSimulationSession\?\.updateDistanceValue/);
   assert.match(editor, /simulation\.updateDistanceValue\(component\.id, valueCm\)/);
-  assert.doesNotMatch(editor, /updateDistanceValue[\s\S]*simulation\.runSimulation\(\);[\s\S]*updateResistorValue/);
+  const updateDistanceValueBody = editor.match(/function updateDistanceValue\(component, valueCm[\s\S]*?\n  \}/)?.[0] ?? '';
+  assert.doesNotMatch(updateDistanceValueBody, /simulation\.runSimulation\(\)/);
   assert.doesNotMatch(engine, /state\.components\.get\('distance-1'\)\?\.properties\.valueCm/);
   assert.match(css, /appearance: none;/);
   assert.match(css, /aspect-ratio: 1;/);
@@ -340,13 +458,16 @@ test('web UI renders contextual signals in the inspector', () => {
   const editor = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
   const css = readFileSync(join(root, 'apps/web/styles.css'), 'utf8');
 
-  assert.match(editor, /component\.type === 'arduino'/);
-  assert.match(editor, /component\.type === 'hcsr04'/);
-  assert.match(editor, /isLedComponent\(component\)/);
-  assert.match(editor, /signalCard\('Ultrassom'/);
-  assert.match(editor, /signalCard\('LED'/);
-  assert.match(editor, /D7 \/ TRIG/);
-  assert.match(editor, /D6 \/ ECHO/);
+  assert.match(editor, /terminalSignalCard\(component\)/);
+  assert.match(editor, /terminalSignalRow\(component, terminal\)/);
+  assert.match(editor, /signalForTerminalNet\(terminalRef, net\)/);
+  assert.match(editor, /runtimeSignalForNet\(net\)/);
+  assert.match(editor, /state\.electrical\.netReadings\.get\(net\.id\)/);
+  assert.match(editor, /state\.runtime\.pinStates/);
+  assert.match(editor, /state\.runtime\.analogPinStates/);
+  assert.doesNotMatch(editor, /component\.type === 'arduino'/);
+  assert.doesNotMatch(editor, /signalCard\('Ultrassom'/);
+  assert.doesNotMatch(editor, /D7 \/ TRIG/);
   assert.match(css, /\.inspector-signals/);
   assert.match(css, /\.signal-card/);
 });
