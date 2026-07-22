@@ -46,6 +46,28 @@
   "behavior": {
     "type": "microcontroller",
     "runtime": "arduino-compatible",
+    "pinMap": {
+      "d0": { "number": 0, "name": "D0/RX", "capabilities": ["digital", "uart-rx"] },
+      "d1": { "number": 1, "name": "D1/TX", "capabilities": ["digital", "uart-tx"] },
+      "d2": { "number": 2, "name": "D2", "capabilities": ["digital", "interrupt"] },
+      "d3": { "number": 3, "name": "D3", "capabilities": ["digital", "pwm", "interrupt"] },
+      "d4": { "number": 4, "name": "D4", "capabilities": ["digital"] },
+      "d5": { "number": 5, "name": "D5", "capabilities": ["digital", "pwm"] },
+      "d6": { "number": 6, "name": "D6", "capabilities": ["digital", "pwm"] },
+      "d7": { "number": 7, "name": "D7", "capabilities": ["digital"] },
+      "d8": { "number": 8, "name": "D8", "capabilities": ["digital"] },
+      "d9": { "number": 9, "name": "D9", "capabilities": ["digital", "pwm"] },
+      "d10": { "number": 10, "name": "D10", "capabilities": ["digital", "pwm", "spi-cs"] },
+      "d11": { "number": 11, "name": "D11", "capabilities": ["digital", "pwm", "spi-mosi"] },
+      "d12": { "number": 12, "name": "D12", "capabilities": ["digital", "spi-miso"] },
+      "d13": { "number": 13, "name": "D13", "capabilities": ["digital", "spi-sck", "led"] },
+      "a0": { "number": 14, "analogNumber": 14, "name": "A0", "capabilities": ["analog", "digital"] },
+      "a1": { "number": 15, "analogNumber": 15, "name": "A1", "capabilities": ["analog", "digital"] },
+      "a2": { "number": 16, "analogNumber": 16, "name": "A2", "capabilities": ["analog", "digital"] },
+      "a3": { "number": 17, "analogNumber": 17, "name": "A3", "capabilities": ["analog", "digital"] },
+      "a4": { "number": 18, "analogNumber": 18, "name": "A4/SDA", "capabilities": ["analog", "digital", "i2c-sda"] },
+      "a5": { "number": 19, "analogNumber": 19, "name": "A5/SCL", "capabilities": ["analog", "digital", "i2c-scl"] }
+    },
     "builtInLeds": [
       {
         "id": "led_builtin",

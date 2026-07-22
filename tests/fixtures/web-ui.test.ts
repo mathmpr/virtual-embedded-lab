@@ -253,6 +253,7 @@ test('web UI exposes FC-37 rain controls and runtime bindings', () => {
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
   const signals = readFileSync(join(root, 'apps/web/js/board/signals-panel.js'), 'utf8');
+  const pinResolver = readFileSync(join(root, 'apps/web/js/board/pin-resolver.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
 
@@ -286,6 +287,7 @@ test('web UI exposes LDR light controls and analog runtime bindings', () => {
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
   const signals = readFileSync(join(root, 'apps/web/js/board/signals-panel.js'), 'utf8');
+  const pinResolver = readFileSync(join(root, 'apps/web/js/board/pin-resolver.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
@@ -304,8 +306,9 @@ test('web UI exposes LDR light controls and analog runtime bindings', () => {
   assert.doesNotMatch(componentState, /function updateLightIntensity/);
   assert.doesNotMatch(componentState, /function updateLdrProperty/);
   assert.match(signals, /terminalSignalCard\(component\)/);
-  assert.match(signals, /analogPinFromTerminal/);
-  assert.match(signals, /state\.runtime\.analogPinStates/);
+  assert.doesNotMatch(signals, /analogPinFromTerminal/);
+  assert.match(signals, /runtimePinSignal/);
+  assert.match(pinResolver, /runtime\.analogPinStates/);
   assert.match(engine, /bindLightSensors\(/);
   assert.match(engine, /analogPinConnectedToTerminal/);
   assert.match(engine, /runtime\.driveAnalogInput/);
@@ -528,6 +531,7 @@ test('web UI keeps Serial history append-only during runs and RX input', () => {
 test('web UI renders contextual signals in the inspector', () => {
   const editor = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
   const signals = readFileSync(join(root, 'apps/web/js/board/signals-panel.js'), 'utf8');
+  const pinResolver = readFileSync(join(root, 'apps/web/js/board/pin-resolver.js'), 'utf8');
   const css = readFileSync(join(root, 'apps/web/styles.css'), 'utf8');
 
   assert.match(editor, /createSignalsPanel/);
@@ -536,8 +540,12 @@ test('web UI renders contextual signals in the inspector', () => {
   assert.match(signals, /signalForTerminalNet\(terminalRef, net\)/);
   assert.match(signals, /runtimeSignalForNet\(net\)/);
   assert.match(signals, /state\.electrical\.netReadings\.get\(net\.id\)/);
-  assert.match(signals, /state\.runtime\.pinStates/);
-  assert.match(signals, /state\.runtime\.analogPinStates/);
+  assert.match(pinResolver, /runtime\.pinStates/);
+  assert.match(pinResolver, /runtime\.analogPinStates/);
+  assert.match(signals, /createPinResolver/);
+  assert.match(signals, /signal\.name/);
+  assert.doesNotMatch(signals, /digitalPinFromTerminal/);
+  assert.doesNotMatch(signals, /analogPinFromTerminal/);
   assert.doesNotMatch(signals, /component\.type === 'arduino'/);
   assert.doesNotMatch(signals, /signalCard\('Ultrassom'/);
   assert.doesNotMatch(signals, /D7 \/ TRIG/);

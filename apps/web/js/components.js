@@ -72,6 +72,7 @@ export function componentDefinitionFromManifest(manifest) {
     electricalModel: manifest.electricalModel ?? null,
     electricalPrimitive: manifest.electricalModel?.primitive ?? null,
     behavior: manifest.behavior ?? {},
+    pinMap: manifest.behavior?.pinMap ?? {},
     palette: visual.palette ?? null,
     stateBindings: visual.stateBindings ?? [],
     terminals: (visual.terminals ?? []).map((terminal) => {

@@ -1,4 +1,5 @@
 import { terminalReference } from '../components.js';
+import { createPinResolver } from './pin-resolver.js';
 import {
   formatCurrent,
   formatPower,
@@ -13,6 +14,8 @@ import {
 } from './formatters.js';
 
 export function createSignalsPanel({ state, signalMonitor, componentDefinitions, getNets, terminalKind }) {
+  const pinResolver = createPinResolver({ componentDefinitions });
+
   function renderSignals() {
     const component = state.components.get(state.selectedId);
 
@@ -58,7 +61,8 @@ export function createSignalsPanel({ state, signalMonitor, componentDefinitions,
     const net = netForTerminal(terminalRef);
     const signal = signalForTerminalNet(terminalRef, net);
     const connected = connectedTerminalLabels(component.id, net);
-    const label = `${terminal.label ?? terminal.id}${connected ? ` -> ${connected}` : ''}`;
+    const pinLabel = signal.name ? ` (${signal.name})` : '';
+    const label = `${terminal.label ?? terminal.id}${pinLabel}${connected ? ` -> ${connected}` : ''}`;
 
     return signalRow(label, signal.value, signal.text);
   }
@@ -132,25 +136,17 @@ export function createSignalsPanel({ state, signalMonitor, componentDefinitions,
   }
 
   function runtimeSignalForTerminal(terminal) {
-    const digitalPin = digitalPinFromTerminal(terminal);
+    const component = state.components.get(terminal.componentId);
+    const signal = pinResolver.runtimePinSignal({ terminal, component, runtime: state.runtime });
 
-    if (Number.isInteger(digitalPin) && state.runtime.pinStates[digitalPin]) {
-      const pin = state.runtime.pinStates[digitalPin];
-      const value = pin.value === 'HIGH' ? 1 : 0;
-      return { value, text: `${pin.value} / ${pin.mode}` };
-    }
-
-    const analogPin = analogPinFromTerminal(terminal);
-
-    if (Number.isInteger(analogPin) && state.runtime.analogPinStates[analogPin]) {
-      const analog = state.runtime.analogPinStates[analogPin];
+    if (signal?.voltageVolts !== undefined) {
       return {
-        value: normalizeAnalog(analog.value),
-        text: `${analog.value} / ${formatVoltage(analog.voltageVolts)}`
+        value: normalizeAnalog(signal.value),
+        text: `${signal.value} / ${formatVoltage(signal.voltageVolts)}`
       };
     }
 
-    return null;
+    return signal;
   }
 
   function connectedTerminalLabels(componentId, net) {
@@ -169,22 +165,6 @@ export function createSignalsPanel({ state, signalMonitor, componentDefinitions,
     return getNets().find((net) => {
       return net.terminals.some((item) => item.componentId === terminal.componentId && item.terminalId === terminal.terminalId);
     }) ?? null;
-  }
-
-  function digitalPinFromTerminal(terminal) {
-    const match = terminal.terminalId.match(/^d(\d+)$/);
-    return match ? Number(match[1]) : null;
-  }
-
-  function analogPinFromTerminal(terminal) {
-    const arduinoMatch = terminal.terminalId.match(/^a([0-5])$/);
-
-    if (arduinoMatch) {
-      return 14 + Number(arduinoMatch[1]);
-    }
-
-    const espMatch = terminal.terminalId.match(/^io(\d+)$/);
-    return espMatch ? Number(espMatch[1]) : null;
   }
 
   function signalCard(title, rows) {
