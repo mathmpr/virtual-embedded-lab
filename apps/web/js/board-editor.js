@@ -1,4 +1,4 @@
-import { componentDefinitions, componentPalette, loadOfficialComponents } from './components.js';
+import { componentDefinitions, componentPalette, loadOfficialComponents, relocalizeComponentCatalog } from './components.js';
 import { createBuzzerAudioController } from './audio/buzzer-audio.js';
 import { createCodeEditor } from './code-editor.js';
 import { loadExampleList, loadExampleProject } from './examples.js';
@@ -162,7 +162,7 @@ export function createBoardEditor(document) {
 
   async function start() {
     applyDocumentTranslations(document);
-    bindLanguageSelector(document);
+    bindLanguageSelector(document, syncLocalizedUi);
     setupBoardSurface();
     renderSignals();
     renderSerial();
@@ -247,9 +247,54 @@ export function createBoardEditor(document) {
 
     paletteScroll.innerHTML = `${groupsHtml}
       <div class="palette-hint">
-        Arraste ou clique para inserir. Clique em terminais para criar fios.
+        ${t('Drag or click to insert. Click terminals to create wires.')}
       </div>
     `;
+  }
+
+  function syncLocalizedUi() {
+    relocalizeComponentCatalog();
+    renderPalette();
+    bindPalette();
+    syncAudioButton();
+    rerenderBoardComponents();
+    renderInspector();
+    renderSignals();
+    renderSerial();
+    syncFirmwareEditor();
+  }
+
+  function rerenderBoardComponents() {
+    for (const component of state.components.values()) {
+      const definition = componentDefinitions[component.type];
+
+      if (!definition) {
+        continue;
+      }
+
+      const replacement = document.createElement('div');
+      replacement.className = `component ${definition.className}${component.id === state.selectedId ? ' selected' : ''}`;
+      replacement.dataset.id = component.id;
+      replacement.dataset.type = component.type;
+      replacement.style.width = `${definition.width}px`;
+      replacement.style.left = `${component.x}px`;
+      replacement.style.top = `${component.y}px`;
+      replacement.innerHTML = renderComponentTemplate(definition, component.id, variantsForProperty);
+
+      component.element.replaceWith(replacement);
+      component.element = replacement;
+      component.electricalPrimitive = definition.electricalPrimitive;
+      component.electricalModel = definition.electricalModel;
+      component.behavior = definition.behavior ?? {};
+      component.simulation = definition.simulation ?? {};
+      component.propertySchema = definition.propertySchema ?? {};
+
+      bindComponent(replacement, component);
+      syncComponentControls(component);
+    }
+
+    applyVisualStateBindings();
+    drawWires();
   }
 
   function bindToolbar() {

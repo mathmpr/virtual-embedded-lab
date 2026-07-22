@@ -189,12 +189,21 @@ test('web UI defaults visible product text to Portuguese', () => {
 
 test('web UI exposes a persisted language selector with Portuguese, English and Spanish', () => {
   const html = readFileSync(join(root, 'apps/web/index.html'), 'utf8');
+  const boardEditor = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const i18n = readFileSync(join(root, 'apps/web/js/i18n.js'), 'utf8');
   const initialLocale = getLocale();
 
   assert.match(html, /id="languageSelector"/);
   assert.match(html, /value="pt-BR"/);
   assert.match(html, /value="en"/);
   assert.match(html, /value="es"/);
+  assert.match(boardEditor, /bindLanguageSelector\(document, syncLocalizedUi\)/);
+  assert.match(boardEditor, /relocalizeComponentCatalog\(\)/);
+  assert.match(boardEditor, /rerenderBoardComponents\(\)/);
+  assert.doesNotMatch(i18n, /location\.reload/);
+  assert.doesNotThrow(() => readFileSync(join(root, 'apps/web/js/i18n/locales/pt-BR.js'), 'utf8'));
+  assert.doesNotThrow(() => readFileSync(join(root, 'apps/web/js/i18n/locales/en.js'), 'utf8'));
+  assert.doesNotThrow(() => readFileSync(join(root, 'apps/web/js/i18n/locales/es.js'), 'utf8'));
   assert.deepEqual(supportedLocales, ['pt-BR', 'en', 'es']);
 
   setLocale('pt-BR');

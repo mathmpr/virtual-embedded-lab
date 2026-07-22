@@ -7,6 +7,8 @@ export const componentIdByType = {};
 export const typeByComponentId = {};
 export const componentPalette = [];
 
+let installedManifests = [];
+
 export async function loadOfficialComponents(fetchImpl = fetch) {
   const response = await fetchImpl('/api/components');
 
@@ -18,7 +20,11 @@ export async function loadOfficialComponents(fetchImpl = fetch) {
   installComponentCatalog(catalog.components ?? []);
 }
 
-export function installComponentCatalog(manifests) {
+export function installComponentCatalog(manifests, { remember = true } = {}) {
+  if (remember) {
+    installedManifests = manifests;
+  }
+
   clearObject(componentDefinitions);
   clearObject(componentIdByType);
   clearObject(typeByComponentId);
@@ -47,6 +53,10 @@ export function installComponentCatalog(manifests) {
   componentPalette.sort((left, right) => {
     return (left.order ?? 1000) - (right.order ?? 1000) || left.title.localeCompare(right.title);
   });
+}
+
+export function relocalizeComponentCatalog() {
+  installComponentCatalog(installedManifests, { remember: false });
 }
 
 export function componentDefinitionFromManifest(manifest) {
