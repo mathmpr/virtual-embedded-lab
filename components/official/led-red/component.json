@@ -15,22 +15,26 @@
     "forwardVoltage": {
       "type": "number",
       "default": 2,
-      "unit": "V"
+      "unit": "V",
+      "simulationUpdate": "rerun"
     },
     "recommendedCurrent": {
       "type": "number",
       "default": 0.01,
-      "unit": "A"
+      "unit": "A",
+      "simulationUpdate": "rerun"
     },
     "minimumVisibleCurrent": {
       "type": "number",
       "default": 0.001,
-      "unit": "A"
+      "unit": "A",
+      "simulationUpdate": "rerun"
     },
     "maximumCurrent": {
       "type": "number",
       "default": 0.02,
-      "unit": "A"
+      "unit": "A",
+      "simulationUpdate": "rerun"
     }
   },
   "terminals": [
@@ -53,6 +57,9 @@
     "body": "off",
     "width": 118,
     "height": 104,
+    "controls": [
+      { "type": "element", "className": "led-glow" }
+    ],
     "palette": {
       "group": "Electronic",
       "subgroup": "LEDs",

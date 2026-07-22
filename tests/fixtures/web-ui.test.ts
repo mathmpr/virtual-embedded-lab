@@ -145,20 +145,23 @@ test('web server exposes official component and example catalog APIs', () => {
 
 test('web UI prevents known interaction regressions', () => {
   const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const componentBinder = readFileSync(join(root, 'apps/web/js/board/component-binder.js'), 'utf8');
+  const componentTemplate = readFileSync(join(root, 'apps/web/js/board/component-template.js'), 'utf8');
   const solver = readFileSync(join(root, 'apps/web/js/simulation/electrical-solver.js'), 'utf8');
 
   assert.match(script, /nextComponentId\(type\)/);
   assert.match(script, /syncComponentCounter\(componentId\)/);
   assert.match(solver, /solveElectricalState\(\{ graph, runtime \}\)/);
   assert.match(solver, /findDrivenHighPins\(\{ runtime, arduino \}\)/);
-  assert.match(script, /closest\('/);
-  assert.match(script, /input, textarea, select/);
-  assert.match(script, /\[data-delete-component\]/);
-  assert.match(script, /slider\.addEventListener\('pointerdown'/);
+  assert.match(componentBinder, /closest\('/);
+  assert.match(componentBinder, /input, textarea, select/);
+  assert.match(componentTemplate, /data-delete-component/);
+  assert.match(componentBinder, /input\.addEventListener\('pointerdown'/);
 });
 
 test('web UI exposes editable distance, resistor and capacitor properties', () => {
   const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const componentTemplate = readFileSync(join(root, 'apps/web/js/board/component-template.js'), 'utf8');
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
   const components = readFileSync(join(root, 'apps/web/js/components.js'), 'utf8');
@@ -170,18 +173,25 @@ test('web UI exposes editable distance, resistor and capacitor properties', () =
   assert.match(resistor, /1 kΩ/);
   assert.match(capacitor, /capacitanceMicrofarads/);
   assert.match(capacitor, /4700 µF/);
-  assert.match(script, /data-resistor-select/);
-  assert.match(script, /data-capacitor-select/);
+  assert.match(componentTemplate, /renderVisualControl/);
+  assert.match(componentTemplate, /case 'boolean'/);
+  assert.match(componentTemplate, /case 'number'/);
+  assert.match(componentTemplate, /case 'string'/);
+  assert.match(componentTemplate, /case 'variant'/);
+  assert.doesNotMatch(componentTemplate, /definition\.className/);
+  assert.match(componentTemplate, /data-property=/);
+  assert.doesNotMatch(resistor, /data-resistor-select/);
+  assert.doesNotMatch(capacitor, /data-capacitor-select/);
   assert.match(inspector, /propertySchema/);
-  assert.match(inspector, /data-inspector-property/);
+  assert.match(inspector, /data-property/);
   assert.match(inspector, /renderInspectorPropertyControl/);
   assert.match(inspector, /updateComponentProperty/);
   assert.doesNotMatch(inspector, /data-inspector-resistor/);
   assert.doesNotMatch(inspector, /data-inspector-capacitor/);
   assert.doesNotMatch(inspector, /data-inspector-distance/);
-  assert.match(componentState, /updateDistanceValue\(component, valueCm/);
-  assert.match(componentState, /updateResistorValue\(component, resistanceOhms/);
-  assert.match(componentState, /updateCapacitorValue\(component, capacitanceMicrofarads/);
+  assert.match(componentState, /function updateComponentProperty\(component, propertyName, value/);
+  assert.doesNotMatch(componentState, /function updateResistorValue/);
+  assert.doesNotMatch(componentState, /function updateCapacitorValue/);
   assert.match(css, /\.component-select-row/);
   assert.match(css, /\.editable-property/);
 });
@@ -199,6 +209,7 @@ test('web UI renders editable properties from component schemas', () => {
 test('web UI exposes editable Wi-Fi signal controls', () => {
   const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
   const componentTemplate = readFileSync(join(root, 'apps/web/js/board/component-template.js'), 'utf8');
+  const wifiSignal = readFileSync(join(root, 'components/official/wifi-signal/component.json'), 'utf8');
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
@@ -206,15 +217,18 @@ test('web UI exposes editable Wi-Fi signal controls', () => {
   const firmware = readFileSync(join(root, 'apps/web/js/simulation/firmware-engine.js'), 'utf8');
   const analyzer = readFileSync(join(root, 'apps/web/firmware/clang-analyzer.mjs'), 'utf8');
 
-  assert.match(componentTemplate, /data-wifi-slider/);
-  assert.match(componentTemplate, /data-wifi-connected/);
-  assert.match(componentTemplate, /Internet ativa/);
-  assert.match(inspector, /data-inspector-property/);
-  assert.match(inspector, /updateWirelessEnvironmentProperty/);
+  assert.match(componentTemplate, /renderVisualControl/);
+  assert.doesNotMatch(wifiSignal, /data-wifi-slider/);
+  assert.doesNotMatch(wifiSignal, /data-wifi-connected/);
+  assert.match(wifiSignal, /Internet ativa/);
+  assert.match(inspector, /data-property/);
+  assert.doesNotMatch(inspector, /updateWirelessEnvironmentProperty/);
+  assert.match(componentState, /propertySimulationUpdateMode/);
+  assert.match(wifiSignal, /"simulationUpdate": "rerun"/);
   assert.doesNotMatch(inspector, /data-inspector-wifi-strength/);
   assert.doesNotMatch(inspector, /data-inspector-wifi-connected/);
-  assert.match(componentState, /updateWifiStrength\(component, strengthPercent/);
-  assert.match(componentState, /updateWifiInternetAvailable\(component, internetAvailable/);
+  assert.doesNotMatch(componentState, /function updateWifiStrength/);
+  assert.doesNotMatch(componentState, /function updateWifiInternetAvailable/);
   assert.match(engine, /bindWifiEnvironment\(/);
   assert.match(engine, /environmentChannelValue\(component\)/);
   assert.match(runtime, /configureWifiEnvironment\(environment\)/);
@@ -234,21 +248,25 @@ test('web UI exposes editable Wi-Fi signal controls', () => {
 test('web UI exposes FC-37 rain controls and runtime bindings', () => {
   const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
   const componentTemplate = readFileSync(join(root, 'apps/web/js/board/component-template.js'), 'utf8');
+  const rainToggle = readFileSync(join(root, 'components/official/rain-toggle/component.json'), 'utf8');
+  const rainSensor = readFileSync(join(root, 'components/official/fc-37-rain-sensor/component.json'), 'utf8');
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
   const signals = readFileSync(join(root, 'apps/web/js/board/signals-panel.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
 
-  assert.match(script, /data-rain-active/);
-  assert.match(script, /data-rain-intensity/);
-  assert.match(componentTemplate, /data-rain-sensor-state/);
+  assert.match(componentTemplate, /renderVisualControl/);
+  assert.doesNotMatch(rainToggle, /data-rain-active/);
+  assert.doesNotMatch(rainToggle, /data-rain-intensity/);
+  assert.match(rainToggle, /"simulationUpdate": "live"/);
+  assert.match(rainSensor, /data-rain-sensor-state/);
   assert.match(componentState, /data-rain-sensor-state/);
-  assert.match(inspector, /data-inspector-property/);
+  assert.match(inspector, /data-property/);
   assert.doesNotMatch(inspector, /data-inspector-rain-active/);
   assert.doesNotMatch(inspector, /data-inspector-rain-sensor-active-low/);
-  assert.match(componentState, /updateRainActive\(component/);
-  assert.match(componentState, /updateRainSensorActiveLow\(component/);
+  assert.doesNotMatch(componentState, /function updateRainActive/);
+  assert.doesNotMatch(componentState, /function updateRainSensorActiveLow/);
   assert.match(signals, /terminalSignalCard\(component\)/);
   assert.match(signals, /runtimeSignalForNet\(net\)/);
   assert.match(engine, /bindRainSensors\(/);
@@ -261,6 +279,8 @@ test('web UI exposes FC-37 rain controls and runtime bindings', () => {
 test('web UI exposes LDR light controls and analog runtime bindings', () => {
   const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
   const componentTemplate = readFileSync(join(root, 'apps/web/js/board/component-template.js'), 'utf8');
+  const lightLevel = readFileSync(join(root, 'components/official/light-level/component.json'), 'utf8');
+  const ldrSensor = readFileSync(join(root, 'components/official/ldr-light-sensor/component.json'), 'utf8');
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
   const signals = readFileSync(join(root, 'apps/web/js/board/signals-panel.js'), 'utf8');
@@ -269,15 +289,17 @@ test('web UI exposes LDR light controls and analog runtime bindings', () => {
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
 
-  assert.match(script, /data-light-enabled/);
-  assert.match(script, /data-light-intensity/);
-  assert.match(componentTemplate, /data-ldr-state/);
+  assert.match(componentTemplate, /renderVisualControl/);
+  assert.doesNotMatch(lightLevel, /data-light-enabled/);
+  assert.doesNotMatch(lightLevel, /data-light-intensity/);
+  assert.match(lightLevel, /"simulationUpdate": "live"/);
+  assert.match(ldrSensor, /data-ldr-state/);
   assert.match(componentState, /data-ldr-state/);
-  assert.match(inspector, /data-inspector-property/);
+  assert.match(inspector, /data-property/);
   assert.doesNotMatch(inspector, /data-inspector-light-enabled/);
   assert.doesNotMatch(inspector, /data-inspector-ldr-dark/);
-  assert.match(componentState, /updateLightIntensity\(component/);
-  assert.match(componentState, /updateLdrProperty\(component/);
+  assert.doesNotMatch(componentState, /function updateLightIntensity/);
+  assert.doesNotMatch(componentState, /function updateLdrProperty/);
   assert.match(signals, /terminalSignalCard\(component\)/);
   assert.match(signals, /analogPinFromTerminal/);
   assert.match(signals, /state\.runtime\.analogPinStates/);
@@ -294,6 +316,8 @@ test('web UI exposes LDR light controls and analog runtime bindings', () => {
 test('web UI exposes BMP280 climate controls and I2C runtime bindings', () => {
   const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
   const componentTemplate = readFileSync(join(root, 'apps/web/js/board/component-template.js'), 'utf8');
+  const climate = readFileSync(join(root, 'components/official/climate/component.json'), 'utf8');
+  const bmp280 = readFileSync(join(root, 'components/official/bmp280/component.json'), 'utf8');
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
@@ -301,15 +325,17 @@ test('web UI exposes BMP280 climate controls and I2C runtime bindings', () => {
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
 
-  assert.match(script, /data-climate-enabled/);
-  assert.match(script, /data-climate-temperature/);
-  assert.match(script, /data-climate-pressure/);
-  assert.match(componentTemplate, /data-bmp280-state/);
+  assert.match(componentTemplate, /renderVisualControl/);
+  assert.doesNotMatch(climate, /data-climate-enabled/);
+  assert.doesNotMatch(climate, /data-climate-temperature/);
+  assert.doesNotMatch(climate, /data-climate-pressure/);
+  assert.match(climate, /"simulationUpdate": "live"/);
+  assert.match(bmp280, /data-bmp280-state/);
   assert.match(componentState, /data-bmp280-state/);
-  assert.match(inspector, /data-inspector-property/);
+  assert.match(inspector, /data-property/);
   assert.doesNotMatch(inspector, /data-inspector-bmp280-address/);
-  assert.match(componentState, /updateClimateTemperature\(component/);
-  assert.match(componentState, /updateBmp280Property\(component/);
+  assert.doesNotMatch(componentState, /function updateClimateTemperature/);
+  assert.doesNotMatch(componentState, /function updateBmp280Property/);
   assert.match(engine, /bindBmp280Sensors\(/);
   assert.match(engine, /runtime\.registerI2cDevice/);
   assert.match(engine, /normalizeClimateValue/);
@@ -323,6 +349,8 @@ test('web UI exposes BMP280 climate controls and I2C runtime bindings', () => {
 test('web UI exposes external ADC controls and runtime bindings', () => {
   const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
   const componentTemplate = readFileSync(join(root, 'apps/web/js/board/component-template.js'), 'utf8');
+  const analogSource = readFileSync(join(root, 'components/official/analog-voltage-source/component.json'), 'utf8');
+  const ads1015 = readFileSync(join(root, 'components/official/ads1015/component.json'), 'utf8');
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
@@ -330,13 +358,15 @@ test('web UI exposes external ADC controls and runtime bindings', () => {
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
 
-  assert.match(script, /data-analog-voltage/);
-  assert.match(componentTemplate, /data-adc-raw/);
+  assert.match(componentTemplate, /renderVisualControl/);
+  assert.doesNotMatch(analogSource, /data-analog-voltage/);
+  assert.match(analogSource, /"simulationUpdate": "live"/);
+  assert.match(ads1015, /data-adc-raw/);
   assert.match(componentState, /data-adc-raw/);
-  assert.match(inspector, /data-inspector-property/);
+  assert.match(inspector, /data-property/);
   assert.doesNotMatch(inspector, /data-inspector-adc-address/);
-  assert.match(componentState, /updateAnalogVoltage\(component/);
-  assert.match(componentState, /updateAdcProperty\(component/);
+  assert.doesNotMatch(componentState, /function updateAnalogVoltage/);
+  assert.doesNotMatch(componentState, /function updateAdcProperty/);
   assert.match(engine, /bindAdcConverters\(/);
   assert.match(engine, /runtime\.registerSpiDevice/);
   assert.match(engine, /externalAdcRaw/);
@@ -376,9 +406,10 @@ test('web UI resolves distance controls dynamically and renders round terminals'
   assert.match(engine, /updateDistanceValue\(componentId, valueCm\)/);
   assert.match(environment, /write\(id, value\)/);
   assert.match(adapter, /wasmSimulationSession\?\.updateDistanceValue/);
-  assert.match(componentState, /simulation\.updateDistanceValue\(component\.id, valueCm\)/);
-  const updateDistanceValueBody = componentState.match(/function updateDistanceValue\(component, valueCm[\s\S]*?\n  \}/)?.[0] ?? '';
-  assert.doesNotMatch(updateDistanceValueBody, /simulation\.runSimulation\(\)/);
+  assert.match(componentState, /simulation\.updateDistanceValue\(component\.id, component\.properties\[definition\.behavior\.valueProperty\]\)/);
+  assert.match(componentState, /propertySimulationUpdateMode/);
+  const liveRuntimeUpdateBody = componentState.match(/function applyLiveRuntimeUpdate\(component, definition\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  assert.doesNotMatch(liveRuntimeUpdateBody, /simulation\.runSimulation\(\)/);
   assert.doesNotMatch(engine, /state\.components\.get\('distance-1'\)\?\.properties\.valueCm/);
   assert.match(css, /appearance: none;/);
   assert.match(css, /aspect-ratio: 1;/);
@@ -564,9 +595,12 @@ test('web UI bootstrap stays thin and responsibilities are split by module', () 
   const files = [
     'apps/web/js/board-editor.js',
     'apps/web/js/board/component-state.js',
+    'apps/web/js/board/component-binder.js',
     'apps/web/js/board/component-template.js',
+    'apps/web/js/board/console-panel.js',
     'apps/web/js/board/formatters.js',
     'apps/web/js/board/inspector-panel.js',
+    'apps/web/js/board/problems-panel.js',
     'apps/web/js/board/project-actions.js',
     'apps/web/js/board/serial-panel.js',
     'apps/web/js/board/signals-panel.js',

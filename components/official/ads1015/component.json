@@ -4,10 +4,10 @@
   "identity": { "id": "converter.adc.ads1015", "name": "ADS1015 ADC", "category": "converter", "subCategory": "adc" },
   "simulation": { "kind": "behavioral-sensor", "effects": ["firmware", "electrical", "environment", "visual-state"], "implemented": true },
   "properties": {
-    "i2cAddress": { "type": "number", "default": 72, "minimum": 72, "maximum": 75 },
-    "gain": { "type": "string", "default": "2.048V" },
-    "sampleRateSps": { "type": "number", "default": 1600, "minimum": 128, "maximum": 3300, "unit": "SPS" },
-    "mode": { "type": "string", "default": "single-shot" }
+    "i2cAddress": { "type": "number", "default": 72, "minimum": 72, "maximum": 75, "simulationUpdate": "rerun" },
+    "gain": { "type": "string", "default": "2.048V", "simulationUpdate": "rerun" },
+    "sampleRateSps": { "type": "number", "default": 1600, "minimum": 128, "maximum": 3300, "unit": "SPS", "simulationUpdate": "rerun" },
+    "mode": { "type": "string", "default": "single-shot", "simulationUpdate": "rerun" }
   },
   "variants": {
     "i2cAddress": [
@@ -43,6 +43,17 @@
     "body": "12-bit ADC",
     "width": 184,
     "height": 132,
+    "controls": [
+      { "type": "readout", "className": "adc-readout", "label": "ADS1015", "text": "CH0", "dataAttribute": "data-adc-state" },
+      {
+        "type": "container",
+        "className": "adc-chip",
+        "children": [
+          { "type": "element", "tag": "span", "text": "-- raw", "dataAttribute": "data-adc-raw" },
+          { "type": "element", "tag": "span", "text": "-- V", "dataAttribute": "data-adc-voltage" }
+        ]
+      }
+    ],
     "palette": { "group": "Electronic", "subgroup": "ADCs", "icon": "ads1015-icon", "order": 61 },
     "terminals": [
       { "id": "vdd", "side": "left", "x": 0, "y": 24, "kind": "power" },

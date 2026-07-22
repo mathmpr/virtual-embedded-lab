@@ -17,17 +17,20 @@
       "default": 150,
       "minimum": 2,
       "maximum": 400,
-      "unit": "cm"
+      "unit": "cm",
+      "simulationUpdate": "live"
     },
     "minCm": {
       "type": "number",
       "default": 2,
-      "unit": "cm"
+      "unit": "cm",
+      "simulationUpdate": "none"
     },
     "maxCm": {
       "type": "number",
       "default": 400,
-      "unit": "cm"
+      "unit": "cm",
+      "simulationUpdate": "none"
     }
   },
   "terminals": [
@@ -45,6 +48,10 @@
     "body": "150 cm",
     "width": 190,
     "height": 104,
+    "controls": [
+      { "type": "readout", "className": "distance-readout", "label": "Distância", "property": "valueCm", "unit": "cm" },
+      { "type": "range", "property": "valueCm" }
+    ],
     "palette": {
       "group": "Inputs",
       "icon": "distance-icon",

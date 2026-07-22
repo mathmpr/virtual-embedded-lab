@@ -15,18 +15,21 @@
   "properties": {
     "ssid": {
       "type": "string",
-      "default": "VirtualLab"
+      "default": "VirtualLab",
+      "simulationUpdate": "rerun"
     },
     "connected": {
       "type": "boolean",
-      "default": true
+      "default": true,
+      "simulationUpdate": "rerun"
     },
     "strengthPercent": {
       "type": "number",
       "default": 80,
       "minimum": 0,
       "maximum": 100,
-      "unit": "%"
+      "unit": "%",
+      "simulationUpdate": "rerun"
     }
   },
   "terminals": [],
@@ -41,6 +44,11 @@
     "body": "80%",
     "width": 210,
     "height": 122,
+    "controls": [
+      { "type": "readout", "className": "wifi-readout", "label": "Wi-Fi", "property": "strengthPercent", "format": "percent" },
+      { "type": "checkbox", "className": "wifi-checkbox-row", "label": "Internet ativa", "property": "connected" },
+      { "type": "range", "property": "strengthPercent" }
+    ],
     "palette": {
       "group": "Inputs",
       "subgroup": "Wireless",

@@ -15,14 +15,16 @@
   "properties": {
     "active": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "simulationUpdate": "live"
     },
     "intensityPercent": {
       "type": "number",
       "default": 100,
       "minimum": 0,
       "maximum": 100,
-      "unit": "%"
+      "unit": "%",
+      "simulationUpdate": "live"
     }
   },
   "terminals": [],
@@ -39,6 +41,11 @@
     "body": "OFF",
     "width": 180,
     "height": 104,
+    "controls": [
+      { "type": "readout", "className": "rain-readout", "label": "Chuva", "property": "active", "format": "onOff" },
+      { "type": "checkbox", "className": "wifi-checkbox-row", "label": "Chuva ativa", "property": "active" },
+      { "type": "range", "property": "intensityPercent" }
+    ],
     "palette": {
       "group": "Inputs",
       "subgroup": "Weather",

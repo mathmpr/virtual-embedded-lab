@@ -4,10 +4,10 @@
   "identity": { "id": "converter.adc.mcp3008", "name": "MCP3008 ADC", "category": "converter", "subCategory": "adc" },
   "simulation": { "kind": "behavioral-sensor", "effects": ["firmware", "electrical", "environment", "visual-state"], "implemented": true },
   "properties": {
-    "resolutionBits": { "type": "number", "default": 10, "minimum": 10, "maximum": 10 },
-    "referenceVoltageVolts": { "type": "number", "default": 5, "minimum": 1, "maximum": 5.5, "unit": "V" },
-    "spiMode": { "type": "number", "default": 0, "minimum": 0, "maximum": 3 },
-    "maxClockHz": { "type": "number", "default": 1350000, "minimum": 100000, "maximum": 3600000, "unit": "Hz" }
+    "resolutionBits": { "type": "number", "default": 10, "minimum": 10, "maximum": 10, "simulationUpdate": "rerun" },
+    "referenceVoltageVolts": { "type": "number", "default": 5, "minimum": 1, "maximum": 5.5, "unit": "V", "simulationUpdate": "rerun" },
+    "spiMode": { "type": "number", "default": 0, "minimum": 0, "maximum": 3, "simulationUpdate": "rerun" },
+    "maxClockHz": { "type": "number", "default": 1350000, "minimum": 100000, "maximum": 3600000, "unit": "Hz", "simulationUpdate": "rerun" }
   },
   "terminals": [
     { "id": "vdd", "label": "VDD", "type": "power-input" },
@@ -36,6 +36,17 @@
     "body": "10-bit SPI ADC",
     "width": 220,
     "height": 156,
+    "controls": [
+      { "type": "readout", "className": "adc-readout", "label": "MCP3008", "text": "CH0", "dataAttribute": "data-adc-state" },
+      {
+        "type": "container",
+        "className": "adc-chip",
+        "children": [
+          { "type": "element", "tag": "span", "text": "-- raw", "dataAttribute": "data-adc-raw" },
+          { "type": "element", "tag": "span", "text": "-- V", "dataAttribute": "data-adc-voltage" }
+        ]
+      }
+    ],
     "palette": { "group": "Electronic", "subgroup": "ADCs", "icon": "mcp3008-icon", "order": 63 },
     "terminals": [
       { "id": "vdd", "side": "left", "x": 0, "y": 24, "kind": "power" },

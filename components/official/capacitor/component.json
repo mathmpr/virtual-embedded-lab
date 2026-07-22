@@ -19,12 +19,14 @@
       "default": 10,
       "minimum": 0.001,
       "maximum": 4700,
-      "unit": "µF"
+      "unit": "µF",
+      "simulationUpdate": "rerun"
     },
     "maximumVoltageVolts": {
       "type": "number",
       "default": 16,
-      "unit": "V"
+      "unit": "V",
+      "simulationUpdate": "rerun"
     }
   },
   "variants": {
@@ -62,6 +64,9 @@
     "body": "10 µF",
     "width": 134,
     "height": 104,
+    "controls": [
+      { "type": "variant", "className": "component-select-row", "label": "C", "property": "capacitanceMicrofarads" }
+    ],
     "palette": {
       "group": "Electronic",
       "subgroup": "Capacitors",

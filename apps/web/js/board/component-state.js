@@ -3,7 +3,6 @@ export function createComponentState({
   componentDefinitions,
   simulation,
   renderSignals,
-  renderInspector,
   recordHistory,
   syncInspectorPropertyControls
 }) {
@@ -109,493 +108,191 @@ export function createComponentState({
     }
   }
 
-  function updateDistanceValue(component, valueCm, shouldRecord = false) {
-    component.properties.valueCm = valueCm;
-    syncDistanceControl(component);
-    syncInspectorPropertyControls(component);
-
-    if (state.running) {
-      simulation.updateDistanceValue(component.id, valueCm);
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateResistorValue(component, resistanceOhms, shouldRecord = false) {
-    component.properties.resistanceOhms = resistanceOhms;
-    syncResistorControl(component);
-    renderInspector();
-
-    if (state.running) {
-      simulation.runSimulation();
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateCapacitorValue(component, capacitanceMicrofarads, shouldRecord = false) {
-    component.properties.capacitanceMicrofarads = capacitanceMicrofarads;
-    syncCapacitorControl(component);
-    renderInspector();
-
-    if (state.running) {
-      simulation.runSimulation();
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateWifiStrength(component, strengthPercent, shouldRecord = false) {
-    component.properties.strengthPercent = Math.max(0, Math.min(100, strengthPercent));
-    syncWifiSignalControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.runSimulation();
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateWifiInternetAvailable(component, internetAvailable, shouldRecord = false) {
-    component.properties.connected = Boolean(internetAvailable);
-    syncWifiSignalControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.runSimulation();
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateWifiSsid(component, ssid, shouldRecord = false) {
-    component.properties.ssid = ssid.trim() || 'VirtualLab';
-    syncWifiSignalControl(component);
-    renderInspector();
-
-    if (state.running) {
-      simulation.runSimulation();
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateRainActive(component, active, shouldRecord = false) {
-    component.properties.active = Boolean(active);
-    syncRainControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.updateRainValue(component.id, {
-        active: component.properties.active,
-        intensityPercent: component.properties.intensityPercent
-      });
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateRainIntensity(component, intensityPercent, shouldRecord = false) {
-    component.properties.intensityPercent = Math.max(0, Math.min(100, intensityPercent));
-    syncRainControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.updateRainValue(component.id, {
-        active: component.properties.active,
-        intensityPercent: component.properties.intensityPercent
-      });
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateRainSensorActiveLow(component, activeLow, shouldRecord = false) {
-    component.properties.activeLow = Boolean(activeLow);
-    renderInspector();
-
-    if (state.running) {
-      simulation.runSimulation();
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateRainSensorThreshold(component, thresholdPercent, shouldRecord = false) {
-    component.properties.thresholdPercent = Math.max(0, Math.min(100, thresholdPercent));
-    syncInspectorPropertyControls(component);
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateLightEnabled(component, enabled, shouldRecord = false) {
-    component.properties.enabled = Boolean(enabled);
-    syncLightControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.updateLightValue(component.id, {
-        enabled: component.properties.enabled,
-        intensityPercent: component.properties.intensityPercent
-      });
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateLightIntensity(component, intensityPercent, shouldRecord = false) {
-    component.properties.intensityPercent = Math.max(0, Math.min(100, intensityPercent));
-    syncLightControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.updateLightValue(component.id, {
-        enabled: component.properties.enabled,
-        intensityPercent: component.properties.intensityPercent
-      });
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateLdrProperty(component, property, value, shouldRecord = false) {
-    const limits = {
-      darkResistanceOhms: [1000, 1000000],
-      brightResistanceOhms: [100, 10000],
-      gamma: [0.1, 2]
-    };
-    const [min, max] = limits[property] ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY];
-
-    component.properties[property] = Math.max(min, Math.min(max, Number(value)));
-    syncInspectorPropertyControls(component);
-
-    if (state.running) {
-      simulation.runSimulation();
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateClimateEnabled(component, enabled, shouldRecord = false) {
-    component.properties.enabled = Boolean(enabled);
-    syncClimateControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.updateClimateValue(component.id, climatePayload(component));
-    }
-
-    applyBmp280SensorStates();
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateClimateTemperature(component, temperatureC, shouldRecord = false) {
-    component.properties.temperatureC = Math.max(-40, Math.min(85, temperatureC));
-    syncClimateControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.updateClimateValue(component.id, climatePayload(component));
-    }
-
-    applyBmp280SensorStates();
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateClimatePressure(component, pressureHpa, shouldRecord = false) {
-    component.properties.pressureHpa = Math.max(300, Math.min(1100, pressureHpa));
-    syncClimateControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.updateClimateValue(component.id, climatePayload(component));
-    }
-
-    applyBmp280SensorStates();
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateBmp280Property(component, property, value, shouldRecord = false) {
-    const limits = {
-      i2cAddress: [118, 119],
-      temperatureOffsetC: [-20, 20],
-      pressureOffsetHpa: [-100, 100]
-    };
-    const [min, max] = limits[property] ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY];
-
-    component.properties[property] = Math.max(min, Math.min(max, Number(value)));
-    syncInspectorPropertyControls(component);
-    applyBmp280SensorStates();
-
-    if (state.running) {
-      simulation.runSimulation();
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateAnalogEnabled(component, enabled, shouldRecord = false) {
-    component.properties.enabled = Boolean(enabled);
-    syncAnalogControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.updateAnalogVoltageValue(component.id, analogPayload(component));
-    }
-
-    applyAdcStates();
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateAnalogVoltage(component, voltageVolts, shouldRecord = false) {
-    component.properties.voltageVolts = Math.max(0, Math.min(5, voltageVolts));
-    syncAnalogControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.updateAnalogVoltageValue(component.id, analogPayload(component));
-    }
-
-    applyAdcStates();
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateAdcProperty(component, property, value, shouldRecord = false) {
-    component.properties[property] = value;
-    syncInspectorPropertyControls(component);
-    applyAdcStates();
-
-    if (state.running) {
-      simulation.runSimulation();
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function syncEnvironmentControl(component) {
+  function updateComponentProperty(component, propertyName, value, shouldRecord = false) {
     const definition = componentDefinitions[component.type];
+    const propertySchema = definition?.propertySchema?.[propertyName] ?? {};
+    component.properties[propertyName] = normalizePropertyValue(propertyName, value, propertySchema);
+
+    syncComponentControls(component);
+    syncInspectorPropertyControls(component);
+    renderSignals();
+    applyDependentVisualStates(component);
+
+    if (state.running) {
+      applySimulationUpdate(component, propertyName);
+    }
+
+    if (shouldRecord) {
+      recordHistory();
+    }
+  }
+
+  function syncComponentControls(component) {
+    const definition = componentDefinitions[component.type];
+    const controls = flattenVisualControls(definition?.controls ?? []);
+
+    component.element.querySelectorAll('[data-property]').forEach((input) => {
+      const value = component.properties[input.dataset.property];
+
+      if (input.type === 'checkbox') {
+        input.checked = Boolean(value);
+        return;
+      }
+
+      input.value = String(value ?? '');
+    });
+
+    for (const control of controls) {
+      if (!control.property) {
+        continue;
+      }
+
+      component.element.querySelectorAll(`[data-property-output="${control.property}"]`).forEach((output) => {
+        output.textContent = formatInlinePropertyValue(control, component);
+      });
+    }
+  }
+
+  function normalizePropertyValue(propertyName, value, propertySchema) {
+    if (propertySchema.type === 'boolean') {
+      return Boolean(value);
+    }
+
+    if (propertySchema.type === 'number') {
+      const min = Number.isFinite(Number(propertySchema.minimum)) ? Number(propertySchema.minimum) : Number.NEGATIVE_INFINITY;
+      const max = Number.isFinite(Number(propertySchema.maximum)) ? Number(propertySchema.maximum) : Number.POSITIVE_INFINITY;
+      return Math.max(min, Math.min(max, Number(value)));
+    }
+
+    if (propertySchema.type === 'string') {
+      const normalized = String(value ?? '').trim();
+      return propertyName === 'ssid' ? normalized || 'VirtualLab' : normalized;
+    }
+
+    return value;
+  }
+
+  function applySimulationUpdate(component, propertyName) {
+    const definition = componentDefinitions[component.type];
+    const updateMode = propertySimulationUpdateMode(definition, propertyName);
+
+    if (updateMode === 'live') {
+      applyLiveRuntimeUpdate(component, definition);
+      return;
+    }
+
+    if (updateMode === 'rerun') {
+      simulation.runSimulation();
+    }
+  }
+
+  function propertySimulationUpdateMode(definition, propertyName) {
+    const declaredMode = definition?.propertySchema?.[propertyName]?.simulationUpdate;
+
+    if (declaredMode) {
+      return declaredMode;
+    }
+
+    if (definition?.behavior?.channel === 'distance' && propertyName === definition.behavior.valueProperty) {
+      return 'live';
+    }
+
+    if (definition?.behavior?.type === 'environment-source' || definition?.behavior?.type === 'analog-voltage-source') {
+      return 'live';
+    }
+
+    if (
+      definition?.behavior?.type === 'wireless-environment'
+      || definition?.electricalPrimitive
+      || ['rain-sensor', 'light-sensor', 'bmp280-sensor', 'adc-i2c', 'adc-spi'].includes(definition?.behavior?.type)
+    ) {
+      return 'rerun';
+    }
+
+    return definition?.simulation?.effects?.some((effect) => ['firmware', 'electrical', 'environment'].includes(effect))
+      ? 'rerun'
+      : 'none';
+  }
+
+  function applyLiveRuntimeUpdate(component, definition) {
+    if (definition?.behavior?.channel === 'distance') {
+      simulation.updateDistanceValue(component.id, component.properties[definition.behavior.valueProperty]);
+      return;
+    }
 
     if (definition?.behavior?.channel === 'rain') {
-      syncRainControl(component);
+      simulation.updateRainValue(component.id, {
+        active: component.properties[definition.behavior.activeProperty],
+        intensityPercent: component.properties[definition.behavior.intensityProperty]
+      });
       return;
     }
 
     if (definition?.behavior?.channel === 'light') {
-      syncLightControl(component);
+      simulation.updateLightValue(component.id, {
+        enabled: component.properties[definition.behavior.activeProperty],
+        intensityPercent: component.properties[definition.behavior.intensityProperty]
+      });
       return;
     }
 
     if (definition?.behavior?.channel === 'climate') {
-      syncClimateControl(component);
+      simulation.updateClimateValue(component.id, climatePayload(component));
+      return;
+    }
+
+    if (definition?.behavior?.type === 'analog-voltage-source') {
+      simulation.updateAnalogVoltageValue(component.id, analogPayload(component));
     }
   }
 
-  function syncDistanceControl(component) {
-    if (component.type !== 'distance') {
-      return;
+  function applyDependentVisualStates(component) {
+    const definition = componentDefinitions[component.type];
+
+    if (definition?.behavior?.channel === 'climate') {
+      applyBmp280SensorStates();
     }
 
-    const slider = component.element.querySelector('[data-distance-slider]');
-    const output = component.element.querySelector('[data-distance-output]');
-
-    if (!slider || !output) {
-      return;
+    if (definition?.behavior?.type === 'analog-voltage-source') {
+      applyAdcStates();
     }
 
-    slider.value = component.properties.valueCm;
-    output.textContent = `${component.properties.valueCm} cm`;
-  }
-
-  function syncResistorControl(component) {
-    if (component.type !== 'resistor') {
-      return;
+    if (definition?.behavior?.type === 'bmp280-sensor') {
+      applyBmp280SensorStates();
     }
 
-    component.element.querySelectorAll('[data-resistor-select]').forEach((select) => {
-      select.value = String(component.properties.resistanceOhms);
-    });
-  }
-
-  function syncCapacitorControl(component) {
-    if (component.type !== 'capacitor') {
-      return;
-    }
-
-    component.element.querySelectorAll('[data-capacitor-select]').forEach((select) => {
-      select.value = String(component.properties.capacitanceMicrofarads);
-    });
-  }
-
-  function syncWifiSignalControl(component) {
-    if (component.type !== 'wifi-signal') {
-      return;
-    }
-
-    const slider = component.element.querySelector('[data-wifi-slider]');
-    const output = component.element.querySelector('[data-wifi-output]');
-    const checkbox = component.element.querySelector('[data-wifi-connected]');
-
-    if (slider) {
-      slider.value = String(component.properties.strengthPercent);
-    }
-
-    if (output) {
-      output.textContent = `${component.properties.strengthPercent}%`;
-    }
-
-    if (checkbox) {
-      checkbox.checked = Boolean(component.properties.connected);
+    if (definition?.behavior?.type === 'adc-i2c' || definition?.behavior?.type === 'adc-spi') {
+      applyAdcStates();
     }
   }
 
-  function syncRainControl(component) {
-    if (component.type !== 'rain-toggle') {
-      return;
-    }
-
-    const checkbox = component.element.querySelector('[data-rain-active]');
-    const slider = component.element.querySelector('[data-rain-intensity]');
-    const output = component.element.querySelector('[data-rain-output]');
-
-    if (checkbox) {
-      checkbox.checked = Boolean(component.properties.active);
-    }
-
-    if (slider) {
-      slider.value = String(component.properties.intensityPercent);
-    }
-
-    if (output) {
-      output.textContent = component.properties.active ? 'ON' : 'OFF';
-    }
+  function flattenVisualControls(controls) {
+    return controls.flatMap((control) => [
+      control,
+      ...flattenVisualControls(control.children ?? [])
+    ]);
   }
 
-  function syncLightControl(component) {
-    if (component.type !== 'light-level') {
-      return;
+  function formatInlinePropertyValue(control, component) {
+    if (control.activeProperty && !component.properties[control.activeProperty]) {
+      return control.inactiveText ?? '';
     }
 
-    const checkbox = component.element.querySelector('[data-light-enabled]');
-    const slider = component.element.querySelector('[data-light-intensity]');
-    const output = component.element.querySelector('[data-light-output]');
+    const value = component.properties[control.property] ?? control.value ?? '';
 
-    if (checkbox) {
-      checkbox.checked = Boolean(component.properties.enabled);
+    if (control.format === 'onOff') {
+      return value ? 'ON' : 'OFF';
     }
 
-    if (slider) {
-      slider.value = String(component.properties.intensityPercent);
+    if (control.format === 'percent') {
+      return `${value}%`;
     }
 
-    if (output) {
-      output.textContent = component.properties.enabled ? `${component.properties.intensityPercent}%` : 'OFF';
-    }
-  }
-
-  function syncClimateControl(component) {
-    if (component.type !== 'climate-environment') {
-      return;
+    if (control.unit) {
+      return `${value} ${control.unit}`;
     }
 
-    const checkbox = component.element.querySelector('[data-climate-enabled]');
-    const temperature = component.element.querySelector('[data-climate-temperature]');
-    const pressure = component.element.querySelector('[data-climate-pressure]');
-    const output = component.element.querySelector('[data-climate-output]');
-
-    if (checkbox) {
-      checkbox.checked = Boolean(component.properties.enabled);
-    }
-
-    if (temperature) {
-      temperature.value = String(component.properties.temperatureC);
-    }
-
-    if (pressure) {
-      pressure.value = String(component.properties.pressureHpa);
-    }
-
-    if (output) {
-      output.textContent = component.properties.enabled ? `${component.properties.temperatureC} °C` : 'OFF';
-    }
-  }
-
-  function syncAnalogControl(component) {
-    if (component.type !== 'analog-voltage-source') {
-      return;
-    }
-
-    const checkbox = component.element.querySelector('[data-analog-enabled]');
-    const slider = component.element.querySelector('[data-analog-voltage]');
-    const output = component.element.querySelector('[data-analog-output]');
-
-    if (checkbox) {
-      checkbox.checked = Boolean(component.properties.enabled);
-    }
-
-    if (slider) {
-      slider.value = String(component.properties.voltageVolts);
-    }
-
-    if (output) {
-      output.textContent = component.properties.enabled ? `${component.properties.voltageVolts} V` : 'OFF';
-    }
+    return String(value);
   }
 
   function climatePayload(component) {
@@ -648,35 +345,8 @@ export function createComponentState({
     applyLdrSensorStates,
     applyBmp280SensorStates,
     applyAdcStates,
-    updateDistanceValue,
-    updateResistorValue,
-    updateCapacitorValue,
-    updateWifiStrength,
-    updateWifiInternetAvailable,
-    updateWifiSsid,
-    updateRainActive,
-    updateRainIntensity,
-    updateRainSensorActiveLow,
-    updateRainSensorThreshold,
-    updateLightEnabled,
-    updateLightIntensity,
-    updateLdrProperty,
-    updateClimateEnabled,
-    updateClimateTemperature,
-    updateClimatePressure,
-    updateBmp280Property,
-    updateAnalogEnabled,
-    updateAnalogVoltage,
-    updateAdcProperty,
-    syncEnvironmentControl,
-    syncDistanceControl,
-    syncResistorControl,
-    syncCapacitorControl,
-    syncWifiSignalControl,
-    syncRainControl,
-    syncLightControl,
-    syncClimateControl,
-    syncAnalogControl,
+    updateComponentProperty,
+    syncComponentControls,
     climatePayload,
     analogPayload,
     adcInspectorLabel

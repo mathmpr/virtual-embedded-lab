@@ -57,7 +57,8 @@
           "default": {},
           "minimum": { "type": "number" },
           "maximum": { "type": "number" },
-          "unit": { "type": "string" }
+          "unit": { "type": "string" },
+          "simulationUpdate": { "enum": ["none", "live", "rerun"] }
         },
         "additionalProperties": false
       }

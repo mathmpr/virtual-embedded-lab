@@ -16,15 +16,18 @@
     "logicVoltage": {
       "type": "number",
       "default": 3.3,
-      "unit": "V"
+      "unit": "V",
+      "simulationUpdate": "rerun"
     },
     "wifiMode": {
       "type": "string",
-      "default": "idle"
+      "default": "idle",
+      "simulationUpdate": "rerun"
     },
     "bluetoothEnabled": {
       "type": "boolean",
-      "default": true
+      "default": true,
+      "simulationUpdate": "rerun"
     }
   },
   "terminals": [

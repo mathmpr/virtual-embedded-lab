@@ -18,27 +18,31 @@
       "default": 100000,
       "minimum": 1000,
       "maximum": 1000000,
-      "unit": "Ω"
+      "unit": "Ω",
+      "simulationUpdate": "rerun"
     },
     "brightResistanceOhms": {
       "type": "number",
       "default": 1000,
       "minimum": 100,
       "maximum": 10000,
-      "unit": "Ω"
+      "unit": "Ω",
+      "simulationUpdate": "rerun"
     },
     "gamma": {
       "type": "number",
       "default": 0.7,
       "minimum": 0.1,
-      "maximum": 2
+      "maximum": 2,
+      "simulationUpdate": "rerun"
     },
     "responseMs": {
       "type": "number",
       "default": 50,
       "minimum": 0,
       "maximum": 2000,
-      "unit": "ms"
+      "unit": "ms",
+      "simulationUpdate": "rerun"
     }
   },
   "variants": {
@@ -73,6 +77,10 @@
     "body": "DIM",
     "width": 134,
     "height": 104,
+    "controls": [
+      { "type": "readout", "className": "light-sensor-readout", "label": "LDR", "text": "DIM", "dataAttribute": "data-ldr-state" },
+      { "type": "element", "className": "ldr-photoresistor" }
+    ],
     "palette": {
       "group": "Sensors",
       "subgroup": "Light",

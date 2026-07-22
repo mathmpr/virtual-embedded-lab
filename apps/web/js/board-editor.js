@@ -11,10 +11,13 @@ import {
 } from './nets.js';
 import { createBottomPanelResizer } from './panel-resizer.js';
 import { createVisualSimulation } from './visual-simulation.js';
+import { createComponentBinder } from './board/component-binder.js';
 import { createComponentState } from './board/component-state.js';
 import { renderComponentTemplate } from './board/component-template.js';
+import { createConsolePanel } from './board/console-panel.js';
 import { escapeHtml } from './board/formatters.js';
 import { createInspectorPanel } from './board/inspector-panel.js';
+import { createProblemsPanel } from './board/problems-panel.js';
 import { createProjectActions } from './board/project-actions.js';
 import { createSerialPanel } from './board/serial-panel.js';
 import { createSignalsPanel } from './board/signals-panel.js';
@@ -35,6 +38,9 @@ export function createBoardEditor(document) {
   const problemList = document.querySelector('#problemList');
 
   const state = createInitialBoardState();
+  const consolePanel = createConsolePanel({ consoleOutput });
+  const { setConsoleText } = consolePanel;
+  const { renderProblems } = createProblemsPanel({ problemList });
   const serialPanel = createSerialPanel({ document, state, serialMonitor });
   const viewport = createViewportController({
     board,
@@ -71,7 +77,7 @@ export function createBoardEditor(document) {
     renderSignals,
     renderSerial,
     renderProblems,
-    consoleOutput,
+    consoleOutput: consolePanel.consoleOutput,
     getNets,
     terminalKind,
     codeEditor,
@@ -86,7 +92,6 @@ export function createBoardEditor(document) {
     componentDefinitions,
     simulation,
     renderSignals,
-    renderInspector: (...args) => renderInspector(...args),
     recordHistory: (...args) => recordHistory(...args),
     syncInspectorPropertyControls: (...args) => syncInspectorPropertyControls(...args)
   });
@@ -95,37 +100,7 @@ export function createBoardEditor(document) {
     applyLdrSensorStates,
     applyBmp280SensorStates,
     applyAdcStates,
-    updateDistanceValue,
-    updateResistorValue,
-    updateCapacitorValue,
-    updateWifiStrength,
-    updateWifiInternetAvailable,
-    updateWifiSsid,
-    updateRainActive,
-    updateRainIntensity,
-    updateRainSensorActiveLow,
-    updateRainSensorThreshold,
-    updateLightEnabled,
-    updateLightIntensity,
-    updateLdrProperty,
-    updateClimateEnabled,
-    updateClimateTemperature,
-    updateClimatePressure,
-    updateBmp280Property,
-    updateAnalogEnabled,
-    updateAnalogVoltage,
-    updateAdcProperty,
-    syncEnvironmentControl,
-    syncAnalogControl,
-    syncDistanceControl,
-    syncResistorControl,
-    syncCapacitorControl,
-    syncWifiSignalControl,
-    syncRainControl,
-    syncLightControl,
-    syncClimateControl,
-    climatePayload,
-    analogPayload,
+    syncComponentControls,
     adcInspectorLabel
   } = componentState;
   const { renderInspector, syncInspectorPropertyControls } = createInspectorPanel({
@@ -134,26 +109,7 @@ export function createBoardEditor(document) {
     componentDefinitions,
     getNets,
     terminalKind,
-    renderSignals,
-    recordHistory: (...args) => recordHistory(...args),
-    simulation,
-    callbacks: {
-      updateDistanceValue,
-      updateResistorValue,
-      updateCapacitorValue,
-      updateWifiStrength,
-      updateWifiInternetAvailable,
-      updateWifiSsid,
-      updateLdrProperty,
-      updateBmp280Property,
-      updateAdcProperty,
-      syncEnvironmentControl,
-      syncAnalogControl,
-      climatePayload,
-      analogPayload,
-      applyBmp280SensorStates,
-      applyAdcStates
-    }
+    callbacks: componentState
   });
   const {
     clearBoard,
@@ -174,7 +130,7 @@ export function createBoardEditor(document) {
     board,
     componentLayer,
     codeEditor,
-    consoleOutput,
+    consoleOutput: consolePanel.consoleOutput,
     addComponent,
     drawWires,
     getNets,
@@ -185,6 +141,16 @@ export function createBoardEditor(document) {
     selectComponent,
     simulation,
     syncRestoredComponentControls
+  });
+  const { bindComponent } = createComponentBinder({
+    state,
+    componentState,
+    selectComponent,
+    drawWires,
+    renderInspector,
+    recordHistory,
+    handleTerminalClick,
+    deleteComponent
   });
 
   async function start() {
@@ -214,7 +180,7 @@ export function createBoardEditor(document) {
       await loadOfficialComponents();
     } catch (error) {
       renderProblems([error.message]);
-      consoleOutput.textContent = `Falha ao carregar componentes oficiais: ${error.message}`;
+      setConsoleText(`Falha ao carregar componentes oficiais: ${error.message}`);
       throw error;
     }
   }
@@ -404,253 +370,6 @@ export function createBoardEditor(document) {
     return componentDefinitions[componentType]?.variants?.[propertyName] ?? [];
   }
 
-  function bindComponent(element, model) {
-    let dragging = false;
-    let startX = 0;
-    let startY = 0;
-    let originX = 0;
-    let originY = 0;
-
-    element.addEventListener('pointerdown', (event) => {
-      if (state.viewport.isSpacePanning) {
-        return;
-      }
-
-      if (event.target.closest('.terminal, input, textarea, select, [data-delete-component]')) {
-        return;
-      }
-
-      dragging = true;
-      startX = event.clientX;
-      startY = event.clientY;
-      originX = model.x;
-      originY = model.y;
-      element.setPointerCapture(event.pointerId);
-      selectComponent(model.id);
-    });
-
-    element.addEventListener('pointermove', (event) => {
-      if (!dragging) {
-        return;
-      }
-
-      model.x = Math.max(0, originX + (event.clientX - startX) / state.viewport.scale);
-      model.y = Math.max(0, originY + (event.clientY - startY) / state.viewport.scale);
-      element.style.left = `${model.x}px`;
-      element.style.top = `${model.y}px`;
-      drawWires();
-      renderInspector();
-    });
-
-    element.addEventListener('pointerup', () => {
-      if (dragging && (model.x !== originX || model.y !== originY)) {
-        recordHistory();
-      }
-
-      dragging = false;
-    });
-
-    element.querySelectorAll('.terminal').forEach((terminalElement) => {
-      terminalElement.addEventListener('pointerdown', (event) => {
-        if (state.viewport.isSpacePanning) {
-          return;
-        }
-
-        event.stopPropagation();
-      });
-
-      terminalElement.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        if (state.viewport.suppressNextClick) {
-          state.viewport.suppressNextClick = false;
-          return;
-        }
-
-        handleTerminalClick(model.id, terminalElement.dataset.terminal);
-      });
-    });
-
-    element.querySelector('[data-delete-component]').addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      deleteComponent(model.id);
-    });
-
-    const slider = element.querySelector('[data-distance-slider]');
-    const output = element.querySelector('[data-distance-output]');
-
-    if (slider && output) {
-      slider.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-
-      slider.addEventListener('input', () => {
-        updateDistanceValue(model, Number(slider.value));
-      });
-
-      slider.addEventListener('change', () => {
-        recordHistory();
-      });
-    }
-
-    const resistorSelect = element.querySelector('[data-resistor-select]');
-
-    if (resistorSelect) {
-      resistorSelect.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      resistorSelect.addEventListener('change', () => {
-        updateResistorValue(model, Number(resistorSelect.value), true);
-      });
-    }
-
-    const capacitorSelect = element.querySelector('[data-capacitor-select]');
-
-    if (capacitorSelect) {
-      capacitorSelect.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      capacitorSelect.addEventListener('change', () => {
-        updateCapacitorValue(model, Number(capacitorSelect.value), true);
-      });
-    }
-
-    const wifiSlider = element.querySelector('[data-wifi-slider]');
-    const wifiConnected = element.querySelector('[data-wifi-connected]');
-
-    if (wifiSlider) {
-      wifiSlider.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      wifiSlider.addEventListener('input', () => {
-        updateWifiStrength(model, Number(wifiSlider.value));
-      });
-      wifiSlider.addEventListener('change', () => {
-        recordHistory();
-      });
-    }
-
-    if (wifiConnected) {
-      wifiConnected.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      wifiConnected.addEventListener('change', () => {
-        updateWifiInternetAvailable(model, wifiConnected.checked, true);
-      });
-    }
-
-    const rainActive = element.querySelector('[data-rain-active]');
-    const rainIntensity = element.querySelector('[data-rain-intensity]');
-
-    if (rainActive) {
-      rainActive.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      rainActive.addEventListener('change', () => {
-        updateRainActive(model, rainActive.checked, true);
-      });
-    }
-
-    if (rainIntensity) {
-      rainIntensity.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      rainIntensity.addEventListener('input', () => {
-        updateRainIntensity(model, Number(rainIntensity.value));
-      });
-      rainIntensity.addEventListener('change', () => {
-        recordHistory();
-      });
-    }
-
-    const lightEnabled = element.querySelector('[data-light-enabled]');
-    const lightIntensity = element.querySelector('[data-light-intensity]');
-
-    if (lightEnabled) {
-      lightEnabled.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      lightEnabled.addEventListener('change', () => {
-        updateLightEnabled(model, lightEnabled.checked, true);
-      });
-    }
-
-    if (lightIntensity) {
-      lightIntensity.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      lightIntensity.addEventListener('input', () => {
-        updateLightIntensity(model, Number(lightIntensity.value));
-      });
-      lightIntensity.addEventListener('change', () => {
-        recordHistory();
-      });
-    }
-
-    const climateEnabled = element.querySelector('[data-climate-enabled]');
-    const climateTemperature = element.querySelector('[data-climate-temperature]');
-    const climatePressure = element.querySelector('[data-climate-pressure]');
-
-    if (climateEnabled) {
-      climateEnabled.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      climateEnabled.addEventListener('change', () => {
-        updateClimateEnabled(model, climateEnabled.checked, true);
-      });
-    }
-
-    if (climateTemperature) {
-      climateTemperature.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      climateTemperature.addEventListener('input', () => {
-        updateClimateTemperature(model, Number(climateTemperature.value));
-      });
-      climateTemperature.addEventListener('change', () => {
-        recordHistory();
-      });
-    }
-
-    if (climatePressure) {
-      climatePressure.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      climatePressure.addEventListener('input', () => {
-        updateClimatePressure(model, Number(climatePressure.value));
-      });
-      climatePressure.addEventListener('change', () => {
-        recordHistory();
-      });
-    }
-
-    const analogEnabled = element.querySelector('[data-analog-enabled]');
-    const analogVoltage = element.querySelector('[data-analog-voltage]');
-
-    if (analogEnabled) {
-      analogEnabled.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      analogEnabled.addEventListener('change', () => {
-        updateAnalogEnabled(model, analogEnabled.checked, true);
-      });
-    }
-
-    if (analogVoltage) {
-      analogVoltage.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      analogVoltage.addEventListener('input', () => {
-        updateAnalogVoltage(model, Number(analogVoltage.value));
-      });
-      analogVoltage.addEventListener('change', () => {
-        recordHistory();
-      });
-    }
-  }
-
   function handleTerminalClick(componentId, terminalId) {
     const terminal = { componentId, terminalId };
 
@@ -795,7 +514,7 @@ export function createBoardEditor(document) {
     } catch (error) {
       codeEditor.value = '';
       renderProblems([`Falha ao carregar exemplo default: ${error.message}`]);
-      consoleOutput.textContent = 'Nenhum projeto carregado.';
+      setConsoleText('Nenhum projeto carregado.');
     }
   }
 
@@ -804,15 +523,8 @@ export function createBoardEditor(document) {
     restoreProject(project, shouldRecord);
   }
 
-  function renderProblems(problems) {
-    problemList.innerHTML = problems.map((problem) => `<li>${problem}</li>`).join('');
-  }
-
   function syncRestoredComponentControls(component) {
-    syncDistanceControl(component);
-    syncResistorControl(component);
-    syncCapacitorControl(component);
-    syncWifiSignalControl(component);
+    syncComponentControls(component);
   }
 
   function onSimulationResult(result) {

@@ -13,8 +13,8 @@
     "implemented": true
   },
   "properties": {
-    "enabled": { "type": "boolean", "default": true },
-    "voltageVolts": { "type": "number", "default": 1.024, "minimum": 0, "maximum": 5, "unit": "V" }
+    "enabled": { "type": "boolean", "default": true, "simulationUpdate": "live" },
+    "voltageVolts": { "type": "number", "default": 1.024, "minimum": 0, "maximum": 5, "unit": "V", "simulationUpdate": "live" }
   },
   "terminals": [
     { "id": "out", "label": "OUT", "type": "analog-output" },
@@ -38,6 +38,11 @@
     "body": "1.024 V",
     "width": 180,
     "height": 104,
+    "controls": [
+      { "type": "readout", "className": "analog-readout", "label": "Fonte", "property": "voltageVolts", "unit": "V", "activeProperty": "enabled", "inactiveText": "OFF" },
+      { "type": "checkbox", "className": "wifi-checkbox-row", "label": "Saída ativa", "property": "enabled" },
+      { "type": "range", "property": "voltageVolts" }
+    ],
     "palette": {
       "group": "Inputs",
       "subgroup": "Analog",

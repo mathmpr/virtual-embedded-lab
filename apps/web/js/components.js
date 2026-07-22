@@ -63,6 +63,7 @@ export function componentDefinitionFromManifest(manifest) {
     body: visual.body ?? manifest.identity.name,
     width: visual.width ?? 140,
     height: visual.height ?? 104,
+    controls: visual.controls ?? [],
     properties: defaultProperties(manifest.properties),
     propertySchema: manifest.properties ?? {},
     variants: manifest.variants ?? {},

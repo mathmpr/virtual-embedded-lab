@@ -15,21 +15,24 @@
   "properties": {
     "enabled": {
       "type": "boolean",
-      "default": true
+      "default": true,
+      "simulationUpdate": "live"
     },
     "temperatureC": {
       "type": "number",
       "default": 25,
       "minimum": -40,
       "maximum": 85,
-      "unit": "°C"
+      "unit": "°C",
+      "simulationUpdate": "live"
     },
     "pressureHpa": {
       "type": "number",
       "default": 1013.25,
       "minimum": 300,
       "maximum": 1100,
-      "unit": "hPa"
+      "unit": "hPa",
+      "simulationUpdate": "live"
     }
   },
   "terminals": [],
@@ -47,6 +50,12 @@
     "body": "25 °C / 1013 hPa",
     "width": 210,
     "height": 124,
+    "controls": [
+      { "type": "readout", "className": "climate-readout", "label": "Clima", "property": "temperatureC", "unit": "°C", "activeProperty": "enabled", "inactiveText": "OFF" },
+      { "type": "checkbox", "className": "wifi-checkbox-row", "label": "Clima ativo", "property": "enabled" },
+      { "type": "range", "className": "compact-slider-row", "label": "°C", "property": "temperatureC" },
+      { "type": "range", "className": "compact-slider-row", "label": "hPa", "property": "pressureHpa" }
+    ],
     "palette": {
       "group": "Inputs",
       "subgroup": "Weather",

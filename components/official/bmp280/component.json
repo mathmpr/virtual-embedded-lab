@@ -17,25 +17,29 @@
       "type": "number",
       "default": 118,
       "minimum": 118,
-      "maximum": 119
+      "maximum": 119,
+      "simulationUpdate": "rerun"
     },
     "temperatureOffsetC": {
       "type": "number",
       "default": 0,
       "minimum": -20,
       "maximum": 20,
-      "unit": "°C"
+      "unit": "°C",
+      "simulationUpdate": "rerun"
     },
     "pressureOffsetHpa": {
       "type": "number",
       "default": 0,
       "minimum": -100,
       "maximum": 100,
-      "unit": "hPa"
+      "unit": "hPa",
+      "simulationUpdate": "rerun"
     },
     "oversampling": {
       "type": "string",
-      "default": "x1"
+      "default": "x1",
+      "simulationUpdate": "rerun"
     }
   },
   "variants": {
@@ -76,6 +80,17 @@
     "body": "25 °C / 1013 hPa",
     "width": 170,
     "height": 118,
+    "controls": [
+      { "type": "readout", "className": "bmp280-readout", "label": "BMP280", "text": "--", "dataAttribute": "data-bmp280-state" },
+      {
+        "type": "container",
+        "className": "bmp280-chip",
+        "children": [
+          { "type": "element", "tag": "span", "text": "-- °C", "dataAttribute": "data-bmp280-temp" },
+          { "type": "element", "tag": "span", "text": "-- hPa", "dataAttribute": "data-bmp280-pressure" }
+        ]
+      }
+    ],
     "palette": {
       "group": "Sensors",
       "subgroup": "Environment",

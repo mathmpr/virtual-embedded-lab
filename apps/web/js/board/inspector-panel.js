@@ -7,9 +7,6 @@ export function createInspectorPanel({
   componentDefinitions,
   getNets,
   terminalKind,
-  renderSignals,
-  recordHistory,
-  simulation,
   callbacks
 }) {
   function renderInspector() {
@@ -59,22 +56,22 @@ export function createInspectorPanel({
   }
 
   function bindInspectorPropertyControls(component) {
-    inspectorContent.querySelectorAll('[data-inspector-property]').forEach((input) => {
-      const propertyName = input.dataset.inspectorProperty;
+    inspectorContent.querySelectorAll('[data-property]').forEach((input) => {
+      const propertyName = input.dataset.property;
       const eventName = input.matches('input[type="range"]') ? 'input' : 'change';
 
       if (eventName === 'input') {
         input.addEventListener('input', () => {
-          updateComponentProperty(component, propertyName, inspectorInputValue(input));
+          callbacks.updateComponentProperty(component, propertyName, inspectorInputValue(input));
         });
         input.addEventListener('change', () => {
-          updateComponentProperty(component, propertyName, inspectorInputValue(input), true);
+          callbacks.updateComponentProperty(component, propertyName, inspectorInputValue(input), true);
         });
         return;
       }
 
       input.addEventListener('change', () => {
-        updateComponentProperty(component, propertyName, inspectorInputValue(input), true);
+        callbacks.updateComponentProperty(component, propertyName, inspectorInputValue(input), true);
       });
     });
   }
@@ -88,7 +85,7 @@ export function createInspectorPanel({
       return `
         <label class="property-row editable-property">
           <span>${escapeHtml(label)}</span>
-          <select data-inspector-property="${propertyName}">
+          <select data-property="${propertyName}">
             ${variants.map((variant) => `
               <option value="${escapeHtml(variant.value)}" ${String(value) === String(variant.value) ? 'selected' : ''}>${escapeHtml(variant.label)}</option>
             `).join('')}
@@ -101,7 +98,7 @@ export function createInspectorPanel({
       return `
         <label class="property-row editable-property">
           <span>${escapeHtml(label)}</span>
-          <input data-inspector-property="${propertyName}" type="checkbox" ${value ? 'checked' : ''}>
+          <input data-property="${propertyName}" type="checkbox" ${value ? 'checked' : ''}>
         </label>
       `;
     }
@@ -115,9 +112,9 @@ export function createInspectorPanel({
       return `
         <label class="property-row editable-property">
           <span>${escapeHtml(label)}</span>
-          <input data-inspector-property="${propertyName}" type="${inputType}"${min}${max} step="${step}" value="${escapeHtml(value)}">
+          <input data-property="${propertyName}" type="${inputType}"${min}${max} step="${step}" value="${escapeHtml(value)}">
         </label>
-        <div class="property-row"><span>${escapeHtml(label)}</span><code data-inspector-property-output="${propertyName}">${formatInspectorPropertyValue(propertyName, value, propertySchema)}</code></div>
+        <div class="property-row"><span>${escapeHtml(label)}</span><code data-property-output="${propertyName}">${formatInspectorPropertyValue(propertyName, value, propertySchema)}</code></div>
       `;
     }
 
@@ -125,7 +122,7 @@ export function createInspectorPanel({
       return `
         <label class="property-row editable-property">
           <span>${escapeHtml(label)}</span>
-          <input data-inspector-property="${propertyName}" type="text" value="${escapeHtml(value)}">
+          <input data-property="${propertyName}" type="text" value="${escapeHtml(value)}">
         </label>
       `;
     }
@@ -174,145 +171,12 @@ export function createInspectorPanel({
     return input.value;
   }
 
-  function updateComponentProperty(component, propertyName, value, shouldRecord = false) {
-    const definition = componentDefinitions[component.type];
-    const propertySchema = definition?.propertySchema?.[propertyName] ?? {};
-    const normalizedValue = normalizeInspectorPropertyValue(value, propertySchema);
-
-    if (definition?.behavior?.channel === 'distance' && propertyName === definition.behavior.valueProperty) {
-      callbacks.updateDistanceValue(component, normalizedValue, shouldRecord);
-      syncInspectorPropertyControls(component);
-      return;
-    }
-
-    if (definition?.electricalPrimitive === 'resistor' && propertyName === definition.electricalModel?.resistanceProperty) {
-      callbacks.updateResistorValue(component, normalizedValue, shouldRecord);
-      return;
-    }
-
-    if (definition?.electricalPrimitive === 'capacitor' && propertyName === definition.electricalModel?.capacitanceProperty) {
-      callbacks.updateCapacitorValue(component, normalizedValue, shouldRecord);
-      return;
-    }
-
-    if (definition?.behavior?.type === 'wireless-environment') {
-      updateWirelessEnvironmentProperty(component, propertyName, normalizedValue, shouldRecord);
-      return;
-    }
-
-    if (definition?.behavior?.type === 'environment-source') {
-      updateEnvironmentSourceProperty(component, propertyName, normalizedValue, shouldRecord);
-      return;
-    }
-
-    if (definition?.behavior?.type === 'analog-voltage-source') {
-      updateAnalogSourceProperty(component, propertyName, normalizedValue, shouldRecord);
-      return;
-    }
-
-    if (definition?.behavior?.type === 'ldr-light-sensor') {
-      callbacks.updateLdrProperty(component, propertyName, normalizedValue, shouldRecord);
-      syncInspectorPropertyControls(component);
-      return;
-    }
-
-    if (definition?.behavior?.type === 'bmp280-sensor') {
-      callbacks.updateBmp280Property(component, propertyName, normalizedValue, shouldRecord);
-      syncInspectorPropertyControls(component);
-      return;
-    }
-
-    if (definition?.behavior?.type === 'adc-i2c' || definition?.behavior?.type === 'adc-spi') {
-      callbacks.updateAdcProperty(component, propertyName, normalizedValue, shouldRecord);
-      syncInspectorPropertyControls(component);
-      return;
-    }
-
-    component.properties[propertyName] = normalizedValue;
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running && definition?.simulation?.effects?.some((effect) => ['firmware', 'electrical', 'environment'].includes(effect))) {
-      simulation.runSimulation();
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateWirelessEnvironmentProperty(component, propertyName, value, shouldRecord) {
-    if (propertyName === 'strengthPercent') {
-      callbacks.updateWifiStrength(component, value, shouldRecord);
-      return;
-    }
-
-    if (propertyName === 'connected') {
-      callbacks.updateWifiInternetAvailable(component, value, shouldRecord);
-      return;
-    }
-
-    if (propertyName === 'ssid') {
-      callbacks.updateWifiSsid(component, value, shouldRecord);
-      return;
-    }
-
-    component.properties[propertyName] = value;
-    syncInspectorPropertyControls(component);
-  }
-
-  function updateEnvironmentSourceProperty(component, propertyName, value, shouldRecord) {
-    const definition = componentDefinitions[component.type];
-    component.properties[propertyName] = value;
-    callbacks.syncEnvironmentControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      if (definition.behavior.channel === 'rain') {
-        simulation.updateRainValue(component.id, {
-          active: component.properties[definition.behavior.activeProperty],
-          intensityPercent: component.properties[definition.behavior.intensityProperty]
-        });
-      } else if (definition.behavior.channel === 'light') {
-        simulation.updateLightValue(component.id, {
-          enabled: component.properties[definition.behavior.activeProperty],
-          intensityPercent: component.properties[definition.behavior.intensityProperty]
-        });
-      } else if (definition.behavior.channel === 'climate') {
-        simulation.updateClimateValue(component.id, callbacks.climatePayload(component));
-        callbacks.applyBmp280SensorStates();
-      }
-    }
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
-  function updateAnalogSourceProperty(component, propertyName, value, shouldRecord) {
-    component.properties[propertyName] = value;
-    callbacks.syncAnalogControl(component);
-    syncInspectorPropertyControls(component);
-    renderSignals();
-
-    if (state.running) {
-      simulation.updateAnalogVoltageValue(component.id, callbacks.analogPayload(component));
-    }
-
-    callbacks.applyAdcStates();
-
-    if (shouldRecord) {
-      recordHistory();
-    }
-  }
-
   function syncInspectorPropertyControls(component) {
     const definition = componentDefinitions[component.type];
 
     for (const [propertyName, propertySchema] of Object.entries(definition?.propertySchema ?? {})) {
-      const input = inspectorContent.querySelector(`[data-inspector-property="${propertyName}"]`);
-      const output = inspectorContent.querySelector(`[data-inspector-property-output="${propertyName}"]`);
+      const input = inspectorContent.querySelector(`[data-property="${propertyName}"]`);
+      const output = inspectorContent.querySelector(`[data-property-output="${propertyName}"]`);
       const value = component.properties[propertyName];
 
       if (input) {
@@ -327,20 +191,6 @@ export function createInspectorPanel({
         output.textContent = formatInspectorPropertyValue(propertyName, value, propertySchema);
       }
     }
-  }
-
-  function normalizeInspectorPropertyValue(value, propertySchema) {
-    if (propertySchema.type === 'boolean') {
-      return Boolean(value);
-    }
-
-    if (propertySchema.type === 'number') {
-      const min = Number.isFinite(Number(propertySchema.minimum)) ? Number(propertySchema.minimum) : Number.NEGATIVE_INFINITY;
-      const max = Number.isFinite(Number(propertySchema.maximum)) ? Number(propertySchema.maximum) : Number.POSITIVE_INFINITY;
-      return Math.max(min, Math.min(max, Number(value)));
-    }
-
-    return String(value ?? '');
   }
 
   function formatInspectorPropertyValue(propertyName, value, propertySchema) {

@@ -15,14 +15,16 @@
   "properties": {
     "enabled": {
       "type": "boolean",
-      "default": true
+      "default": true,
+      "simulationUpdate": "live"
     },
     "intensityPercent": {
       "type": "number",
       "default": 50,
       "minimum": 0,
       "maximum": 100,
-      "unit": "%"
+      "unit": "%",
+      "simulationUpdate": "live"
     }
   },
   "terminals": [],
@@ -39,6 +41,11 @@
     "body": "50%",
     "width": 180,
     "height": 104,
+    "controls": [
+      { "type": "readout", "className": "light-readout", "label": "Luz", "property": "intensityPercent", "format": "percent", "activeProperty": "enabled", "inactiveText": "OFF" },
+      { "type": "checkbox", "className": "wifi-checkbox-row", "label": "Luz ativa", "property": "enabled" },
+      { "type": "range", "property": "intensityPercent" }
+    ],
     "palette": {
       "group": "Inputs",
       "subgroup": "Light",
