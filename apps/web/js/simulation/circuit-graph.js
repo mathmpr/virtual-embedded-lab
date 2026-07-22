@@ -2,6 +2,7 @@ import { terminalReference } from '../components.js';
 
 export function createCircuitGraph({ components, nets, terminalKind }) {
   const netByTerminal = new Map();
+  const terminalSignals = new Map();
 
   for (const net of nets) {
     for (const terminal of net.terminals) {
@@ -64,11 +65,31 @@ export function createCircuitGraph({ components, nets, terminalKind }) {
       return;
     }
 
+    driveTerminalNet(net, value);
+  }
+
+  function driveComponentTerminal(componentId, terminalId, value) {
+    const net = findTerminalNet(componentId, terminalId);
+
+    if (!net) {
+      return;
+    }
+
+    driveTerminalNet(net, value);
+  }
+
+  function driveTerminalNet(net, value) {
     for (const terminal of net.terminals) {
+      terminalSignals.set(terminalReference(terminal), value);
+
       for (const listener of terminalListeners) {
         listener(terminal, value);
       }
     }
+  }
+
+  function terminalSignal(componentId, terminalId) {
+    return terminalSignals.get(`${componentId}.${terminalId}`) ?? null;
   }
 
   function terminalIdForPin(component, pin) {
@@ -94,6 +115,8 @@ export function createCircuitGraph({ components, nets, terminalKind }) {
     findTerminalNet,
     areConnected,
     driveArduinoPin,
+    driveComponentTerminal,
+    terminalSignal,
     onTerminalDriven(listener) {
       terminalListeners.push(listener);
     }

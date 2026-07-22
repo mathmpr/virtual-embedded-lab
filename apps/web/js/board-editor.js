@@ -1,4 +1,5 @@
 import { componentDefinitions, componentPalette, loadOfficialComponents } from './components.js';
+import { createBuzzerAudioController } from './audio/buzzer-audio.js';
 import { createCodeEditor } from './code-editor.js';
 import { loadExampleList, loadExampleProject } from './examples.js';
 import {
@@ -39,8 +40,10 @@ export function createBoardEditor(document) {
   const signalMonitor = document.querySelector('#signalMonitor');
   const serialMonitor = document.querySelector('#serialMonitor');
   const problemList = document.querySelector('#problemList');
+  const toggleAudioButton = document.querySelector('#toggleAudio');
 
   const state = createInitialBoardState();
+  const buzzerAudio = createBuzzerAudioController();
   const consolePanel = createConsolePanel({ consoleOutput });
   const { setConsoleText } = consolePanel;
   const { renderProblems } = createProblemsPanel({ problemList });
@@ -88,7 +91,8 @@ export function createBoardEditor(document) {
     clearSerialRx,
     appendSerialEvents,
     clearSerialHistory,
-    onSimulationResult
+    onSimulationResult,
+    onSimulationStopped: () => buzzerAudio.stopAll()
   });
   const componentState = createComponentState({
     state,
@@ -247,8 +251,19 @@ export function createBoardEditor(document) {
 
   function bindToolbar() {
     document.querySelector('#startSimulation').addEventListener('click', simulation.runSimulation);
-    document.querySelector('#pauseSimulation').addEventListener('click', simulation.pauseSimulation);
-    document.querySelector('#resetSimulation').addEventListener('click', simulation.resetSimulation);
+    document.querySelector('#pauseSimulation').addEventListener('click', () => {
+      simulation.pauseSimulation();
+      buzzerAudio.stopAll();
+    });
+    document.querySelector('#resetSimulation').addEventListener('click', () => {
+      simulation.resetSimulation();
+      buzzerAudio.stopAll();
+    });
+    toggleAudioButton.addEventListener('click', async () => {
+      const enabled = await buzzerAudio.toggle();
+      syncAudioButton(enabled);
+      buzzerAudio.sync(state.components.values());
+    });
     document.querySelector('#clearBoard').addEventListener('click', clearBoard);
     document.querySelector('#openExamples').addEventListener('click', openExamplesDialog);
     document.querySelector('#undoBoard').addEventListener('click', undoBoard);
@@ -260,6 +275,12 @@ export function createBoardEditor(document) {
       document.querySelector('#projectFileInput').click();
     });
     document.querySelector('#projectFileInput').addEventListener('change', importProjectFile);
+  }
+
+  function syncAudioButton(enabled = buzzerAudio.enabled) {
+    toggleAudioButton.textContent = enabled ? 'Audio On' : 'Audio Off';
+    toggleAudioButton.classList.toggle('active', enabled);
+    toggleAudioButton.setAttribute('aria-pressed', String(enabled));
   }
 
   async function openExamplesDialog() {
@@ -631,8 +652,16 @@ export function createBoardEditor(document) {
       pinStates: result.firmwareResult?.pinStates ?? {},
       analogPinStates: result.firmwareResult?.analogPinStates ?? {}
     };
+    syncRuntimeUpdatedComponentControls();
     applyVisualStateBindings();
+    buzzerAudio.sync(state.components.values());
     renderInspector();
+  }
+
+  function syncRuntimeUpdatedComponentControls() {
+    for (const component of state.components.values()) {
+      syncComponentControls(component);
+    }
   }
 
   function getNets() {

@@ -16,7 +16,13 @@ export function registerSensorBehaviorAdapters(registry) {
   registry.register('adc-i2c', bindI2cAdcConverters);
   registry.register('adc-spi', bindSpiAdcConverters);
   registry.register('momentary-button', bindMomentaryButtons);
+  registry.register('buzzer', bindBuzzers);
   registry.register('water-pump', bindWaterPumpSystems);
+  registry.register('lcd-16x2-i2c', bindLcd16x2Displays);
+  registry.register('seven-segment-display', bindSevenSegmentDisplays);
+  registry.register('shift-register-74hc595', bindShiftRegisters74hc595);
+  registry.register('dht-sensor', bindDhtSensors);
+  registry.register('servo-motor', bindServoMotors);
 }
 
 export function applyRainSensorInputs({ runtime, environment, rainBindings }) {
@@ -100,6 +106,37 @@ export function applyButtonInputs({ runtime, buttonBindings }) {
   }
 }
 
+export function applyBuzzerStates({ runtime, buzzerBindings }) {
+  for (const binding of buzzerBindings ?? []) {
+    const pinState = runtime.getPin(binding.pin);
+    const pinValue = pinState.value;
+    const active = binding.activeHigh ? pinValue === 'HIGH' : pinValue === 'LOW';
+    const frequencyHz = Number(pinState.frequencyHz);
+
+    binding.buzzer.properties[binding.activeProperty] = active;
+    binding.buzzer.properties[binding.inputLevelProperty] = pinValue === 'HIGH' ? 1 : 0;
+
+    if (active && Number.isFinite(frequencyHz) && frequencyHz > 0) {
+      binding.buzzer.properties.frequencyHz = frequencyHz;
+    }
+  }
+}
+
+export function applySevenSegmentStates({ runtime, sevenSegmentBindings }) {
+  for (const binding of sevenSegmentBindings ?? []) {
+    const commonType = binding.display.properties[binding.commonTypeProperty] ?? 'cathode';
+
+    for (const segment of binding.segments) {
+      const pinValue = segmentDigitalValue({ graph: binding.graph, runtime, display: binding.display, segment });
+      const active = commonType === 'anode'
+        ? binding.hasPowerCommon && pinValue === 'LOW'
+        : binding.hasGroundCommon && pinValue === 'HIGH';
+
+      binding.display.properties[segment.property] = active;
+    }
+  }
+}
+
 function bindHcsr04Sensors({ graph, environment, runtime, clock, scheduler, program, diagnostics, components }) {
   const arduino = graph.findComponentsByBehaviorType('microcontroller')[0];
 
@@ -180,6 +217,155 @@ function bindBmp280Sensors({ graph, environment, runtime, diagnostics, component
       readBytes(count) {
         return new Array(Math.max(0, Number(count) || 0)).fill(0);
       }
+    });
+  }
+}
+
+function bindLcd16x2Displays({ graph, runtime, diagnostics, components }) {
+  for (const display of components) {
+    const address = Number(display.properties[display.behavior?.addressProperty] ?? 39);
+
+    if (!resolveI2cBusConnected(graph, display)) {
+      diagnostics.push(`${display.id}: SDA/SCL não estão ligados a um barramento I2C conhecido.`);
+      continue;
+    }
+
+    runtime.registerI2cDevice(address, {
+      type: 'lcd-16x2-i2c',
+      componentId: display.id,
+      component: display,
+      columns: Number(display.properties[display.behavior?.columnsProperty] ?? 16),
+      rows: Number(display.properties[display.behavior?.rowsProperty] ?? 2),
+      cursorColumn: 0,
+      cursorRow: 0,
+      backlight: display.properties[display.behavior?.backlightProperty] !== false,
+      backlightProperty: display.behavior?.backlightProperty ?? 'backlight',
+      lineProperties: display.behavior?.lineProperties ?? ['line1', 'line2'],
+      readBytes(count) {
+        return new Array(Math.max(0, Number(count) || 0)).fill(0);
+      }
+    });
+    runtime.lcdBegin(address, display.properties[display.behavior?.columnsProperty] ?? 16, display.properties[display.behavior?.rowsProperty] ?? 2);
+  }
+}
+
+function bindSevenSegmentDisplays({ graph, runtime, diagnostics, components }) {
+  const sevenSegmentBindings = [];
+
+  for (const display of components) {
+    const segmentTerminals = display.behavior?.segmentTerminals ?? {};
+    const segments = Object.entries(segmentTerminals).map(([terminalId, property]) => ({
+      terminalId,
+      property,
+      pin: resolveRuntimeDigitalPinConnectedToTerminal(graph, runtime, {
+        componentId: display.id,
+        terminalId
+      }),
+      connected: Boolean(graph.findTerminalNet(display.id, terminalId))
+    }));
+    const connectedSegments = segments.filter((segment) => Number.isInteger(segment.pin));
+
+    if (connectedSegments.length === 0 && !segments.some((segment) => segment.connected)) {
+      diagnostics.push(`${display.id}: nenhum segmento ligado a pino digital de microcontrolador.`);
+      continue;
+    }
+
+    sevenSegmentBindings.push({
+      display,
+      graph,
+      segments,
+      commonTypeProperty: display.behavior?.commonTypeProperty ?? 'commonType',
+      hasGroundCommon: hasCommonRail(graph, display, 'ground'),
+      hasPowerCommon: hasCommonRail(graph, display, 'power')
+    });
+  }
+
+  applySevenSegmentStates({ runtime, sevenSegmentBindings });
+  return { sevenSegmentBindings };
+}
+
+function bindShiftRegisters74hc595({ graph, components }) {
+  for (const shiftRegister of components) {
+    const state = {
+      data: 'LOW',
+      clock: 'LOW',
+      latch: 'LOW',
+      outputEnable: terminalNetHasKind(graph, { componentId: shiftRegister.id, terminalId: shiftRegister.behavior?.outputEnableTerminal ?? 'oe' }, 'ground') ? 'LOW' : 'HIGH',
+      masterReset: terminalNetHasKind(graph, { componentId: shiftRegister.id, terminalId: shiftRegister.behavior?.masterResetTerminal ?? 'mr' }, 'ground') ? 'LOW' : 'HIGH'
+    };
+
+    syncShiftRegisterOutputs({ graph, shiftRegister, state });
+
+    graph.onTerminalDriven((terminal, value) => {
+      if (terminal.componentId !== shiftRegister.id) {
+        return;
+      }
+
+      handleShiftRegisterTerminal({ graph, shiftRegister, state, terminalId: terminal.terminalId, value });
+    });
+  }
+}
+
+function bindDhtSensors({ graph, environment, runtime, diagnostics, components }) {
+  const climateSources = graph.findComponentsByBehaviorChannel('climate');
+
+  for (const sensor of components) {
+    const dataTerminal = sensor.behavior?.dataTerminal ?? 'data';
+    const pin = resolveRuntimeDigitalPinConnectedToTerminal(graph, runtime, {
+      componentId: sensor.id,
+      terminalId: dataTerminal
+    });
+    const climateSource = climateSourceForSensor({ graph, climateSources, sensor });
+    const dhtType = sensor.behavior?.model === 'DHT11' ? 11 : 22;
+
+    if (!Number.isInteger(pin)) {
+      diagnostics.push(`${sensor.id}: DATA não está ligado a pino digital de microcontrolador.`);
+      continue;
+    }
+
+    if (!climateSource) {
+      diagnostics.push(`${sensor.id}: nenhum controle de clima/umidade disponível.`);
+      continue;
+    }
+
+    runtime.registerDhtSensor(pin, {
+      type: dhtType,
+      componentId: sensor.id,
+      readTemperature() {
+        const climate = normalizeEnvironmentValue('climate', environment.read(`${climateSource.id}.climate`));
+        const value = climate.enabled ? climate.temperatureC : 0;
+        sensor.properties[sensor.behavior?.temperatureProperty ?? 'temperatureCelsius'] = value;
+        return value;
+      },
+      readHumidity() {
+        const climate = normalizeEnvironmentValue('climate', environment.read(`${climateSource.id}.climate`));
+        const value = climate.enabled ? climate.humidityPercent : 0;
+        sensor.properties[sensor.behavior?.humidityProperty ?? 'humidityPercent'] = value;
+        return value;
+      }
+    });
+  }
+}
+
+function bindServoMotors({ graph, runtime, diagnostics, components }) {
+  for (const servo of components) {
+    const inputTerminal = servo.behavior?.inputTerminal ?? 'sig';
+    const pin = resolveRuntimeDigitalPinConnectedToTerminal(graph, runtime, {
+      componentId: servo.id,
+      terminalId: inputTerminal
+    });
+
+    if (!Number.isInteger(pin)) {
+      diagnostics.push(`${servo.id}: SIG não está ligado a pino digital/PWM de microcontrolador.`);
+      continue;
+    }
+
+    runtime.registerServoMotor(pin, {
+      component: servo,
+      angleProperty: servo.behavior?.angleProperty ?? 'angleDegrees',
+      attachedProperty: servo.behavior?.attachedProperty ?? 'attached',
+      minPulseProperty: servo.behavior?.minPulseProperty ?? 'minPulseUs',
+      maxPulseProperty: servo.behavior?.maxPulseProperty ?? 'maxPulseUs'
     });
   }
 }
@@ -386,6 +572,34 @@ function bindMomentaryButtons({ graph, runtime, diagnostics, components }) {
   return { buttonBindings };
 }
 
+function bindBuzzers({ graph, runtime, diagnostics, components }) {
+  const buzzerBindings = [];
+
+  for (const buzzer of components) {
+    const inputTerminal = buzzer.behavior?.inputTerminal ?? 'sig';
+    const pin = resolveRuntimeDigitalPinConnectedToTerminal(graph, runtime, {
+      componentId: buzzer.id,
+      terminalId: inputTerminal
+    });
+
+    if (!Number.isInteger(pin)) {
+      diagnostics.push(`${buzzer.id}: SIG não está ligado a pino digital de microcontrolador.`);
+      continue;
+    }
+
+    buzzerBindings.push({
+      buzzer,
+      pin,
+      activeHigh: buzzer.properties[buzzer.behavior?.activeHighProperty ?? 'activeHigh'] !== false,
+      activeProperty: buzzer.behavior?.activeProperty ?? 'active',
+      inputLevelProperty: buzzer.behavior?.inputLevelProperty ?? 'inputLevel'
+    });
+  }
+
+  applyBuzzerStates({ runtime, buzzerBindings });
+  return { buzzerBindings };
+}
+
 function rainSourceForSensor({ graph, rainSources, sensor }) {
   const terminals = [
     sensor.behavior?.digitalOutputTerminal ?? 'do',
@@ -565,6 +779,99 @@ function terminalNetHasKind(graph, terminal, kind) {
   }
 
   return net.terminals.some((item) => graph.terminalKind(item) === kind);
+}
+
+function hasCommonRail(graph, component, kind) {
+  return (component.behavior?.commonTerminals ?? []).some((terminalId) => {
+    return terminalNetHasKind(graph, { componentId: component.id, terminalId }, kind);
+  });
+}
+
+function pinValueFromTerminalSignal(graph, component, terminalId) {
+  return graph.terminalSignal?.(component.id, terminalId) ?? 'LOW';
+}
+
+function segmentDigitalValue({ graph, runtime, display, segment }) {
+  if (Number.isInteger(segment.pin)) {
+    return runtime.getPin(segment.pin).value;
+  }
+
+  return pinValueFromTerminalSignal(graph, display, segment.terminalId);
+}
+
+function handleShiftRegisterTerminal({ graph, shiftRegister, state, terminalId, value }) {
+  const behavior = shiftRegister.behavior ?? {};
+  const dataTerminal = behavior.dataTerminal ?? 'ds';
+  const clockTerminal = behavior.clockTerminal ?? 'shcp';
+  const latchTerminal = behavior.latchTerminal ?? 'stcp';
+  const outputEnableTerminal = behavior.outputEnableTerminal ?? 'oe';
+  const masterResetTerminal = behavior.masterResetTerminal ?? 'mr';
+
+  if (terminalId === dataTerminal) {
+    state.data = value;
+  }
+
+  if (terminalId === outputEnableTerminal) {
+    state.outputEnable = value;
+    syncShiftRegisterOutputs({ graph, shiftRegister, state });
+  }
+
+  if (terminalId === masterResetTerminal) {
+    state.masterReset = value;
+    if (shiftRegister.properties[behavior.clearActiveLowProperty ?? 'clearActiveLow'] !== false && value === 'LOW') {
+      shiftRegister.properties[behavior.shiftValueProperty ?? 'shiftValue'] = 0;
+      shiftRegister.properties[behavior.latchedValueProperty ?? 'latchedValue'] = 0;
+      syncShiftRegisterOutputs({ graph, shiftRegister, state });
+    }
+  }
+
+  if (terminalId === clockTerminal) {
+    const rising = state.clock !== 'HIGH' && value === 'HIGH';
+    state.clock = value;
+
+    if (rising) {
+      const previousValue = Number(shiftRegister.properties[behavior.shiftValueProperty ?? 'shiftValue']) & 0xff;
+      const shiftedOut = previousValue & 0x80 ? 'HIGH' : 'LOW';
+
+      shiftRegister.properties[behavior.shiftValueProperty ?? 'shiftValue'] = ((previousValue << 1) & 0xff) | (state.data === 'HIGH' ? 1 : 0);
+      graph.driveComponentTerminal?.(shiftRegister.id, behavior.serialOutTerminal ?? 'q7s', shiftedOut);
+    }
+  }
+
+  if (terminalId === latchTerminal) {
+    const rising = state.latch !== 'HIGH' && value === 'HIGH';
+    state.latch = value;
+
+    if (rising) {
+      shiftRegister.properties[behavior.latchedValueProperty ?? 'latchedValue'] = Number(shiftRegister.properties[behavior.shiftValueProperty ?? 'shiftValue']) & 0xff;
+      syncShiftRegisterOutputs({ graph, shiftRegister, state });
+    }
+  }
+}
+
+function syncShiftRegisterOutputs({ graph, shiftRegister, state }) {
+  const behavior = shiftRegister.behavior ?? {};
+  const outputTerminals = behavior.outputTerminals ?? ['q0', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7'];
+  const outputEnabled = state.outputEnable === 'LOW';
+  const resetActive = shiftRegister.properties[behavior.clearActiveLowProperty ?? 'clearActiveLow'] !== false && state.masterReset === 'LOW';
+  const value = resetActive ? 0 : Number(shiftRegister.properties[behavior.latchedValueProperty ?? 'latchedValue']) & 0xff;
+
+  shiftRegister.properties[behavior.outputEnabledProperty ?? 'outputEnabled'] = outputEnabled;
+
+  for (const [index, terminalId] of outputTerminals.entries()) {
+    const active = outputEnabled && Boolean(value & (1 << index));
+    shiftRegister.properties[terminalId] = active;
+    graph.driveComponentTerminal?.(shiftRegister.id, terminalId, active ? 'HIGH' : 'LOW');
+  }
+}
+
+function climateSourceForSensor({ graph, climateSources, sensor }) {
+  return climateSources.find((source) => {
+    return graph.areConnected(
+      { componentId: source.id, terminalId: source.behavior?.channel ?? 'climate' },
+      { componentId: sensor.id, terminalId: sensor.behavior?.environmentTerminal ?? 'env' }
+    );
+  }) ?? climateSources[0] ?? null;
 }
 
 function ldrResistanceOhms(sensor, light) {

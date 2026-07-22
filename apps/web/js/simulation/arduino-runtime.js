@@ -21,6 +21,10 @@ export class ArduinoRuntime {
     started: false,
     devices: new Map()
   };
+  #dht = {
+    devices: new Map()
+  };
+  #servos = new Map();
   #wifi = {
     environment: {
       ssid: 'VirtualLab',
@@ -104,6 +108,34 @@ export class ArduinoRuntime {
 
   delay(milliseconds) {
     this.delayMicroseconds(milliseconds * 1000);
+  }
+
+  tone(pin, frequency) {
+    const normalizedPin = Number(pin);
+    const pinState = this.getPin(normalizedPin);
+
+    this.#pins.set(normalizedPin, { ...pinState, mode: 'OUTPUT', value: 'HIGH', frequencyHz: Number(frequency) || 0 });
+    this.#pinEvents.push({
+      pin: normalizedPin,
+      value: 'HIGH',
+      frequencyHz: Number(frequency) || 0,
+      timeUs: this.clock.nowUs()
+    });
+    this.graph.driveArduinoPin(normalizedPin, 'HIGH', this.componentId);
+  }
+
+  noTone(pin) {
+    const normalizedPin = Number(pin);
+    const pinState = this.getPin(normalizedPin);
+
+    this.#pins.set(normalizedPin, { ...pinState, mode: 'OUTPUT', value: 'LOW', frequencyHz: 0 });
+    this.#pinEvents.push({
+      pin: normalizedPin,
+      value: 'LOW',
+      frequencyHz: 0,
+      timeUs: this.clock.nowUs()
+    });
+    this.graph.driveArduinoPin(normalizedPin, 'LOW', this.componentId);
   }
 
   pulseIn(pin, value, timeoutMicroseconds = 1_000_000) {
@@ -261,6 +293,81 @@ export class ArduinoRuntime {
     this.#i2c.devices.set(Number(address), { ...device, address: Number(address) });
   }
 
+  lcdBegin(address, columns, rows) {
+    const display = this.#lcdDisplay(address);
+
+    if (!display) {
+      return false;
+    }
+
+    display.columns = Math.max(1, Number(columns) || display.columns || 16);
+    display.rows = Math.max(1, Number(rows) || display.rows || 2);
+    display.cursorColumn = 0;
+    display.cursorRow = 0;
+    display.buffer = lcdBuffer(display);
+    syncLcdDisplayComponent(display);
+    return true;
+  }
+
+  lcdSetCursor(address, column, row) {
+    const display = this.#lcdDisplay(address);
+
+    if (!display) {
+      return;
+    }
+
+    display.cursorColumn = clampInteger(column, 0, Math.max(0, display.columns - 1));
+    display.cursorRow = clampInteger(row, 0, Math.max(0, display.rows - 1));
+  }
+
+  lcdPrint(address, value) {
+    const display = this.#lcdDisplay(address);
+
+    if (!display) {
+      return;
+    }
+
+    for (const char of String(value ?? '')) {
+      if (display.cursorRow >= display.rows || display.cursorColumn >= display.columns) {
+        break;
+      }
+
+      display.buffer[display.cursorRow][display.cursorColumn] = char;
+      display.cursorColumn++;
+    }
+
+    syncLcdDisplayComponent(display);
+  }
+
+  lcdClear(address) {
+    const display = this.#lcdDisplay(address);
+
+    if (!display) {
+      return;
+    }
+
+    display.cursorColumn = 0;
+    display.cursorRow = 0;
+    display.buffer = lcdBuffer(display);
+    syncLcdDisplayComponent(display);
+  }
+
+  lcdSetBacklight(address, enabled) {
+    const display = this.#lcdDisplay(address);
+
+    if (!display) {
+      return;
+    }
+
+    display.backlight = Boolean(enabled);
+    syncLcdDisplayComponent(display);
+  }
+
+  #lcdDisplay(address) {
+    const device = this.#i2c.devices.get(Number(address));
+    return device?.type === 'lcd-16x2-i2c' ? device : null;
+  }
+
   bmp280Begin(address) {
     return this.#i2c.devices.get(Number(address))?.type === 'bmp280';
   }
@@ -300,6 +407,64 @@ export class ArduinoRuntime {
 
   registerSpiDevice(chipSelectPin, device) {
     this.#spi.devices.set(Number(chipSelectPin), { ...device, chipSelectPin: Number(chipSelectPin) });
+  }
+
+  registerDhtSensor(pin, device) {
+    this.#dht.devices.set(Number(pin), { ...device, pin: Number(pin) });
+  }
+
+  dhtBegin(pin, type) {
+    const device = this.#dht.devices.get(Number(pin));
+    return Boolean(device && (!Number.isInteger(device.type) || Number(device.type) === Number(type)));
+  }
+
+  dhtReadTemperature(pin) {
+    const device = this.#dht.devices.get(Number(pin));
+    return typeof device?.readTemperature === 'function' ? device.readTemperature() : 0;
+  }
+
+  dhtReadHumidity(pin) {
+    const device = this.#dht.devices.get(Number(pin));
+    return typeof device?.readHumidity === 'function' ? device.readHumidity() : 0;
+  }
+
+  registerServoMotor(pin, servo) {
+    this.#servos.set(Number(pin), { ...servo, pin: Number(pin) });
+  }
+
+  servoAttach(pin) {
+    const servo = this.#servos.get(Number(pin));
+
+    if (!servo) {
+      return false;
+    }
+
+    servo.component.properties[servo.attachedProperty] = true;
+    return true;
+  }
+
+  servoWrite(pin, angle) {
+    const servo = this.#servos.get(Number(pin));
+
+    if (!servo) {
+      return;
+    }
+
+    servo.component.properties[servo.angleProperty] = clamp(Number(angle), 0, 180);
+  }
+
+  servoWriteMicroseconds(pin, pulseUs) {
+    const servo = this.#servos.get(Number(pin));
+
+    if (!servo) {
+      return;
+    }
+
+    const minPulse = Number(servo.component.properties[servo.minPulseProperty] ?? 544);
+    const maxPulse = Number(servo.component.properties[servo.maxPulseProperty] ?? 2400);
+    const normalized = (Number(pulseUs) - minPulse) / Math.max(1, maxPulse - minPulse);
+
+    this.servoWrite(pin, normalized * 180);
   }
 
   mcp3008Begin(chipSelectPin) {
@@ -728,4 +893,29 @@ function postMqttBridge(action, payload) {
   } catch (error) {
     return { ok: false, error: error.message };
   }
+}
+
+function lcdBuffer(display) {
+  return Array.from({ length: display.rows }, () => Array.from({ length: display.columns }, () => ' '));
+}
+
+function syncLcdDisplayComponent(display) {
+  const lineProperties = display.lineProperties ?? ['line1', 'line2'];
+
+  for (let row = 0; row < lineProperties.length; row++) {
+    display.component.properties[lineProperties[row]] = (display.buffer[row] ?? []).join('').trimEnd();
+  }
+
+  if (display.backlightProperty) {
+    display.component.properties[display.backlightProperty] = Boolean(display.backlight);
+  }
+}
+
+function clampInteger(value, min, max) {
+  const normalized = Math.trunc(Number(value) || 0);
+  return Math.max(min, Math.min(max, normalized));
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }

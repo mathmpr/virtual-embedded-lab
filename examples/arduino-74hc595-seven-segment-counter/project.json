@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Arduino 74HC595 7-Segment Counter",
+  "board": {
+    "width": 1800,
+    "height": 980,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "arduino-1",
+      "componentId": "board.arduino.uno",
+      "position": { "x": 220, "y": 300 },
+      "properties": {}
+    },
+    {
+      "id": "shift-1",
+      "componentId": "ic.shift-register.74hc595",
+      "position": { "x": 700, "y": 285 },
+      "properties": {
+        "latchedValue": 0,
+        "shiftValue": 0,
+        "outputEnabled": true,
+        "clearActiveLow": true
+      }
+    },
+    {
+      "id": "display-1",
+      "componentId": "display.led.7segment",
+      "position": { "x": 1160, "y": 260 },
+      "properties": {
+        "commonType": "cathode",
+        "forwardVoltageVolts": 2,
+        "recommendedCurrentAmps": 0.01
+      }
+    }
+  ],
+  "connections": [
+    { "id": "net-vcc", "color": "#f05252", "terminals": ["arduino-1.5v", "shift-1.vcc", "shift-1.mr"] },
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "shift-1.gnd", "shift-1.oe", "display-1.com1", "display-1.com2"] },
+    { "id": "net-data", "color": "#ffb454", "terminals": ["arduino-1.d11", "shift-1.ds"] },
+    { "id": "net-clock", "color": "#45d6c4", "terminals": ["arduino-1.d12", "shift-1.shcp"] },
+    { "id": "net-latch", "color": "#7aa2f7", "terminals": ["arduino-1.d8", "shift-1.stcp"] },
+    { "id": "net-q0-a", "color": "#ff6b5f", "terminals": ["shift-1.q0", "display-1.a"] },
+    { "id": "net-q1-b", "color": "#ffb454", "terminals": ["shift-1.q1", "display-1.b"] },
+    { "id": "net-q2-c", "color": "#f7d774", "terminals": ["shift-1.q2", "display-1.c"] },
+    { "id": "net-q3-d", "color": "#9ece6a", "terminals": ["shift-1.q3", "display-1.d"] },
+    { "id": "net-q4-e", "color": "#45d6c4", "terminals": ["shift-1.q4", "display-1.e"] },
+    { "id": "net-q5-f", "color": "#7aa2f7", "terminals": ["shift-1.q5", "display-1.f"] },
+    { "id": "net-q6-g", "color": "#bb9af7", "terminals": ["shift-1.q6", "display-1.g"] },
+    { "id": "net-q7-dp", "color": "#f7768e", "terminals": ["shift-1.q7", "display-1.dp"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "const int LATCH_PIN = 8;\\nconst int DATA_PIN = 11;\\nconst int CLOCK_PIN = 12;\\n\\nconst byte digits[10] = {\\n    0b00111111,\\n    0b00000110,\\n    0b01011011,\\n    0b01001111,\\n    0b01100110,\\n    0b01101101,\\n    0b01111101,\\n    0b00000111,\\n    0b01111111,\\n    0b01101111\\n};\\n\\nint digit = 0;\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    pinMode(LATCH_PIN, OUTPUT);\\n    pinMode(DATA_PIN, OUTPUT);\\n    pinMode(CLOCK_PIN, OUTPUT);\\n    digitalWrite(LATCH_PIN, LOW);\\n    Serial.println(\"74HC595 counter ready\");\\n}\\n\\nvoid loop()\\n{\\n    digitalWrite(LATCH_PIN, LOW);\\n    shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, digits[digit]);\\n    digitalWrite(LATCH_PIN, HIGH);\\n\\n    Serial.print(\"Shift digit: \");\\n    Serial.println(digit);\\n    digit = (digit + 1) % 10;\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

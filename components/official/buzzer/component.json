@@ -1,0 +1,77 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "actuator.buzzer",
+    "name": "Buzzer",
+    "category": "actuator",
+    "subCategory": "sound"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": ["electrical", "firmware", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "active": { "type": "boolean", "default": false, "simulationUpdate": "live" },
+    "inputLevel": { "type": "number", "default": 0, "minimum": 0, "maximum": 1, "simulationUpdate": "live" },
+    "activeHigh": { "type": "boolean", "default": true, "simulationUpdate": "rerun" },
+    "frequencyHz": { "type": "number", "default": 2000, "minimum": 20, "maximum": 20000, "unit": "Hz", "simulationUpdate": "live" },
+    "volumePercent": { "type": "number", "default": 60, "minimum": 0, "maximum": 100, "unit": "%", "simulationUpdate": "live" },
+    "activeType": { "type": "string", "default": "active", "simulationUpdate": "rerun" }
+  },
+  "variants": {
+    "frequencyHz": [
+      { "label": "440 Hz", "value": 440 },
+      { "label": "1 kHz", "value": 1000 },
+      { "label": "2 kHz", "value": 2000 },
+      { "label": "4 kHz", "value": 4000 }
+    ]
+  },
+  "terminals": [
+    { "id": "vcc", "label": "+", "type": "power-input" },
+    { "id": "gnd", "label": "-", "type": "ground" },
+    { "id": "sig", "label": "SIG", "type": "digital-input" }
+  ],
+  "behavior": {
+    "type": "buzzer",
+    "inputTerminal": "sig",
+    "activeHighProperty": "activeHigh",
+    "activeProperty": "active",
+    "inputLevelProperty": "inputLevel"
+  },
+  "electricalModel": {
+    "type": "load",
+    "primitive": "buzzer",
+    "recommendedVoltageVolts": 5,
+    "inputCurrentAmps": 0.02,
+    "maximumCurrentAmps": 0.04
+  },
+  "visual": {
+    "type": "buzzer",
+    "title": "Buzzer",
+    "className": "buzzer",
+    "body": "OFF",
+    "width": 164,
+    "height": 104,
+    "controls": [
+      { "type": "readout", "className": "buzzer-readout", "label": "BUZ", "property": "active", "format": "onOff" },
+      { "type": "variant", "className": "component-select-row", "label": "Freq", "property": "frequencyHz" },
+      { "type": "element", "className": "buzzer-diaphragm", "text": "SOUND" }
+    ],
+    "stateBindings": [
+      { "type": "class", "className": "is-buzzing", "source": { "kind": "componentProperty", "property": "active" }, "when": true }
+    ],
+    "palette": {
+      "group": "Actuators",
+      "subgroup": "Sound",
+      "icon": "buzzer-icon",
+      "order": 60
+    },
+    "terminals": [
+      { "id": "vcc", "label": "+", "side": "left", "x": 0, "y": 34, "kind": "power" },
+      { "id": "sig", "label": "SIG", "side": "right", "x": 164, "y": 54, "kind": "signal" },
+      { "id": "gnd", "label": "-", "side": "bottom", "x": 82, "y": 104, "kind": "ground" }
+    ]
+  }
+}

@@ -372,6 +372,7 @@ using uint16_t = unsigned short;
 using uint32_t = unsigned int;
 using int32_t = int;
 using size_t = unsigned long;
+using byte = unsigned char;
 #define IRAM_ATTR
 
 const int LOW = 0;
@@ -380,6 +381,8 @@ const int INPUT = 0;
 const int OUTPUT = 1;
 const int INPUT_PULLUP = 2;
 const int FALLING = 2;
+const int LSBFIRST = 0;
+const int MSBFIRST = 1;
 const int LED_BUILTIN = 13;
 const int A0 = 14;
 const int A1 = 15;
@@ -387,6 +390,8 @@ const int A2 = 16;
 const int A3 = 17;
 const int A4 = 18;
 const int A5 = 19;
+const int A6 = 20;
+const int A7 = 21;
 const int WIFI_STA = 1;
 const int WIFI_AP = 2;
 const int WIFI_AP_STA = 3;
@@ -397,6 +402,8 @@ const int WL_CONNECTED = 3;
 const int WL_CONNECT_FAILED = 4;
 const int WL_CONNECTION_LOST = 5;
 const int WL_DISCONNECTED = 6;
+const int DHT11 = 11;
+const int DHT22 = 22;
 
 void pinMode(int, int);
 void digitalWrite(int, int);
@@ -407,9 +414,16 @@ unsigned long millis();
 unsigned long micros();
 void delay(unsigned long);
 void delayMicroseconds(unsigned int);
+void shiftOut(int, int, int, int);
+void tone(int, int);
+void noTone(int);
+void randomSeed(unsigned long);
+long random(long);
+long random(long, long);
 void yield();
 int digitalPinToInterrupt(int);
 void attachInterrupt(int, void (*)(), int);
+bool isnan(double);
 using size_t = unsigned long;
 int snprintf(char *, size_t, const char *, const char *, const char *);
 int snprintf(char *, size_t, const char *, const char *, const char *, int);
@@ -468,6 +482,40 @@ public:
   bool begin(int = 0x76);
   float readTemperature();
   float readPressure();
+};
+
+class LiquidCrystal_I2C {
+public:
+  LiquidCrystal_I2C(int, int, int);
+  void init();
+  void begin();
+  void begin(int, int);
+  void backlight();
+  void noBacklight();
+  void setCursor(int, int);
+  void clear();
+  void print(const char *);
+  void print(char);
+  void print(int);
+  void print(long);
+  void print(unsigned long);
+  void print(String);
+};
+
+class DHT {
+public:
+  DHT(int, int);
+  void begin();
+  float readTemperature();
+  float readHumidity();
+};
+
+class Servo {
+public:
+  Servo();
+  int attach(int);
+  void write(int);
+  void writeMicroseconds(int);
 };
 
 class ADS1015 {
@@ -582,7 +630,7 @@ function shimLineOffset() {
 }
 
 function stripArduinoIncludes(code) {
-  return code.replace(/^\s*#include\s+[<"](?:Arduino|WiFi|ESP8266WiFi|WiFiClient|AsyncMqttClient|SimpleTimer|Wire|SPI)\.h[>"].*$/gm, '');
+  return code.replace(/^\s*#include\s+[<"](?:Arduino|WiFi|ESP8266WiFi|WiFiClient|AsyncMqttClient|SimpleTimer|Wire|SPI|LiquidCrystal_I2C|DHT|Servo)\.h[>"].*$/gm, '');
 }
 
 function normalizeFirmwareSource(code) {

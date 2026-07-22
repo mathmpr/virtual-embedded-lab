@@ -1,0 +1,71 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "sensor.temperature-humidity.dht22",
+    "name": "DHT22",
+    "category": "sensor",
+    "subCategory": "climate"
+  },
+  "simulation": {
+    "kind": "behavioral-sensor",
+    "effects": ["firmware", "environment", "visual-state", "electrical"],
+    "implemented": true
+  },
+  "properties": {
+    "temperatureCelsius": { "type": "number", "default": 25, "minimum": -40, "maximum": 80, "unit": "°C", "simulationUpdate": "live" },
+    "humidityPercent": { "type": "number", "default": 55, "minimum": 0, "maximum": 100, "unit": "%", "simulationUpdate": "live" },
+    "sensorModel": { "type": "string", "default": "DHT22", "simulationUpdate": "rerun" },
+    "readIntervalMs": { "type": "number", "default": 2000, "minimum": 1000, "maximum": 10000, "unit": "ms", "simulationUpdate": "rerun" }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "data", "label": "DATA", "type": "digital-io" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "env", "label": "ENV", "type": "environment-input" }
+  ],
+  "behavior": {
+    "type": "dht-sensor",
+    "environmentChannel": "climate",
+    "dataTerminal": "data",
+    "model": "DHT22",
+    "temperatureProperty": "temperatureCelsius",
+    "humidityProperty": "humidityPercent"
+  },
+  "electricalModel": {
+    "type": "sensor-module",
+    "primitive": "temperature-humidity-sensor",
+    "logicVoltage": 5,
+    "recommendedVoltageMin": 3.3,
+    "recommendedVoltageMax": 5,
+    "inputCurrentAmps": 0.0025
+  },
+  "visual": {
+    "type": "dht22-sensor",
+    "title": "DHT22",
+    "className": "dht-sensor dht22-sensor",
+    "body": "",
+    "width": 166,
+    "height": 108,
+    "controls": [
+      { "type": "readout", "className": "dht-readout", "label": "Temp", "property": "temperatureCelsius", "unit": "°C" },
+      { "type": "readout", "className": "dht-readout", "label": "Umid", "property": "humidityPercent", "unit": "%" },
+      { "type": "element", "className": "dht-grille", "text": "DHT22" }
+    ],
+    "stateBindings": [
+      { "type": "text", "selector": ".dht-grille", "source": { "kind": "componentProperty", "property": "sensorModel" } }
+    ],
+    "palette": {
+      "group": "Sensors",
+      "subgroup": "Environment",
+      "icon": "dht-icon",
+      "order": 28
+    },
+    "terminals": [
+      { "id": "vcc", "label": "VCC", "side": "left", "x": 0, "y": 30, "kind": "power" },
+      { "id": "data", "label": "DATA", "side": "right", "x": 166, "y": 54, "kind": "signal" },
+      { "id": "env", "label": "ENV", "side": "right", "x": 166, "y": 84, "kind": "environment" },
+      { "id": "gnd", "label": "GND", "side": "bottom", "x": 76, "y": 108, "kind": "ground" }
+    ]
+  }
+}

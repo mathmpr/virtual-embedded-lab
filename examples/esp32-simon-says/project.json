@@ -1,0 +1,577 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "ESP32 Simon Says",
+  "board": {
+    "width": 2300,
+    "height": 1300,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "esp32-1",
+      "componentId": "board.esp32.devkit",
+      "position": {
+        "x": 230,
+        "y": 360
+      },
+      "properties": {
+        "logicVoltage": 3.3,
+        "wifiMode": "idle",
+        "bluetoothEnabled": true
+      }
+    },
+    {
+      "id": "led-red",
+      "componentId": "electronic.led.red",
+      "position": {
+        "x": 760,
+        "y": 140
+      },
+      "properties": {}
+    },
+    {
+      "id": "resistor-red",
+      "componentId": "electronic.resistor",
+      "position": {
+        "x": 650,
+        "y": 152
+      },
+      "properties": {
+        "resistanceOhms": 220
+      }
+    },
+    {
+      "id": "button-red",
+      "componentId": "input.button.pull-up",
+      "position": {
+        "x": 760,
+        "y": 20
+      },
+      "properties": {
+        "pressed": false,
+        "activeHigh": false
+      }
+    },
+    {
+      "id": "led-green",
+      "componentId": "electronic.led.green",
+      "position": {
+        "x": 940,
+        "y": 140
+      },
+      "properties": {}
+    },
+    {
+      "id": "resistor-green",
+      "componentId": "electronic.resistor",
+      "position": {
+        "x": 830,
+        "y": 152
+      },
+      "properties": {
+        "resistanceOhms": 220
+      }
+    },
+    {
+      "id": "button-green",
+      "componentId": "input.button.pull-up",
+      "position": {
+        "x": 940,
+        "y": 20
+      },
+      "properties": {
+        "pressed": false,
+        "activeHigh": false
+      }
+    },
+    {
+      "id": "led-blue",
+      "componentId": "electronic.led.blue",
+      "position": {
+        "x": 1120,
+        "y": 140
+      },
+      "properties": {}
+    },
+    {
+      "id": "resistor-blue",
+      "componentId": "electronic.resistor",
+      "position": {
+        "x": 1010,
+        "y": 152
+      },
+      "properties": {
+        "resistanceOhms": 220
+      }
+    },
+    {
+      "id": "button-blue",
+      "componentId": "input.button.pull-up",
+      "position": {
+        "x": 1120,
+        "y": 20
+      },
+      "properties": {
+        "pressed": false,
+        "activeHigh": false
+      }
+    },
+    {
+      "id": "led-yellow",
+      "componentId": "electronic.led.yellow",
+      "position": {
+        "x": 1300,
+        "y": 140
+      },
+      "properties": {}
+    },
+    {
+      "id": "resistor-yellow",
+      "componentId": "electronic.resistor",
+      "position": {
+        "x": 1190,
+        "y": 152
+      },
+      "properties": {
+        "resistanceOhms": 220
+      }
+    },
+    {
+      "id": "button-yellow",
+      "componentId": "input.button.pull-up",
+      "position": {
+        "x": 1300,
+        "y": 20
+      },
+      "properties": {
+        "pressed": false,
+        "activeHigh": false
+      }
+    },
+    {
+      "id": "buzzer-1",
+      "componentId": "actuator.buzzer",
+      "position": {
+        "x": 1530,
+        "y": 150
+      },
+      "properties": {
+        "active": false,
+        "inputLevel": 0,
+        "activeHigh": true,
+        "frequencyHz": 196,
+        "volumePercent": 60,
+        "activeType": "active"
+      }
+    },
+    {
+      "id": "shift-low",
+      "componentId": "ic.shift-register.74hc595",
+      "position": {
+        "x": 1120,
+        "y": 610
+      },
+      "properties": {
+        "latchedValue": 63,
+        "shiftValue": 0,
+        "outputEnabled": true,
+        "clearActiveLow": true,
+        "q0": true,
+        "q1": true,
+        "q2": true,
+        "q3": true,
+        "q4": true,
+        "q5": true,
+        "q6": false,
+        "q7": false
+      }
+    },
+    {
+      "id": "shift-high",
+      "componentId": "ic.shift-register.74hc595",
+      "position": {
+        "x": 760,
+        "y": 610
+      },
+      "properties": {
+        "latchedValue": 63,
+        "shiftValue": 0,
+        "outputEnabled": true,
+        "clearActiveLow": true,
+        "q0": true,
+        "q1": true,
+        "q2": true,
+        "q3": true,
+        "q4": true,
+        "q5": true,
+        "q6": false,
+        "q7": false
+      }
+    },
+    {
+      "id": "display-high",
+      "componentId": "display.led.7segment",
+      "position": {
+        "x": 760,
+        "y": 850
+      },
+      "properties": {
+        "commonType": "cathode",
+        "forwardVoltageVolts": 2,
+        "recommendedCurrentAmps": 0.01,
+        "segmentA": true,
+        "segmentB": true,
+        "segmentC": true,
+        "segmentD": true,
+        "segmentE": true,
+        "segmentF": true,
+        "segmentG": false,
+        "segmentDp": false
+      }
+    },
+    {
+      "id": "display-low",
+      "componentId": "display.led.7segment",
+      "position": {
+        "x": 1120,
+        "y": 850
+      },
+      "properties": {
+        "commonType": "cathode",
+        "forwardVoltageVolts": 2,
+        "recommendedCurrentAmps": 0.01,
+        "segmentA": true,
+        "segmentB": true,
+        "segmentC": true,
+        "segmentD": true,
+        "segmentE": true,
+        "segmentF": true,
+        "segmentG": false,
+        "segmentDp": false
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "net-3v3",
+      "color": "#f05252",
+      "terminals": [
+        "esp32-1.3v3",
+        "shift-low.vcc",
+        "shift-low.mr",
+        "shift-high.vcc",
+        "shift-high.mr",
+        "button-red.vcc",
+        "button-green.vcc",
+        "button-blue.vcc",
+        "button-yellow.vcc"
+      ]
+    },
+    {
+      "id": "net-gnd",
+      "color": "#f5f7fa",
+      "terminals": [
+        "esp32-1.gnd",
+        "shift-low.gnd",
+        "shift-low.oe",
+        "shift-high.gnd",
+        "shift-high.oe",
+        "buzzer-1.gnd",
+        "led-red.cathode",
+        "led-green.cathode",
+        "led-blue.cathode",
+        "led-yellow.cathode",
+        "button-red.gnd",
+        "button-green.gnd",
+        "button-blue.gnd",
+        "button-yellow.gnd",
+        "display-high.com1",
+        "display-high.com2",
+        "display-low.com1",
+        "display-low.com2"
+      ]
+    },
+    {
+      "id": "net-led-red",
+      "color": "#4c8dff",
+      "terminals": [
+        "esp32-1.io32",
+        "resistor-red.a"
+      ]
+    },
+    {
+      "id": "net-led-red-anode",
+      "color": "#45d6c4",
+      "terminals": [
+        "resistor-red.b",
+        "led-red.anode"
+      ]
+    },
+    {
+      "id": "net-button-red",
+      "color": "#ffb454",
+      "terminals": [
+        "esp32-1.io0",
+        "button-red.out"
+      ]
+    },
+    {
+      "id": "net-led-green",
+      "color": "#4c8dff",
+      "terminals": [
+        "esp32-1.io33",
+        "resistor-green.a"
+      ]
+    },
+    {
+      "id": "net-led-green-anode",
+      "color": "#45d6c4",
+      "terminals": [
+        "resistor-green.b",
+        "led-green.anode"
+      ]
+    },
+    {
+      "id": "net-button-green",
+      "color": "#ffb454",
+      "terminals": [
+        "esp32-1.tx",
+        "button-green.out"
+      ]
+    },
+    {
+      "id": "net-led-blue",
+      "color": "#4c8dff",
+      "terminals": [
+        "esp32-1.io25",
+        "resistor-blue.a"
+      ]
+    },
+    {
+      "id": "net-led-blue-anode",
+      "color": "#45d6c4",
+      "terminals": [
+        "resistor-blue.b",
+        "led-blue.anode"
+      ]
+    },
+    {
+      "id": "net-button-blue",
+      "color": "#ffb454",
+      "terminals": [
+        "esp32-1.io2",
+        "button-blue.out"
+      ]
+    },
+    {
+      "id": "net-led-yellow",
+      "color": "#4c8dff",
+      "terminals": [
+        "esp32-1.io26",
+        "resistor-yellow.a"
+      ]
+    },
+    {
+      "id": "net-led-yellow-anode",
+      "color": "#45d6c4",
+      "terminals": [
+        "resistor-yellow.b",
+        "led-yellow.anode"
+      ]
+    },
+    {
+      "id": "net-button-yellow",
+      "color": "#ffb454",
+      "terminals": [
+        "esp32-1.rx",
+        "button-yellow.out"
+      ]
+    },
+    {
+      "id": "net-buzzer-vcc",
+      "color": "#f05252",
+      "terminals": [
+        "esp32-1.5v",
+        "buzzer-1.vcc"
+      ]
+    },
+    {
+      "id": "net-buzzer-sig",
+      "color": "#ffb454",
+      "terminals": [
+        "esp32-1.io17",
+        "buzzer-1.sig"
+      ]
+    },
+    {
+      "id": "net-shift-data",
+      "color": "#ffb454",
+      "terminals": [
+        "esp32-1.io19",
+        "shift-high.ds"
+      ]
+    },
+    {
+      "id": "net-shift-cascade",
+      "color": "#bb9af7",
+      "terminals": [
+        "shift-high.q7s",
+        "shift-low.ds"
+      ]
+    },
+    {
+      "id": "net-shift-clock",
+      "color": "#45d6c4",
+      "terminals": [
+        "esp32-1.io5",
+        "shift-high.shcp",
+        "shift-low.shcp"
+      ]
+    },
+    {
+      "id": "net-shift-latch",
+      "color": "#7aa2f7",
+      "terminals": [
+        "esp32-1.io18",
+        "shift-low.stcp",
+        "shift-high.stcp"
+      ]
+    },
+    {
+      "id": "net-high-a",
+      "color": "#9ece6a",
+      "terminals": [
+        "shift-high.q0",
+        "display-high.a"
+      ]
+    },
+    {
+      "id": "net-low-a",
+      "color": "#e0af68",
+      "terminals": [
+        "shift-low.q0",
+        "display-low.a"
+      ]
+    },
+    {
+      "id": "net-high-b",
+      "color": "#9ece6a",
+      "terminals": [
+        "shift-high.q1",
+        "display-high.b"
+      ]
+    },
+    {
+      "id": "net-low-b",
+      "color": "#e0af68",
+      "terminals": [
+        "shift-low.q1",
+        "display-low.b"
+      ]
+    },
+    {
+      "id": "net-high-c",
+      "color": "#9ece6a",
+      "terminals": [
+        "shift-high.q2",
+        "display-high.c"
+      ]
+    },
+    {
+      "id": "net-low-c",
+      "color": "#e0af68",
+      "terminals": [
+        "shift-low.q2",
+        "display-low.c"
+      ]
+    },
+    {
+      "id": "net-high-d",
+      "color": "#9ece6a",
+      "terminals": [
+        "shift-high.q3",
+        "display-high.d"
+      ]
+    },
+    {
+      "id": "net-low-d",
+      "color": "#e0af68",
+      "terminals": [
+        "shift-low.q3",
+        "display-low.d"
+      ]
+    },
+    {
+      "id": "net-high-e",
+      "color": "#9ece6a",
+      "terminals": [
+        "shift-high.q4",
+        "display-high.e"
+      ]
+    },
+    {
+      "id": "net-low-e",
+      "color": "#e0af68",
+      "terminals": [
+        "shift-low.q4",
+        "display-low.e"
+      ]
+    },
+    {
+      "id": "net-high-f",
+      "color": "#9ece6a",
+      "terminals": [
+        "shift-high.q5",
+        "display-high.f"
+      ]
+    },
+    {
+      "id": "net-low-f",
+      "color": "#e0af68",
+      "terminals": [
+        "shift-low.q5",
+        "display-low.f"
+      ]
+    },
+    {
+      "id": "net-high-g",
+      "color": "#9ece6a",
+      "terminals": [
+        "shift-high.q6",
+        "display-high.g"
+      ]
+    },
+    {
+      "id": "net-low-g",
+      "color": "#e0af68",
+      "terminals": [
+        "shift-low.q6",
+        "display-low.g"
+      ]
+    },
+    {
+      "id": "net-high-dp",
+      "color": "#9ece6a",
+      "terminals": [
+        "shift-high.q7",
+        "display-high.dp"
+      ]
+    },
+    {
+      "id": "net-low-dp",
+      "color": "#e0af68",
+      "terminals": [
+        "shift-low.q7",
+        "display-low.dp"
+      ]
+    }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "/*\n   Simon Game for ESP32 with score display.\n   Adapted for Virtual Embedded Lab from Uri Shaked's MIT licensed Simon example.\n   This version is non-blocking so the simulator can read UI button pulses frame-by-frame.\n*/\n\n#define NOTE_C4 262\n#define NOTE_DS5 622\n#define NOTE_D5 587\n#define NOTE_CS5 554\n#define NOTE_C5 523\n#define NOTE_E4 330\n#define NOTE_G3 196\n#define NOTE_G4 392\n#define NOTE_E5 659\n#define NOTE_G5 784\n\nconst uint8_t buttonPins[] = {0, 1, 2, 3};\nconst uint8_t ledPins[] = {32, 33, 25, 26};\n#define SPEAKER_PIN 17\n\nconst int LATCH_PIN = 18;\nconst int DATA_PIN = 19;\nconst int CLOCK_PIN = 5;\n\n#define MAX_GAME_LENGTH 100\n#define NO_BUTTON 255\n\nconst int gameTones[] = { NOTE_G3, NOTE_C4, NOTE_E4, NOTE_G5 };\nuint8_t gameSequence[MAX_GAME_LENGTH] = {0};\nuint8_t gameIndex = 0;\nuint8_t showIndex = 0;\nuint8_t inputIndex = 0;\nuint8_t activeLed = NO_BUTTON;\nuint8_t feedbackButton = NO_BUTTON;\nunsigned long phaseStartedAt = 0;\n\nconst uint8_t digitTable[] = {\n  0b00111111,\n  0b00000110,\n  0b01011011,\n  0b01001111,\n  0b01100110,\n  0b01101101,\n  0b01111101,\n  0b00000111,\n  0b01111111,\n  0b01101111,\n};\nconst uint8_t DASH = 0b01000000;\n\nenum GamePhase {\n  START_ROUND,\n  SHOW_ON,\n  SHOW_OFF,\n  SHOW_PAUSE,\n  WAIT_INPUT,\n  FEEDBACK_ON,\n  FEEDBACK_OFF,\n  LEVEL_UP_ON,\n  LEVEL_UP_OFF,\n  GAME_OVER_WAIT\n};\n\nGamePhase phase = START_ROUND;\n\nvoid sendScore(uint8_t high, uint8_t low) {\n  digitalWrite(LATCH_PIN, LOW);\n  shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, low);\n  shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, high);\n  digitalWrite(LATCH_PIN, HIGH);\n}\n\nvoid displayScore() {\n  int high = gameIndex % 100 / 10;\n  int low = gameIndex % 10;\n  sendScore(digitTable[high], digitTable[low]);\n}\n\nvoid setPhase(GamePhase nextPhase) {\n  phase = nextPhase;\n  phaseStartedAt = millis();\n}\n\nbool elapsed(unsigned long durationMs) {\n  return millis() - phaseStartedAt >= durationMs;\n}\n\nvoid startLedAndTone(byte ledIndex) {\n  activeLed = ledIndex;\n  digitalWrite(ledPins[ledIndex], HIGH);\n  tone(SPEAKER_PIN, gameTones[ledIndex]);\n}\n\nvoid stopLedAndTone() {\n  if (activeLed != NO_BUTTON) {\n    digitalWrite(ledPins[activeLed], LOW);\n  }\n  activeLed = NO_BUTTON;\n  noTone(SPEAKER_PIN);\n}\n\nbyte readPressedButton() {\n  for (byte i = 0; i < 4; i++) {\n    if (digitalRead(buttonPins[i]) == LOW) {\n      return i;\n    }\n  }\n  return NO_BUTTON;\n}\n\nvoid beginGameOver() {\n  Serial.print(\"Game over! your score: \");\n  Serial.println(gameIndex > 0 ? gameIndex - 1 : 0);\n  stopLedAndTone();\n  gameIndex = 0;\n  sendScore(DASH, DASH);\n  tone(SPEAKER_PIN, NOTE_DS5);\n  setPhase(GAME_OVER_WAIT);\n}\n\nvoid loop() {\n  switch (phase) {\n    case START_ROUND:\n      displayScore();\n      gameSequence[gameIndex] = random(0, 4);\n      gameIndex++;\n      if (gameIndex >= MAX_GAME_LENGTH) {\n        gameIndex = MAX_GAME_LENGTH - 1;\n      }\n      showIndex = 0;\n      inputIndex = 0;\n      Serial.print(\"Round \");\n      Serial.println(gameIndex);\n      setPhase(SHOW_ON);\n      break;\n\n    case SHOW_ON:\n      if (showIndex < gameIndex) {\n        startLedAndTone(gameSequence[showIndex]);\n        setPhase(SHOW_OFF);\n      } else {\n        setPhase(WAIT_INPUT);\n      }\n      break;\n\n    case SHOW_OFF:\n      if (elapsed(300)) {\n        stopLedAndTone();\n        showIndex++;\n        setPhase(SHOW_PAUSE);\n      }\n      break;\n\n    case SHOW_PAUSE:\n      if (elapsed(80)) {\n        setPhase(SHOW_ON);\n      }\n      break;\n\n    case WAIT_INPUT: {\n      byte button = readPressedButton();\n      if (button != NO_BUTTON) {\n        feedbackButton = button;\n        startLedAndTone(button);\n        setPhase(FEEDBACK_ON);\n      } else if (elapsed(5000)) {\n        beginGameOver();\n      }\n      break;\n    }\n\n    case FEEDBACK_ON:\n      if (elapsed(180)) {\n        stopLedAndTone();\n        setPhase(FEEDBACK_OFF);\n      }\n      break;\n\n    case FEEDBACK_OFF:\n      if (!elapsed(80)) {\n        break;\n      }\n      if (feedbackButton != gameSequence[inputIndex]) {\n        beginGameOver();\n        break;\n      }\n      inputIndex++;\n      if (inputIndex >= gameIndex) {\n        tone(SPEAKER_PIN, NOTE_E5);\n        setPhase(LEVEL_UP_ON);\n      } else {\n        setPhase(WAIT_INPUT);\n      }\n      break;\n\n    case LEVEL_UP_ON:\n      if (elapsed(180)) {\n        noTone(SPEAKER_PIN);\n        setPhase(LEVEL_UP_OFF);\n      }\n      break;\n\n    case LEVEL_UP_OFF:\n      if (elapsed(300)) {\n        setPhase(START_ROUND);\n      }\n      break;\n\n    case GAME_OVER_WAIT:\n      if (elapsed(500)) {\n        noTone(SPEAKER_PIN);\n        setPhase(START_ROUND);\n      }\n      break;\n  }\n\n  delay(20);\n}\n\nvoid setup() {\n  Serial.begin(9600);\n  for (byte i = 0; i < 4; i++) {\n    pinMode(ledPins[i], OUTPUT);\n    pinMode(buttonPins[i], INPUT_PULLUP);\n    digitalWrite(ledPins[i], LOW);\n  }\n  pinMode(SPEAKER_PIN, OUTPUT);\n  pinMode(LATCH_PIN, OUTPUT);\n  pinMode(CLOCK_PIN, OUTPUT);\n  pinMode(DATA_PIN, OUTPUT);\n  randomSeed(analogRead(4));\n  sendScore(digitTable[0], digitTable[0]);\n  Serial.println(\"Simon Says ready\");\n  setPhase(START_ROUND);\n}\n"
+    }
+  }
+}

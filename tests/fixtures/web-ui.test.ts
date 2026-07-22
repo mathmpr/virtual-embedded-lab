@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { componentDefinitionFromManifest } from '../../apps/web/js/components.js';
+import { renderComponentTemplate } from '../../apps/web/js/board/component-template.js';
 
 const root = new URL('../..', import.meta.url).pathname;
 
@@ -61,9 +63,12 @@ test('web UI script defines the MVP components', () => {
   for (const manifest of [
     'components/official/ads1015/component.json',
     'components/official/ads1115/component.json',
+    'components/official/74hc595/component.json',
     'components/official/analog-voltage-source/component.json',
+    'components/official/arduino-nano/component.json',
     'components/official/arduino-uno/component.json',
     'components/official/bmp280/component.json',
+    'components/official/buzzer/component.json',
     'components/official/esp32-devkit/component.json',
     'components/official/esp8266-nodemcu/component.json',
     'components/official/hc-sr04/component.json',
@@ -74,11 +79,17 @@ test('web UI script defines the MVP components', () => {
     'components/official/led-red/component.json',
     'components/official/led-green/component.json',
     'components/official/led-blue/component.json',
+    'components/official/led-yellow/component.json',
+    'components/official/lcd-16x2-i2c/component.json',
     'components/official/climate/component.json',
     'components/official/distance-range/component.json',
+    'components/official/dht11/component.json',
+    'components/official/dht22/component.json',
     'components/official/light-level/component.json',
     'components/official/mcp3008/component.json',
     'components/official/rain-toggle/component.json',
+    'components/official/seven-segment-display/component.json',
+    'components/official/servo-motor/component.json',
     'components/official/wifi-signal/component.json'
   ]) {
     const component = JSON.parse(readFileSync(join(root, manifest), 'utf8'));
@@ -88,7 +99,11 @@ test('web UI script defines the MVP components', () => {
   }
 
   assert.match(html, /Carregando componentes oficiais/);
+  assert.match(html, /toggleAudio/);
   assert.match(script, /loadOfficialComponents/);
+  assert.match(boardEditor, /createBuzzerAudioController/);
+  assert.match(boardEditor, /onSimulationStopped/);
+  assert.match(boardEditor, /syncRuntimeUpdatedComponentControls/);
   assert.match(script, /componentDefinitionFromManifest/);
   assert.match(script, /behavior: manifest\.behavior/);
   assert.doesNotMatch(script, /const int TRIGGER_PIN/);
@@ -102,6 +117,18 @@ test('web UI script defines the MVP components', () => {
   assert.match(css, /\.capacitor/);
   assert.match(css, /\.led-green-icon/);
   assert.match(css, /\.led-blue-icon/);
+  assert.match(css, /\.led-yellow-icon/);
+  assert.match(css, /\.led-green \.led-glow/);
+  assert.match(css, /\.led-blue \.led-glow/);
+  assert.match(css, /\.led-yellow \.led-glow/);
+  assert.match(css, /\.led-yellow\.on/);
+  assert.match(css, /\.buzzer-icon/);
+  assert.match(css, /\.lcd-icon/);
+  assert.match(css, /\.seven-segment-icon/);
+  assert.match(css, /\.shift-register-icon/);
+  assert.match(css, /\.dht-icon/);
+  assert.match(css, /\.arduino-nano-icon/);
+  assert.match(css, /\.servo-icon/);
   assert.match(css, /\.wifi-icon/);
   assert.match(css, /\.wifi-signal/);
   assert.match(css, /\.rain-icon/);
@@ -122,6 +149,14 @@ test('web UI script defines the MVP components', () => {
   assert.match(css, /\.ads1115-icon/);
   assert.match(css, /\.mcp3008-icon/);
   assert.match(css, /\.adc-module/);
+  assert.match(css, /\.lcd-16x2-i2c/);
+  assert.match(css, /\.seven-segment-display/);
+  assert.match(css, /\.segment\.is-on/);
+  assert.match(css, /\.shift-register-74hc595/);
+  assert.match(css, /\.dht-sensor/);
+  assert.match(css, /\.arduino-nano/);
+  assert.match(css, /\.servo-motor/);
+  assert.match(css, /--servo-angle/);
   assert.match(css, /\.esp32-icon/);
   assert.match(css, /\.esp32-devkit/);
   assert.match(css, /\.built-in-led/);
@@ -175,6 +210,7 @@ test('web UI exposes editable distance, resistor and capacitor properties', () =
   assert.match(capacitor, /capacitanceMicrofarads/);
   assert.match(capacitor, /4700 µF/);
   assert.match(componentTemplate, /renderVisualControl/);
+  assert.match(componentTemplate, /renderDataAttribute/);
   assert.match(componentTemplate, /case 'boolean'/);
   assert.match(componentTemplate, /case 'number'/);
   assert.match(componentTemplate, /case 'string'/);
@@ -191,10 +227,29 @@ test('web UI exposes editable distance, resistor and capacitor properties', () =
   assert.doesNotMatch(inspector, /data-inspector-capacitor/);
   assert.doesNotMatch(inspector, /data-inspector-distance/);
   assert.match(componentState, /function updateComponentProperty\(component, propertyName, value/);
+  assert.match(componentState, /function bindingTargets\(component, binding\)/);
   assert.doesNotMatch(componentState, /function updateResistorValue/);
   assert.doesNotMatch(componentState, /function updateCapacitorValue/);
   assert.match(css, /\.component-select-row/);
   assert.match(css, /\.editable-property/);
+});
+
+test('component template renders state binding data attributes as real DOM attributes', () => {
+  const manifest = JSON.parse(readFileSync(join(root, 'components/official/seven-segment-display/component.json'), 'utf8'));
+  const definition = componentDefinitionFromManifest(manifest);
+  const html = renderComponentTemplate(definition, 'display-1', (_type, propertyName) => definition.variants?.[propertyName] ?? []);
+
+  assert.match(html, /data-segment="a"/);
+  assert.doesNotMatch(html, /data-segment=&quot;a&quot;/);
+});
+
+test('component template renders LCD line binding attributes as real DOM attributes', () => {
+  const manifest = JSON.parse(readFileSync(join(root, 'components/official/lcd-16x2-i2c/component.json'), 'utf8'));
+  const definition = componentDefinitionFromManifest(manifest);
+  const html = renderComponentTemplate(definition, 'lcd-1', (_type, propertyName) => definition.variants?.[propertyName] ?? []);
+
+  assert.match(html, /data-lcd-line="1"/);
+  assert.doesNotMatch(html, /data-lcd-line=&quot;1&quot;/);
 });
 
 test('web UI renders editable properties from component schemas', () => {
@@ -492,7 +547,7 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   assert.match(engine, /applyBoardConstants/);
   assert.match(engine, /firstProgrammableBuiltInLed/);
   assert.match(engine, /LED_BUILTIN: builtInLed\.pin/);
-  assert.match(engine, /loopIterations: 3/);
+  assert.match(engine, /loopIterations: 1/);
   assert.match(engine, /builtInLedEvents/);
   assert.match(runtime, /digitalWrite\(pin, value\)/);
   assert.match(runtime, /getPinsSnapshot\(\)/);
@@ -506,6 +561,7 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   assert.match(adapter, /previousFrameTimeUs/);
   assert.match(adapter, /result\.timeUs - previousFrameTimeUs/);
   assert.doesNotMatch(adapter, /result\.timeUs \/ 1000 \* 0\.12/);
+  assert.match(adapter, /frameTimeUs \/ 1000/);
   assert.match(adapter, /stopSimulationTimer/);
   assert.match(adapter, /firmwareAnalysisCache/);
   assert.match(adapter, /wasmSimulationSession/);

@@ -23,7 +23,8 @@ export function environmentPayloadForComponent(component) {
     return normalizeEnvironmentValue('climate', {
       enabled: component.properties[behavior.activeProperty],
       temperatureC: component.properties[behavior.temperatureProperty],
-      pressureHpa: component.properties[behavior.pressureProperty]
+      pressureHpa: component.properties[behavior.pressureProperty],
+      humidityPercent: component.properties[behavior.humidityProperty]
     });
   }
 
@@ -84,7 +85,8 @@ export function normalizeEnvironmentValue(channel, value) {
     return {
       enabled: Boolean(value?.enabled ?? true),
       temperatureC: clamp(Number(value?.temperatureC ?? 25), -40, 85),
-      pressureHpa: clamp(Number(value?.pressureHpa ?? 1013.25), 300, 1100)
+      pressureHpa: clamp(Number(value?.pressureHpa ?? 1013.25), 300, 1100),
+      humidityPercent: clamp(Number(value?.humidityPercent ?? 55), 0, 100)
     };
   }
 

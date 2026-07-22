@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Arduino LCD 16x2 I2C Counter",
+  "board": {
+    "width": 1500,
+    "height": 860,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "arduino-1",
+      "componentId": "board.arduino.uno",
+      "position": { "x": 260, "y": 220 },
+      "properties": {}
+    },
+    {
+      "id": "lcd-1",
+      "componentId": "display.lcd.16x2.i2c",
+      "position": { "x": 780, "y": 250 },
+      "properties": {
+        "i2cAddress": 39,
+        "columns": 16,
+        "rows": 2,
+        "backlight": true,
+        "line1": "",
+        "line2": ""
+      }
+    }
+  ],
+  "connections": [
+    { "id": "net-vcc", "color": "#f05252", "terminals": ["arduino-1.5v", "lcd-1.vcc"] },
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "lcd-1.gnd"] },
+    { "id": "net-sda", "color": "#45d6c4", "terminals": ["arduino-1.a4", "lcd-1.sda"] },
+    { "id": "net-scl", "color": "#4c8dff", "terminals": ["arduino-1.a5", "lcd-1.scl"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "#include <Wire.h>\\n#include <LiquidCrystal_I2C.h>\\n\\nLiquidCrystal_I2C lcd(0x27, 16, 2);\\nint counter = 0;\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    Wire.begin();\\n    lcd.init();\\n    lcd.backlight();\\n    lcd.setCursor(0, 0);\\n    lcd.print(\"Virtual Lab\");\\n    Serial.println(\"LCD ready\");\\n}\\n\\nvoid loop()\\n{\\n    lcd.setCursor(0, 1);\\n    lcd.print(\"Count: \");\\n    lcd.print(counter);\\n    Serial.print(\"LCD count: \");\\n    Serial.println(counter);\\n    counter++;\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

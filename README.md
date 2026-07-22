@@ -135,10 +135,10 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 - A UI carrega componentes oficiais por `GET /api/components`.
 - Exemplos ficam em `examples/**/project.json` e são carregados pelo modal `Exemplos`.
 - O exemplo default atual é `examples/hc-sr04-led-distance/project.json`.
-- Há exemplos WASM para HC-SR04, Arduino Serial LED, Serial bridge multi-board, pull-up button, ESP32 counter blink, ESP32 Wi-Fi Signal, ESP32 Wi-Fi Failover, ESP32 HTTP/TCP, ESP8266 MQTT water pump, FC-37 Rain Digital, LDR Light Analog, BMP280 Weather I2C, ADS1015/ADS1115 Single Ended, MCP3008 Single Ended e ESP Water Control Pump Reservoir.
+- Há exemplos WASM para HC-SR04, Arduino Serial LED, Serial bridge multi-board, pull-up button, buzzer beep, ESP32 counter blink, ESP32 Wi-Fi Signal, ESP32 Wi-Fi Failover, ESP32 HTTP/TCP, ESP8266 MQTT water pump, FC-37 Rain Digital, LDR Light Analog, BMP280 Weather I2C, ADS1015/ADS1115 Single Ended, MCP3008 Single Ended e ESP Water Control Pump Reservoir.
 - Componentes oficiais ficam em `components/official/**/component.json`.
 - Novos componentes oficiais devem seguir `docs/official-component-guidelines.md`, `docs/component-contract.md` e o template `add-components/new-component-example.md` antes da implementação.
-- O catálogo oficial já inclui Arduino UNO, ESP32 DevKitC V4, ESP8266 NodeMCU, HC-SR04, FC-37 Rain Sensor, LDR Light Sensor, BMP280, ADS1015, ADS1115, MCP3008, pull-up button, distância, Rain Environment, Light Environment, Climate Environment, Analog Voltage Source, Wi-Fi Signal, water pump, solid-state relay, water reservoir, resistores, capacitores e LEDs vermelho/verde/azul.
+- O catálogo oficial já inclui Arduino UNO, ESP32 DevKitC V4, ESP8266 NodeMCU, HC-SR04, FC-37 Rain Sensor, LDR Light Sensor, BMP280, ADS1015, ADS1115, MCP3008, pull-up button, buzzer, distância, Rain Environment, Light Environment, Climate Environment, Analog Voltage Source, Wi-Fi Signal, water pump, solid-state relay, water reservoir, resistores, capacitores e LEDs vermelho/verde/azul.
 - O Arduino UNO expõe LED built-in `L` em D13/`LED_BUILTIN`; o ESP32 DevKitC V4 expõe `PWR` e LED programável `LD` em GPIO2/`LED_BUILTIN`.
 - Sketches de blink em LED built-in rodam continuamente até Pause/Reset, respeitando `delay()` por tempo virtual e animando a timeline de `digitalWrite`; `LED_PIN`/`PIN` sem declaração são tratados como aliases de `LED_BUILTIN`.
 - O board suporta pan/zoom, drag-and-drop, fios coloridos, remoção de fios/componentes, Undo/Redo em memória e import/export JSON.

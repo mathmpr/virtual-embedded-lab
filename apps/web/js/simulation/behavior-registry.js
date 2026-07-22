@@ -14,7 +14,9 @@ export function createSimulationBehaviorRegistry() {
         rainBindings: [],
         lightBindings: [],
         buttonBindings: [],
-        waterBindings: []
+        buzzerBindings: [],
+        waterBindings: [],
+        sevenSegmentBindings: []
       };
 
       for (const [behaviorType, adapter] of adapters.entries()) {
@@ -29,7 +31,9 @@ export function createSimulationBehaviorRegistry() {
         bindings.rainBindings.push(...(result.rainBindings ?? []));
         bindings.lightBindings.push(...(result.lightBindings ?? []));
         bindings.buttonBindings.push(...(result.buttonBindings ?? []));
+        bindings.buzzerBindings.push(...(result.buzzerBindings ?? []));
         bindings.waterBindings.push(...(result.waterBindings ?? []));
+        bindings.sevenSegmentBindings.push(...(result.sevenSegmentBindings ?? []));
       }
 
       return bindings;

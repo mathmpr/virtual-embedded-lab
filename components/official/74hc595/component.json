@@ -1,0 +1,128 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "ic.shift-register.74hc595",
+    "name": "74HC595 Shift Register",
+    "category": "ic",
+    "subCategory": "shift-register"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": ["electrical", "firmware", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "latchedValue": { "type": "number", "default": 0, "minimum": 0, "maximum": 255, "simulationUpdate": "live" },
+    "shiftValue": { "type": "number", "default": 0, "minimum": 0, "maximum": 255, "simulationUpdate": "live" },
+    "outputEnabled": { "type": "boolean", "default": true, "simulationUpdate": "live" },
+    "clearActiveLow": { "type": "boolean", "default": true, "simulationUpdate": "rerun" },
+    "q0": { "type": "boolean", "default": false, "simulationUpdate": "live" },
+    "q1": { "type": "boolean", "default": false, "simulationUpdate": "live" },
+    "q2": { "type": "boolean", "default": false, "simulationUpdate": "live" },
+    "q3": { "type": "boolean", "default": false, "simulationUpdate": "live" },
+    "q4": { "type": "boolean", "default": false, "simulationUpdate": "live" },
+    "q5": { "type": "boolean", "default": false, "simulationUpdate": "live" },
+    "q6": { "type": "boolean", "default": false, "simulationUpdate": "live" },
+    "q7": { "type": "boolean", "default": false, "simulationUpdate": "live" }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "ds", "label": "DS", "type": "digital-input" },
+    { "id": "shcp", "label": "SHCP", "type": "digital-input" },
+    { "id": "stcp", "label": "STCP", "type": "digital-input" },
+    { "id": "oe", "label": "OE", "type": "digital-input" },
+    { "id": "mr", "label": "MR", "type": "digital-input" },
+    { "id": "q0", "label": "Q0", "type": "digital-output" },
+    { "id": "q1", "label": "Q1", "type": "digital-output" },
+    { "id": "q2", "label": "Q2", "type": "digital-output" },
+    { "id": "q3", "label": "Q3", "type": "digital-output" },
+    { "id": "q4", "label": "Q4", "type": "digital-output" },
+    { "id": "q5", "label": "Q5", "type": "digital-output" },
+    { "id": "q6", "label": "Q6", "type": "digital-output" },
+    { "id": "q7", "label": "Q7", "type": "digital-output" },
+    { "id": "q7s", "label": "Q7S", "type": "digital-output" }
+  ],
+  "behavior": {
+    "type": "shift-register-74hc595",
+    "dataTerminal": "ds",
+    "clockTerminal": "shcp",
+    "latchTerminal": "stcp",
+    "outputEnableTerminal": "oe",
+    "masterResetTerminal": "mr",
+    "latchedValueProperty": "latchedValue",
+    "shiftValueProperty": "shiftValue",
+    "outputEnabledProperty": "outputEnabled",
+    "clearActiveLowProperty": "clearActiveLow",
+    "outputTerminals": ["q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"],
+    "serialOutTerminal": "q7s"
+  },
+  "electricalModel": {
+    "type": "logic-ic",
+    "primitive": "shift-register",
+    "logicVoltageMin": 2,
+    "logicVoltageMax": 6,
+    "maximumOutputCurrentAmps": 0.006
+  },
+  "visual": {
+    "type": "shift-register-74hc595",
+    "title": "74HC595",
+    "className": "shift-register-74hc595",
+    "body": "",
+    "width": 176,
+    "height": 140,
+    "controls": [
+      { "type": "readout", "className": "shift-register-readout", "label": "LAT", "property": "latchedValue", "format": "hex8" },
+      {
+        "type": "container",
+        "className": "shift-register-outputs",
+        "children": [
+          { "type": "element", "tag": "span", "className": "shift-output", "text": "Q0", "dataAttribute": "data-shift-output=\"q0\"" },
+          { "type": "element", "tag": "span", "className": "shift-output", "text": "Q1", "dataAttribute": "data-shift-output=\"q1\"" },
+          { "type": "element", "tag": "span", "className": "shift-output", "text": "Q2", "dataAttribute": "data-shift-output=\"q2\"" },
+          { "type": "element", "tag": "span", "className": "shift-output", "text": "Q3", "dataAttribute": "data-shift-output=\"q3\"" },
+          { "type": "element", "tag": "span", "className": "shift-output", "text": "Q4", "dataAttribute": "data-shift-output=\"q4\"" },
+          { "type": "element", "tag": "span", "className": "shift-output", "text": "Q5", "dataAttribute": "data-shift-output=\"q5\"" },
+          { "type": "element", "tag": "span", "className": "shift-output", "text": "Q6", "dataAttribute": "data-shift-output=\"q6\"" },
+          { "type": "element", "tag": "span", "className": "shift-output", "text": "Q7", "dataAttribute": "data-shift-output=\"q7\"" }
+        ]
+      }
+    ],
+    "stateBindings": [
+      { "type": "class", "className": "outputs-enabled", "source": { "kind": "componentProperty", "property": "outputEnabled" }, "when": true },
+      { "type": "class", "selector": "[data-shift-output=\"q0\"]", "className": "is-on", "source": { "kind": "componentProperty", "property": "q0" }, "when": true },
+      { "type": "class", "selector": "[data-shift-output=\"q1\"]", "className": "is-on", "source": { "kind": "componentProperty", "property": "q1" }, "when": true },
+      { "type": "class", "selector": "[data-shift-output=\"q2\"]", "className": "is-on", "source": { "kind": "componentProperty", "property": "q2" }, "when": true },
+      { "type": "class", "selector": "[data-shift-output=\"q3\"]", "className": "is-on", "source": { "kind": "componentProperty", "property": "q3" }, "when": true },
+      { "type": "class", "selector": "[data-shift-output=\"q4\"]", "className": "is-on", "source": { "kind": "componentProperty", "property": "q4" }, "when": true },
+      { "type": "class", "selector": "[data-shift-output=\"q5\"]", "className": "is-on", "source": { "kind": "componentProperty", "property": "q5" }, "when": true },
+      { "type": "class", "selector": "[data-shift-output=\"q6\"]", "className": "is-on", "source": { "kind": "componentProperty", "property": "q6" }, "when": true },
+      { "type": "class", "selector": "[data-shift-output=\"q7\"]", "className": "is-on", "source": { "kind": "componentProperty", "property": "q7" }, "when": true }
+    ],
+    "palette": {
+      "group": "ICs",
+      "subgroup": "Shift Registers",
+      "icon": "shift-register-icon",
+      "order": 80
+    },
+    "terminals": [
+      { "id": "vcc", "label": "VCC", "side": "top", "x": 80, "y": 0, "kind": "power" },
+      { "id": "gnd", "label": "GND", "side": "bottom", "x": 80, "y": 140, "kind": "ground" },
+      { "id": "ds", "label": "DS", "side": "left", "x": 0, "y": 30, "kind": "signal" },
+      { "id": "shcp", "label": "SHCP", "side": "left", "x": 0, "y": 58, "kind": "signal" },
+      { "id": "stcp", "label": "STCP", "side": "left", "x": 0, "y": 86, "kind": "signal" },
+      { "id": "oe", "label": "OE", "side": "left", "x": 0, "y": 114, "kind": "signal" },
+      { "id": "mr", "label": "MR", "side": "right", "x": 176, "y": 30, "kind": "signal" },
+      { "id": "q0", "label": "Q0", "side": "right", "x": 176, "y": 44, "kind": "signal" },
+      { "id": "q1", "label": "Q1", "side": "right", "x": 176, "y": 56, "kind": "signal" },
+      { "id": "q2", "label": "Q2", "side": "right", "x": 176, "y": 68, "kind": "signal" },
+      { "id": "q3", "label": "Q3", "side": "right", "x": 176, "y": 80, "kind": "signal" },
+      { "id": "q4", "label": "Q4", "side": "right", "x": 176, "y": 92, "kind": "signal" },
+      { "id": "q5", "label": "Q5", "side": "right", "x": 176, "y": 104, "kind": "signal" },
+      { "id": "q6", "label": "Q6", "side": "right", "x": 176, "y": 116, "kind": "signal" },
+      { "id": "q7", "label": "Q7", "side": "right", "x": 176, "y": 128, "kind": "signal" },
+      { "id": "q7s", "label": "Q7S", "side": "bottom", "x": 124, "y": 140, "kind": "signal" }
+    ]
+  }
+}

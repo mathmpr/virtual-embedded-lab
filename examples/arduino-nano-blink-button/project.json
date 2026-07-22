@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Arduino Nano Blink Button",
+  "board": { "width": 1500, "height": 860, "gridSize": 10 },
+  "components": [
+    { "id": "nano-1", "componentId": "board.arduino.nano", "position": { "x": 300, "y": 210 }, "properties": { "logicVoltage": 5, "clockMHz": 16, "usbPowered": true } },
+    { "id": "button-1", "componentId": "input.button.pull-up", "position": { "x": 720, "y": 280 }, "properties": { "pressed": false, "activeHigh": true } },
+    { "id": "resistor-1", "componentId": "electronic.resistor", "position": { "x": 900, "y": 420 }, "properties": { "resistanceOhms": 220 } },
+    { "id": "led-1", "componentId": "electronic.led.blue", "position": { "x": 1080, "y": 390 }, "properties": {} }
+  ],
+  "connections": [
+    { "id": "net-vcc", "color": "#f05252", "terminals": ["nano-1.5v", "button-1.vcc"] },
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["nano-1.gnd", "button-1.gnd", "led-1.cathode"] },
+    { "id": "net-button", "color": "#ffb454", "terminals": ["nano-1.d2", "button-1.out"] },
+    { "id": "net-led-drive", "color": "#4c8dff", "terminals": ["nano-1.d9", "resistor-1.a"] },
+    { "id": "net-led-anode", "color": "#45d6c4", "terminals": ["resistor-1.b", "led-1.anode"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "const int BUTTON_PIN = 2;\\nconst int LED_PIN = 9;\\nbool ledOn = false;\\nbool lastPressed = false;\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    pinMode(BUTTON_PIN, INPUT);\\n    pinMode(LED_PIN, OUTPUT);\\n    pinMode(LED_BUILTIN, OUTPUT);\\n    digitalWrite(LED_PIN, LOW);\\n    digitalWrite(LED_BUILTIN, LOW);\\n    Serial.println(\"Nano ready\");\\n}\\n\\nvoid loop()\\n{\\n    bool pressed = digitalRead(BUTTON_PIN) == HIGH;\\n\\n    if (pressed && !lastPressed) {\\n        ledOn = !ledOn;\\n        digitalWrite(LED_PIN, ledOn ? HIGH : LOW);\\n        digitalWrite(LED_BUILTIN, ledOn ? HIGH : LOW);\\n        Serial.println(ledOn ? \"Nano LED ON\" : \"Nano LED OFF\");\\n    }\\n\\n    lastPressed = pressed;\\n    delay(100);\\n}\\n"
+    }
+  }
+}

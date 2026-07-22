@@ -10,9 +10,11 @@ import {
 import { solveElectricalState } from './electrical-solver.js';
 import { createSimulationBehaviorRegistry } from './behavior-registry.js';
 import {
+  applyBuzzerStates,
   applyButtonInputs,
   applyLightSensorInputs,
   applyRainSensorInputs,
+  applySevenSegmentStates,
   applyWaterPumpSystems,
   registerSensorBehaviorAdapters
 } from './sensor-behavior-adapters.js';
@@ -30,7 +32,7 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
   const wasmSession = await createWasmFirmwareSession(runtime, wasmBase64);
   const program = programFromWasmConstants(wasmSession.constants);
   const diagnostics = formatFirmwareDiagnostics(wasmDiagnostics);
-  let inputBindings = { rainBindings: [], lightBindings: [], buttonBindings: [] };
+  let inputBindings = { rainBindings: [], lightBindings: [], buttonBindings: [], buzzerBindings: [], waterBindings: [], sevenSegmentBindings: [] };
 
   inputBindings = bindSimulationInputs({ graph, environment, runtime, clock, scheduler, program, diagnostics });
   wasmSession.setup();
@@ -74,7 +76,9 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
       applyLightSensorInputs({ runtime, environment, lightBindings: inputBindings.lightBindings });
       applyButtonInputs({ runtime, buttonBindings: inputBindings.buttonBindings });
 
-      const firmwareResult = wasmSession.runLoop({ loopIterations: 3, drainEvents: true });
+      const firmwareResult = wasmSession.runLoop({ loopIterations: 1, drainEvents: true });
+      applyBuzzerStates({ runtime, buzzerBindings: inputBindings.buzzerBindings });
+      applySevenSegmentStates({ runtime, sevenSegmentBindings: inputBindings.sevenSegmentBindings });
       applyWaterPumpSystems({ runtime, environment, clock, waterBindings: inputBindings.waterBindings });
 
       return finalizeSimulationResult({ clock, graph, runtime, environment, firmwareResult, diagnostics: [...diagnostics], pins: program.pins, source: 'wasm' });
@@ -150,7 +154,9 @@ export async function createProjectMultiWasmSimulationSession({ state, nets, ter
         applyLightSensorInputs({ runtime: session.runtime, environment, lightBindings: inputBindings.lightBindings ?? [] });
         applyButtonInputs({ runtime: session.runtime, buttonBindings: inputBindings.buttonBindings ?? [] });
 
-        const result = session.wasmSession.runLoop({ loopIterations: 3, drainEvents: true });
+        const result = session.wasmSession.runLoop({ loopIterations: 1, drainEvents: true });
+        applyBuzzerStates({ runtime: session.runtime, buzzerBindings: inputBindings.buzzerBindings ?? [] });
+        applySevenSegmentStates({ runtime: session.runtime, sevenSegmentBindings: inputBindings.sevenSegmentBindings ?? [] });
         applyWaterPumpSystems({ runtime: session.runtime, environment, clock, waterBindings: inputBindings.waterBindings ?? [] });
 
         firmwareResult = result;
@@ -181,10 +187,12 @@ export async function runProjectWasmSimulation({ state, nets, terminalKind, wasm
   const program = programFromWasmConstants(wasmSession.constants);
   const diagnostics = formatFirmwareDiagnostics(wasmDiagnostics);
 
-  bindSimulationInputs({ graph, environment, runtime, clock, scheduler, program, diagnostics });
+  const inputBindings = bindSimulationInputs({ graph, environment, runtime, clock, scheduler, program, diagnostics });
   wasmSession.setup();
 
-  const firmwareResult = wasmSession.runLoop({ loopIterations: 3 });
+  const firmwareResult = wasmSession.runLoop({ loopIterations: 1 });
+  applyBuzzerStates({ runtime, buzzerBindings: inputBindings.buzzerBindings });
+  applySevenSegmentStates({ runtime, sevenSegmentBindings: inputBindings.sevenSegmentBindings });
 
   return finalizeSimulationResult({ clock, graph, runtime, environment, firmwareResult, diagnostics, pins: program.pins, source: 'wasm' });
 }
@@ -281,6 +289,7 @@ function finalizeMultiSimulationResult({ clock, graph, environment, runtimesByCo
     signalsByComponent: signalSnapshot.signalsByComponent,
     signalsByNet: signalSnapshot.signalsByNet,
     ledStates: electrical.ledStates,
+    ledEvents: externalLedEvents({ graph, pinEvents }),
     builtInLedStates: builtInLedStates({ graph, runtime: primaryRuntime, runtimesByComponent }),
     builtInLedEvents: builtInLedEvents({ graph, pinEvents }),
     electrical,
@@ -390,6 +399,7 @@ export function finalizeSimulationResult({ clock, graph, runtime, environment, f
     signalsByComponent: signalSnapshot.signalsByComponent,
     signalsByNet: signalSnapshot.signalsByNet,
     ledStates: electrical.ledStates,
+    ledEvents: externalLedEvents({ graph, pinEvents: firmwareResult.pinEvents }),
     builtInLedStates: builtInLedStates({ graph, runtime }),
     builtInLedEvents: builtInLedEvents({ graph, pinEvents: firmwareResult.pinEvents }),
     electrical,
@@ -453,6 +463,82 @@ function builtInLedEvents({ graph, pinEvents }) {
   }
 
   return events.sort((left, right) => left.timeUs - right.timeUs);
+}
+
+function externalLedEvents({ graph, pinEvents }) {
+  const events = [];
+
+  for (const event of pinEvents) {
+    const board = boardForPinEvent(graph, event);
+    const terminalId = board ? terminalIdForPin(board, event.pin) : null;
+    const pinNet = terminalId ? graph.findTerminalNet(board.id, terminalId) : null;
+
+    if (!pinNet) {
+      continue;
+    }
+
+    for (const led of graph.findComponentsByElectricalPrimitive('led')) {
+      if (!pinNetDrivesLedAnode({ graph, pinNet, led })) {
+        continue;
+      }
+
+      events.push({
+        componentId: led.id,
+        value: event.value === 'HIGH',
+        timeUs: event.timeUs
+      });
+    }
+  }
+
+  return events.sort((left, right) => left.timeUs - right.timeUs);
+}
+
+function boardForPinEvent(graph, event) {
+  if (event.componentId) {
+    return graph.components.get(event.componentId) ?? null;
+  }
+
+  return graph.findComponentsByBehaviorType('microcontroller')[0] ?? null;
+}
+
+function terminalIdForPin(component, pin) {
+  const match = Object.entries(component.behavior?.pinMap ?? {}).find(([, pinConfig]) => {
+    return Number(pinConfig.number) === Number(pin);
+  });
+
+  return match?.[0] ?? `d${pin}`;
+}
+
+function pinNetDrivesLedAnode({ graph, pinNet, led }) {
+  const anodeTerminal = led.electricalModel?.anodeTerminal ?? 'anode';
+
+  if (pinNet.terminals.some((terminal) => terminal.componentId === led.id && terminal.terminalId === anodeTerminal)) {
+    return true;
+  }
+
+  for (const resistor of graph.findComponentsByElectricalPrimitive('resistor')) {
+    const resistorTerminals = ['a', 'b'];
+
+    for (const terminalId of resistorTerminals) {
+      const otherTerminalId = terminalId === 'a' ? 'b' : 'a';
+      const resistorOnPinNet = pinNet.terminals.some((terminal) => {
+        return terminal.componentId === resistor.id && terminal.terminalId === terminalId;
+      });
+
+      if (!resistorOnPinNet) {
+        continue;
+      }
+
+      if (graph.areConnected(
+        { componentId: resistor.id, terminalId: otherTerminalId },
+        { componentId: led.id, terminalId: anodeTerminal }
+      )) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 function firstProgrammableBuiltInLed(graph) {

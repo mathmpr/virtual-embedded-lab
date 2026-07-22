@@ -33,15 +33,26 @@
       "maximum": 1100,
       "unit": "hPa",
       "simulationUpdate": "live"
+    },
+    "humidityPercent": {
+      "type": "number",
+      "default": 55,
+      "minimum": 0,
+      "maximum": 100,
+      "unit": "%",
+      "simulationUpdate": "live"
     }
   },
-  "terminals": [],
+  "terminals": [
+    { "id": "climate", "label": "ENV", "type": "environment-output" }
+  ],
   "behavior": {
     "type": "environment-source",
     "channel": "climate",
     "activeProperty": "enabled",
     "temperatureProperty": "temperatureC",
-    "pressureProperty": "pressureHpa"
+    "pressureProperty": "pressureHpa",
+    "humidityProperty": "humidityPercent"
   },
   "visual": {
     "type": "climate-environment",
@@ -54,7 +65,8 @@
       { "type": "readout", "className": "climate-readout", "label": "Clima", "property": "temperatureC", "unit": "°C", "activeProperty": "enabled", "inactiveText": "OFF" },
       { "type": "checkbox", "className": "wifi-checkbox-row", "label": "Clima ativo", "property": "enabled" },
       { "type": "range", "className": "compact-slider-row", "label": "°C", "property": "temperatureC" },
-      { "type": "range", "className": "compact-slider-row", "label": "hPa", "property": "pressureHpa" }
+      { "type": "range", "className": "compact-slider-row", "label": "hPa", "property": "pressureHpa" },
+      { "type": "range", "className": "compact-slider-row", "label": "%RH", "property": "humidityPercent" }
     ],
     "palette": {
       "group": "Inputs",
@@ -62,6 +74,8 @@
       "icon": "climate-icon",
       "order": 38
     },
-    "terminals": []
+    "terminals": [
+      { "id": "climate", "label": "ENV", "side": "right", "x": 210, "y": 62, "kind": "environment" }
+    ]
   }
 }

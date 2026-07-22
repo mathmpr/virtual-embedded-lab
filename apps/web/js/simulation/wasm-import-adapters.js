@@ -19,6 +19,9 @@ export function registerDefaultWasmImportAdapters(registry) {
   registry.register(wireImportAdapter);
   registry.register(spiImportAdapter);
   registry.register(sensorLibraryImportAdapter);
+  registry.register(displayLibraryImportAdapter);
+  registry.register(dhtLibraryImportAdapter);
+  registry.register(servoLibraryImportAdapter);
   registry.register(wifiImportAdapter);
   registry.register(tcpClientImportAdapter);
   registry.register(mqttImportAdapter);
@@ -56,6 +59,12 @@ const arduinoCoreImportAdapter = {
       },
       __vl_micros() {
         return runtime.micros();
+      },
+      __vl_tone(pin, frequency) {
+        runtime.tone(Number(pin), Number(frequency));
+      },
+      __vl_noTone(pin) {
+        runtime.noTone(Number(pin));
       }
     };
   }
@@ -178,6 +187,72 @@ const sensorLibraryImportAdapter = {
       },
       __vl_mcp3008Read(chipSelectPin, channel) {
         return runtime.mcp3008Read(Number(chipSelectPin), Number(channel));
+      }
+    };
+  }
+};
+
+const displayLibraryImportAdapter = {
+  id: 'display-libraries',
+  libraries: ['LiquidCrystal_I2C'],
+  capabilities: ['i2c-display'],
+  imports({ runtime, readCString }) {
+    return {
+      __vl_lcdBegin(address, columns, rows) {
+        return runtime.lcdBegin(Number(address), Number(columns), Number(rows)) ? 1 : 0;
+      },
+      __vl_lcdSetCursor(address, column, row) {
+        runtime.lcdSetCursor(Number(address), Number(column), Number(row));
+      },
+      __vl_lcdPrint(address, valuePointer) {
+        runtime.lcdPrint(Number(address), readCString(valuePointer));
+      },
+      __vl_lcdPrintInt(address, value) {
+        runtime.lcdPrint(Number(address), Number(value));
+      },
+      __vl_lcdClear(address) {
+        runtime.lcdClear(Number(address));
+      },
+      __vl_lcdBacklight(address, enabled) {
+        runtime.lcdSetBacklight(Number(address), Boolean(enabled));
+      }
+    };
+  }
+};
+
+const dhtLibraryImportAdapter = {
+  id: 'dht-library',
+  libraries: ['DHT'],
+  capabilities: ['temperature-humidity-sensor'],
+  imports({ runtime }) {
+    return {
+      __vl_dhtBegin(pin, type) {
+        return runtime.dhtBegin(Number(pin), Number(type)) ? 1 : 0;
+      },
+      __vl_dhtReadTemperature(pin, type) {
+        return runtime.dhtReadTemperature(Number(pin), Number(type));
+      },
+      __vl_dhtReadHumidity(pin, type) {
+        return runtime.dhtReadHumidity(Number(pin), Number(type));
+      }
+    };
+  }
+};
+
+const servoLibraryImportAdapter = {
+  id: 'servo-library',
+  libraries: ['Servo'],
+  capabilities: ['servo'],
+  imports({ runtime }) {
+    return {
+      __vl_servoAttach(pin) {
+        return runtime.servoAttach(Number(pin)) ? 1 : 0;
+      },
+      __vl_servoWrite(pin, angle) {
+        runtime.servoWrite(Number(pin), Number(angle));
+      },
+      __vl_servoWriteMicroseconds(pin, pulseUs) {
+        runtime.servoWriteMicroseconds(Number(pin), Number(pulseUs));
       }
     };
   }

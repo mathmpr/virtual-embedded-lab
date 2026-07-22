@@ -1,0 +1,50 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "electronic.led.yellow",
+    "name": "LED amarelo",
+    "category": "semiconductor"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": ["electrical", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "forwardVoltage": { "type": "number", "default": 2.1, "unit": "V", "simulationUpdate": "rerun" },
+    "recommendedCurrent": { "type": "number", "default": 0.01, "unit": "A", "simulationUpdate": "rerun" },
+    "minimumVisibleCurrent": { "type": "number", "default": 0.001, "unit": "A", "simulationUpdate": "rerun" },
+    "maximumCurrent": { "type": "number", "default": 0.02, "unit": "A", "simulationUpdate": "rerun" }
+  },
+  "terminals": [
+    { "id": "anode", "label": "Anodo", "type": "passive" },
+    { "id": "cathode", "label": "Catodo", "type": "ground-capable" }
+  ],
+  "electricalModel": {
+    "type": "primitive",
+    "primitive": "led",
+    "forwardVoltageProperty": "forwardVoltage"
+  },
+  "visual": {
+    "type": "led-yellow",
+    "title": "LED amarelo",
+    "className": "led led-yellow",
+    "body": "off",
+    "width": 118,
+    "height": 104,
+    "controls": [
+      { "type": "element", "className": "led-glow" }
+    ],
+    "palette": {
+      "group": "Electronic",
+      "subgroup": "LEDs",
+      "icon": "led-yellow-icon",
+      "order": 53
+    },
+    "terminals": [
+      { "id": "anode", "label": "A", "side": "left", "x": 0, "y": 52, "kind": "signal" },
+      { "id": "cathode", "label": "K", "side": "bottom", "x": 59, "y": 104, "kind": "ground" }
+    ]
+  }
+}

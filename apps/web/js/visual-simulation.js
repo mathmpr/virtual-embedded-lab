@@ -5,8 +5,8 @@ import {
 import { analyzeFirmwareWithBackend, compileFirmwareWasmWithBackend } from './simulation/firmware-analysis-client.js';
 import { normalizeProjectCode } from './project-serializer.js';
 
-export function createVisualSimulation({ state, renderSignals, renderSerial, renderProblems, consoleOutput, getNets, terminalKind, codeEditor, consumeSerialRx, clearSerialRx, appendSerialEvents, clearSerialHistory, onSimulationResult }) {
-  let builtInLedAnimationTimers = [];
+export function createVisualSimulation({ state, renderSignals, renderSerial, renderProblems, consoleOutput, getNets, terminalKind, codeEditor, consumeSerialRx, clearSerialRx, appendSerialEvents, clearSerialHistory, onSimulationResult, onSimulationStopped = () => {} }) {
+  let ledAnimationTimers = [];
   let simulationTimer = null;
   let firmwareAnalysisCache = null;
   let firmwareWasmCache = null;
@@ -52,6 +52,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
 
       if (firmwareAnalysis.available && firmwareAnalysis.ok === false) {
         state.running = false;
+        onSimulationStopped();
         renderProblems(firmwareAnalysis.diagnostics.map(formatDiagnostic));
         consoleOutput.textContent = 'Simulação bloqueada: Clang encontrou erro no firmware.';
         return;
@@ -59,6 +60,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
 
       if (firmwareWasm.ok !== true) {
         state.running = false;
+        onSimulationStopped();
         renderProblems((firmwareWasm.diagnostics ?? []).map(formatDiagnostic));
         consoleOutput.textContent = 'Simulação bloqueada: firmware WASM não foi compilado.';
         return;
@@ -72,6 +74,8 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
       state.signalsByNet = result.signalsByNet ?? new Map();
       applyLedStates(result.ledStates);
       applyBuiltInLedStates(result.builtInLedStates);
+      clearLedAnimation();
+      animateLedEvents(result.ledEvents);
       animateBuiltInLedEvents(result.builtInLedEvents);
       onSimulationResult(result);
       consoleOutput.textContent = renderConsole(result);
@@ -81,6 +85,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
       scheduleNextSimulationFrame(result);
     } catch (error) {
       state.running = false;
+      onSimulationStopped();
       renderProblems([`Falha de simulação: ${error.message}`]);
     } finally {
       runningFrame = false;
@@ -95,13 +100,15 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
   function pauseSimulation() {
     state.running = false;
     stopSimulationTimer();
-    clearBuiltInLedAnimation();
+    clearLedAnimation();
+    onSimulationStopped();
     consoleOutput.textContent += '\nSimulação pausada.';
   }
 
   function resetSimulation() {
     state.running = false;
     stopSimulationTimer();
+    onSimulationStopped();
     firmwareAnalysisCache = null;
     firmwareWasmCache = null;
     multiFirmwareWasmCache = null;
@@ -120,7 +127,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     };
     clearSerialRx();
     clearSerialHistory();
-    clearBuiltInLedAnimation();
+    clearLedAnimation();
     applyLedStates(new Map());
     applyBuiltInLedStates(new Map());
     onSimulationResult({ electrical: state.electrical });
@@ -152,6 +159,11 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
 
   function updateDigitalInputValue(componentId, value) {
     wasmSimulationSession?.updateDigitalInputValue?.(componentId, value);
+
+    if (state.running && wasmSimulationSession && !runningFrame) {
+      stopSimulationTimer();
+      simulationTimer = setTimeout(runSimulationFrame, 0);
+    }
   }
 
   function applyLedStates(ledStates) {
@@ -174,14 +186,12 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
   }
 
   function animateBuiltInLedEvents(events = []) {
-    clearBuiltInLedAnimation();
-
     if (events.length === 0) {
       return;
     }
 
     const firstTimeUs = events[0].timeUs;
-    const timeScale = 0.12;
+    const timeScale = 1;
 
     for (const event of events) {
       const timer = setTimeout(() => {
@@ -189,16 +199,34 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
         indicator?.classList.toggle('on', event.value);
       }, Math.max(0, (event.timeUs - firstTimeUs) / 1000 * timeScale));
 
-      builtInLedAnimationTimers.push(timer);
+      ledAnimationTimers.push(timer);
     }
   }
 
-  function clearBuiltInLedAnimation() {
-    for (const timer of builtInLedAnimationTimers) {
+  function animateLedEvents(events = []) {
+    if (events.length === 0) {
+      return;
+    }
+
+    const firstTimeUs = events[0].timeUs;
+    const timeScale = 1;
+
+    for (const event of events) {
+      const timer = setTimeout(() => {
+        const component = state.components.get(event.componentId);
+        component?.element?.classList.toggle('on', event.value);
+      }, Math.max(0, (event.timeUs - firstTimeUs) / 1000 * timeScale));
+
+      ledAnimationTimers.push(timer);
+    }
+  }
+
+  function clearLedAnimation() {
+    for (const timer of ledAnimationTimers) {
       clearTimeout(timer);
     }
 
-    builtInLedAnimationTimers = [];
+    ledAnimationTimers = [];
   }
 
   function scheduleNextSimulationFrame(result) {
@@ -209,7 +237,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     const frameTimeUs = Math.max(0, result.timeUs - previousFrameTimeUs);
     previousFrameTimeUs = result.timeUs;
 
-    const delayMs = Math.max(16, Math.min(1200, frameTimeUs / 1000 * 0.12 + 30));
+    const delayMs = Math.max(16, frameTimeUs / 1000);
     simulationTimer = setTimeout(runSimulationFrame, delayMs);
   }
 

@@ -223,7 +223,7 @@ function resolveWasmSandbox(sandbox = {}) {
 function wasmBuildCacheKey({ source, constantExports, clangCommand, sandbox }) {
   return createHash('sha256')
     .update(JSON.stringify({
-      version: 2,
+      version: 3,
       source,
       constantExports,
       clangCommand,
@@ -284,6 +284,7 @@ function shimSource(constants = {}) {
 using uint16_t = unsigned short;
 using uint32_t = unsigned int;
 using size_t = unsigned long;
+using byte = unsigned char;
 #define IRAM_ATTR
 
 extern "C" void __vl_pinMode(int pin, int mode);
@@ -295,6 +296,8 @@ extern "C" void __vl_delayMicroseconds(unsigned long microseconds);
 extern "C" unsigned long __vl_pulseIn(int pin, int value, unsigned long timeout);
 extern "C" unsigned long __vl_millis();
 extern "C" unsigned long __vl_micros();
+extern "C" void __vl_tone(int pin, int frequency);
+extern "C" void __vl_noTone(int pin);
 extern "C" void __vl_serialBegin(unsigned long baudRate);
 extern "C" void __vl_serialPrint(const char *value);
 extern "C" void __vl_serialPrintln(const char *value);
@@ -315,6 +318,18 @@ extern "C" int __vl_wireRead();
 extern "C" bool __vl_bmp280Begin(int address);
 extern "C" double __vl_bmp280ReadTemperature(int address);
 extern "C" double __vl_bmp280ReadPressure(int address);
+extern "C" bool __vl_lcdBegin(int address, int columns, int rows);
+extern "C" void __vl_lcdSetCursor(int address, int column, int row);
+extern "C" void __vl_lcdPrint(int address, const char *value);
+extern "C" void __vl_lcdPrintInt(int address, int value);
+extern "C" void __vl_lcdClear(int address);
+extern "C" void __vl_lcdBacklight(int address, bool enabled);
+extern "C" bool __vl_dhtBegin(int pin, int type);
+extern "C" double __vl_dhtReadTemperature(int pin, int type);
+extern "C" double __vl_dhtReadHumidity(int pin, int type);
+extern "C" bool __vl_servoAttach(int pin);
+extern "C" void __vl_servoWrite(int pin, int angle);
+extern "C" void __vl_servoWriteMicroseconds(int pin, int pulseUs);
 extern "C" bool __vl_adcBegin(int address, int type);
 extern "C" int __vl_adcReadSingleEnded(int address, int channel);
 extern "C" double __vl_adcComputeVolts(int address, int raw);
@@ -351,6 +366,8 @@ const int INPUT = 0;
 const int OUTPUT = 1;
 const int INPUT_PULLUP = 2;
 const int FALLING = 2;
+const int LSBFIRST = 0;
+const int MSBFIRST = 1;
 const int LED_BUILTIN = ${ledBuiltin};
 const int A0 = 14;
 const int A1 = 15;
@@ -358,6 +375,8 @@ const int A2 = 16;
 const int A3 = 17;
 const int A4 = 18;
 const int A5 = 19;
+const int A6 = 20;
+const int A7 = 21;
 const int WIFI_STA = 1;
 const int WIFI_AP = 2;
 const int WIFI_AP_STA = 3;
@@ -368,6 +387,8 @@ const int WL_CONNECTED = 3;
 const int WL_CONNECT_FAILED = 4;
 const int WL_CONNECTION_LOST = 5;
 const int WL_DISCONNECTED = 6;
+const int DHT11 = 11;
+const int DHT22 = 22;
 
 void pinMode(int pin, int mode) { __vl_pinMode(pin, mode); }
 void digitalWrite(int pin, int value) { __vl_digitalWrite(pin, value); }
@@ -378,9 +399,36 @@ void delayMicroseconds(unsigned long microseconds) { __vl_delayMicroseconds(micr
 unsigned long pulseIn(int pin, int value, unsigned long timeout = 1000000) { return __vl_pulseIn(pin, value, timeout); }
 unsigned long millis() { return __vl_millis(); }
 unsigned long micros() { return __vl_micros(); }
+unsigned long __vl_random_state = 1;
+void shiftOut(int dataPin, int clockPin, int bitOrder, int value) {
+  for (int index = 0; index < 8; index++) {
+    int bit = bitOrder == LSBFIRST ? index : 7 - index;
+    digitalWrite(dataPin, (value & (1 << bit)) ? HIGH : LOW);
+    digitalWrite(clockPin, HIGH);
+    digitalWrite(clockPin, LOW);
+  }
+}
+void tone(int pin, int frequency) { __vl_tone(pin, frequency); }
+void noTone(int pin) { __vl_noTone(pin); }
+void randomSeed(unsigned long seed) { __vl_random_state = seed ? seed : 1; }
+long random(long max) {
+  __vl_random_state += 0x9e3779b9UL;
+  unsigned long mixed = __vl_random_state;
+  mixed = (mixed ^ (mixed >> 16)) * 0x85ebca6bUL;
+  mixed = (mixed ^ (mixed >> 13)) * 0xc2b2ae35UL;
+  mixed = mixed ^ (mixed >> 16);
+  return max <= 0 ? 0 : (long)(mixed % (unsigned long)max);
+}
+long random(long min, long max) {
+  if (max <= min) {
+    return min;
+  }
+  return min + random(max - min);
+}
 void yield() {}
 int digitalPinToInterrupt(int pin) { return pin; }
 void attachInterrupt(int, void (*)(), int) {}
+bool isnan(double value) { return value != value; }
 
 int __vl_append_char(char *buffer, size_t size, int index, char value) {
   if (index < (int)size - 1) {
@@ -554,6 +602,72 @@ public:
 private:
   int address;
   bool initialized;
+};
+
+class LiquidCrystal_I2C {
+public:
+  LiquidCrystal_I2C(int requestedAddress, int requestedColumns, int requestedRows)
+    : address(requestedAddress), columns(requestedColumns), rows(requestedRows), initialized(false) {}
+  void init() { initialized = __vl_lcdBegin(address, columns, rows); }
+  void begin() { init(); }
+  void begin(int requestedColumns, int requestedRows) {
+    columns = requestedColumns;
+    rows = requestedRows;
+    init();
+  }
+  void backlight() { __vl_lcdBacklight(address, true); }
+  void noBacklight() { __vl_lcdBacklight(address, false); }
+  void setCursor(int column, int row) { __vl_lcdSetCursor(address, column, row); }
+  void clear() { __vl_lcdClear(address); }
+  void print(const char *value) { __vl_lcdPrint(address, value); }
+  void print(char value) {
+    char text[2] = { value, 0 };
+    __vl_lcdPrint(address, text);
+  }
+  void print(int value) { __vl_lcdPrintInt(address, value); }
+  void print(long value) { __vl_lcdPrintInt(address, (int)value); }
+  void print(unsigned long value) { __vl_lcdPrintInt(address, (int)value); }
+  void print(String value) { __vl_lcdPrint(address, value.c_str()); }
+private:
+  int address;
+  int columns;
+  int rows;
+  bool initialized;
+};
+
+class DHT {
+public:
+  DHT(int requestedPin, int requestedType) : pin(requestedPin), type(requestedType), initialized(false) {}
+  void begin() { initialized = __vl_dhtBegin(pin, type); }
+  float readTemperature() { return initialized ? (float)__vl_dhtReadTemperature(pin, type) : 0.0f; }
+  float readHumidity() { return initialized ? (float)__vl_dhtReadHumidity(pin, type) : 0.0f; }
+private:
+  int pin;
+  int type;
+  bool initialized;
+};
+
+class Servo {
+public:
+  Servo() : pin(-1), attached(false) {}
+  int attach(int requestedPin) {
+    pin = requestedPin;
+    attached = __vl_servoAttach(pin);
+    return attached ? 1 : 0;
+  }
+  void write(int angle) {
+    if (attached) {
+      __vl_servoWrite(pin, angle);
+    }
+  }
+  void writeMicroseconds(int pulseUs) {
+    if (attached) {
+      __vl_servoWriteMicroseconds(pin, pulseUs);
+    }
+  }
+private:
+  int pin;
+  bool attached;
 };
 
 const int __VL_ADC_ADS1015 = 1015;

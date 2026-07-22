@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Arduino Servo Sweep",
+  "board": { "width": 1500, "height": 860, "gridSize": 10 },
+  "components": [
+    { "id": "arduino-1", "componentId": "board.arduino.uno", "position": { "x": 280, "y": 240 }, "properties": {} },
+    { "id": "servo-1", "componentId": "actuator.servo.motor", "position": { "x": 800, "y": 285 }, "properties": { "angleDegrees": 90, "attached": false, "minPulseUs": 544, "maxPulseUs": 2400, "stallCurrentAmps": 0.65, "noLoadCurrentAmps": 0.15 } }
+  ],
+  "connections": [
+    { "id": "net-vcc", "color": "#f05252", "terminals": ["arduino-1.5v", "servo-1.vcc"] },
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "servo-1.gnd"] },
+    { "id": "net-sig", "color": "#ffb454", "terminals": ["arduino-1.d9", "servo-1.sig"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "#include <Servo.h>\\n\\nServo servo;\\nconst int SERVO_PIN = 9;\\nint index = 0;\\nconst int positions[3] = {0, 90, 180};\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    servo.attach(SERVO_PIN);\\n    Serial.println(\"Servo ready\");\\n}\\n\\nvoid loop()\\n{\\n    int angle = positions[index];\\n    servo.write(angle);\\n    Serial.print(\"Servo angle: \");\\n    Serial.println(angle);\\n    index = (index + 1) % 3;\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

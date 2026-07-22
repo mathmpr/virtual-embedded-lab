@@ -12,9 +12,12 @@ const jsonFiles = [
   'schemas/component.schema.json',
   'components/official/ads1015/component.json',
   'components/official/ads1115/component.json',
+  'components/official/74hc595/component.json',
   'components/official/analog-voltage-source/component.json',
+  'components/official/arduino-nano/component.json',
   'components/official/arduino-uno/component.json',
   'components/official/bmp280/component.json',
+  'components/official/buzzer/component.json',
   'components/official/resistor/component.json',
   'components/official/capacitor/component.json',
   'components/official/climate/component.json',
@@ -25,19 +28,28 @@ const jsonFiles = [
   'components/official/led-red/component.json',
   'components/official/led-green/component.json',
   'components/official/led-blue/component.json',
+  'components/official/led-yellow/component.json',
   'components/official/light-level/component.json',
+  'components/official/lcd-16x2-i2c/component.json',
   'components/official/mcp3008/component.json',
   'components/official/pull-up-button/component.json',
   'components/official/rain-toggle/component.json',
+  'components/official/seven-segment-display/component.json',
+  'components/official/servo-motor/component.json',
   'components/official/hc-sr04/component.json',
   'components/official/distance-range/component.json',
+  'components/official/dht11/component.json',
+  'components/official/dht22/component.json',
   'components/official/wifi-signal/component.json',
+  'examples/arduino-74hc595-seven-segment-counter/project.json',
+  'examples/arduino-nano-blink-button/project.json',
   'examples/bmp280-weather-i2c/project.json',
   'examples/ads1015-single-ended/project.json',
   'examples/ads1115-single-ended/project.json',
   'examples/arduino-serial-bridge-led/project.json',
   'examples/arduino-serial-led/project.json',
   'examples/esp32-counter-blink/project.json',
+  'examples/esp32-simon-says/project.json',
   'examples/esp32-wifi-failover/project.json',
   'examples/esp32-wifi-signal/project.json',
   'examples/esp32-wifi-tcp-jsonplaceholder/project.json',
@@ -47,7 +59,12 @@ const jsonFiles = [
   'examples/hc-sr04-led-distance/project.json',
   'examples/ldr-light-analog/project.json',
   'examples/mcp3008-single-ended/project.json',
-  'examples/arduino-pull-up-button-toggle-blue-led/project.json'
+  'examples/arduino-pull-up-button-toggle-blue-led/project.json',
+  'examples/arduino-buzzer-beep/project.json',
+  'examples/arduino-dht22-climate/project.json',
+  'examples/arduino-lcd-16x2-i2c-counter/project.json',
+  'examples/arduino-servo-sweep/project.json',
+  'examples/arduino-seven-segment-counter/project.json'
 ];
 
 function officialComponentPaths() {
@@ -393,10 +410,11 @@ test('BMP280 package exposes sensor, climate environment and I2C example', () =>
 
   assert.equal(climate.identity.id, 'environment.climate');
   assert.equal(climate.simulation.kind, 'environment-source');
-  assert.deepEqual(climate.terminals, []);
-  assert.deepEqual(climate.visual.terminals, []);
+  assert.deepEqual(climate.terminals.map((terminal: { id: string }) => terminal.id), ['climate']);
+  assert.deepEqual(climate.visual.terminals.map((terminal: { id: string }) => terminal.id), ['climate']);
   assert.equal(climate.properties.temperatureC.default, 25);
   assert.equal(climate.properties.pressureHpa.default, 1013.25);
+  assert.equal(climate.properties.humidityPercent.default, 55);
   assert.equal(climate.visual.palette.subgroup, 'Weather');
 
   assert.deepEqual(

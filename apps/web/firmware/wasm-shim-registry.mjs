@@ -2,9 +2,9 @@ const firmwareLibraries = [
   {
     id: 'arduino-core',
     headers: ['Arduino'],
-    identifiers: ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'delay', 'delayMicroseconds', 'pulseIn', 'millis', 'micros'],
-    imports: ['digitalRead', 'digitalWrite', 'pinMode', 'analogRead', 'delay', 'delayMicroseconds', 'millis', 'micros', 'pulseIn'],
-    apis: ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'delay', 'delayMicroseconds', 'pulseIn', 'millis', 'micros']
+    identifiers: ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'delay', 'delayMicroseconds', 'pulseIn', 'millis', 'micros', 'shiftOut', 'tone', 'noTone', 'random', 'randomSeed'],
+    imports: ['digitalRead', 'digitalWrite', 'pinMode', 'analogRead', 'delay', 'delayMicroseconds', 'millis', 'micros', 'pulseIn', 'tone', 'noTone'],
+    apis: ['pinMode', 'digitalWrite', 'digitalRead', 'analogRead', 'delay', 'delayMicroseconds', 'pulseIn', 'millis', 'micros', 'shiftOut', 'tone', 'noTone', 'random', 'randomSeed']
   },
   {
     id: 'serial',
@@ -33,6 +33,27 @@ const firmwareLibraries = [
     identifiers: ['BMP280'],
     imports: ['bmp280Begin', 'bmp280ReadTemperature', 'bmp280ReadPressure'],
     apis: ['BMP280.begin', 'BMP280.readTemperature', 'BMP280.readPressure']
+  },
+  {
+    id: 'liquid-crystal-i2c',
+    headers: ['LiquidCrystal_I2C'],
+    identifiers: ['LiquidCrystal_I2C'],
+    imports: ['lcdBegin', 'lcdSetCursor', 'lcdPrint', 'lcdPrintInt', 'lcdClear', 'lcdBacklight'],
+    apis: ['LiquidCrystal_I2C.init', 'LiquidCrystal_I2C.begin', 'LiquidCrystal_I2C.backlight', 'LiquidCrystal_I2C.noBacklight', 'LiquidCrystal_I2C.setCursor', 'LiquidCrystal_I2C.print', 'LiquidCrystal_I2C.clear']
+  },
+  {
+    id: 'dht',
+    headers: ['DHT'],
+    identifiers: ['DHT', 'DHT11', 'DHT22'],
+    imports: ['dhtBegin', 'dhtReadTemperature', 'dhtReadHumidity'],
+    apis: ['DHT.begin', 'DHT.readTemperature', 'DHT.readHumidity']
+  },
+  {
+    id: 'servo',
+    headers: ['Servo'],
+    identifiers: ['Servo'],
+    imports: ['servoAttach', 'servoWrite', 'servoWriteMicroseconds'],
+    apis: ['Servo.attach', 'Servo.write', 'Servo.writeMicroseconds']
   },
   {
     id: 'ads',

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Arduino DHT22 Climate",
+  "board": {
+    "width": 1500,
+    "height": 860,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "arduino-1",
+      "componentId": "board.arduino.uno",
+      "position": { "x": 260, "y": 240 },
+      "properties": {}
+    },
+    {
+      "id": "dht-1",
+      "componentId": "sensor.temperature-humidity.dht22",
+      "position": { "x": 760, "y": 260 },
+      "properties": {
+        "temperatureCelsius": 25,
+        "humidityPercent": 55,
+        "sensorModel": "DHT22",
+        "readIntervalMs": 2000
+      }
+    },
+    {
+      "id": "climate-1",
+      "componentId": "environment.climate",
+      "position": { "x": 1040, "y": 250 },
+      "properties": {
+        "enabled": true,
+        "temperatureC": 28,
+        "pressureHpa": 1013.25,
+        "humidityPercent": 68
+      }
+    }
+  ],
+  "connections": [
+    { "id": "net-vcc", "color": "#f05252", "terminals": ["arduino-1.5v", "dht-1.vcc"] },
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "dht-1.gnd"] },
+    { "id": "net-data", "color": "#ffb454", "terminals": ["arduino-1.d2", "dht-1.data"] }
+  ],
+  "environmentConnections": [
+    { "source": "climate-1.climate", "target": "dht-1.env", "color": "#6fbf73" }
+  ],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "#include <DHT.h>\\n\\n#define DHT_PIN 2\\n#define DHT_TYPE DHT22\\n\\nDHT dht(DHT_PIN, DHT_TYPE);\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    dht.begin();\\n    Serial.println(\"DHT22 ready\");\\n}\\n\\nvoid loop()\\n{\\n    float humidity = dht.readHumidity();\\n    float temperature = dht.readTemperature();\\n\\n    if (isnan(humidity) || isnan(temperature)) {\\n        Serial.println(\"DHT read failed\");\\n        delay(2000);\\n        return;\\n    }\\n\\n    Serial.print(\"Humidity %: \");\\n    Serial.println(humidity);\\n    Serial.print(\"Temperature C: \");\\n    Serial.println(temperature);\\n    delay(2000);\\n}\\n"
+    }
+  }
+}

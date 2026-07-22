@@ -155,6 +155,10 @@ function formatControlValue(control, definition) {
     return `${value}%`;
   }
 
+  if (control.format === 'hex8') {
+    return `0x${Number(value ?? 0).toString(16).toUpperCase().padStart(2, '0')}`;
+  }
+
   if (control.unit) {
     return `${value} ${control.unit}`;
   }
@@ -186,14 +190,27 @@ function renderVariantSelect(variantsForProperty, componentType, propertyName, v
   return `
     <select ${renderPropertyAttribute(propertyName)}>
       ${variants.map((variant) => `
-        <option value="${escapeHtml(variant.value)}" ${Number(value) === variant.value ? 'selected' : ''}>${escapeHtml(variant.label)}</option>
+        <option value="${escapeHtml(variant.value)}" ${variantValueMatches(value, variant.value) ? 'selected' : ''}>${escapeHtml(variant.label)}</option>
       `).join('')}
     </select>
   `;
 }
 
+function variantValueMatches(value, variantValue) {
+  if (typeof variantValue === 'number') {
+    return Number(value) === variantValue;
+  }
+
+  return String(value) === String(variantValue);
+}
+
 function renderDataAttribute(dataAttribute) {
-  return dataAttribute ? escapeHtml(dataAttribute) : '';
+  if (!dataAttribute) {
+    return '';
+  }
+
+  const attribute = String(dataAttribute).trim();
+  return /^data-[a-z0-9-]+(?:="[^"]*")?$/i.test(attribute) ? attribute : '';
 }
 
 function renderPropertyAttribute(propertyName) {

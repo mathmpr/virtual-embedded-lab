@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Arduino 7-Segment Counter",
+  "board": {
+    "width": 1700,
+    "height": 960,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "arduino-1",
+      "componentId": "board.arduino.uno",
+      "position": { "x": 240, "y": 260 },
+      "properties": {}
+    },
+    {
+      "id": "display-1",
+      "componentId": "display.led.7segment",
+      "position": { "x": 930, "y": 250 },
+      "properties": {
+        "commonType": "cathode",
+        "forwardVoltageVolts": 2,
+        "recommendedCurrentAmps": 0.01,
+        "segmentA": false,
+        "segmentB": false,
+        "segmentC": false,
+        "segmentD": false,
+        "segmentE": false,
+        "segmentF": false,
+        "segmentG": false,
+        "segmentDp": false
+      }
+    }
+  ],
+  "connections": [
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "display-1.com1", "display-1.com2"] },
+    { "id": "net-a", "color": "#ffb454", "terminals": ["arduino-1.d2", "display-1.a"] },
+    { "id": "net-b", "color": "#45d6c4", "terminals": ["arduino-1.d3", "display-1.b"] },
+    { "id": "net-c", "color": "#7aa2f7", "terminals": ["arduino-1.d4", "display-1.c"] },
+    { "id": "net-d", "color": "#c3e88d", "terminals": ["arduino-1.d5", "display-1.d"] },
+    { "id": "net-e", "color": "#f7768e", "terminals": ["arduino-1.d6", "display-1.e"] },
+    { "id": "net-f", "color": "#bb9af7", "terminals": ["arduino-1.d7", "display-1.f"] },
+    { "id": "net-g", "color": "#e0af68", "terminals": ["arduino-1.d8", "display-1.g"] },
+    { "id": "net-dp", "color": "#9ece6a", "terminals": ["arduino-1.d9", "display-1.dp"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "const int segmentPins[8] = {2, 3, 4, 5, 6, 7, 8, 9};\\nconst int digitMap[10][8] = {\\n    {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, LOW, LOW},\\n    {LOW, HIGH, HIGH, LOW, LOW, LOW, LOW, LOW},\\n    {HIGH, HIGH, LOW, HIGH, HIGH, LOW, HIGH, LOW},\\n    {HIGH, HIGH, HIGH, HIGH, LOW, LOW, HIGH, LOW},\\n    {LOW, HIGH, HIGH, LOW, LOW, HIGH, HIGH, LOW},\\n    {HIGH, LOW, HIGH, HIGH, LOW, HIGH, HIGH, LOW},\\n    {HIGH, LOW, HIGH, HIGH, HIGH, HIGH, HIGH, LOW},\\n    {HIGH, HIGH, HIGH, LOW, LOW, LOW, LOW, LOW},\\n    {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, LOW},\\n    {HIGH, HIGH, HIGH, HIGH, LOW, HIGH, HIGH, LOW}\\n};\\nint digit = 0;\\n\\nvoid displayDigit(int value)\\n{\\n    for (int index = 0; index < 8; index++) {\\n        digitalWrite(segmentPins[index], digitMap[value][index]);\\n    }\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    for (int index = 0; index < 8; index++) {\\n        pinMode(segmentPins[index], OUTPUT);\\n        digitalWrite(segmentPins[index], LOW);\\n    }\\n    Serial.println(\"7 segment ready\");\\n}\\n\\nvoid loop()\\n{\\n    displayDigit(digit);\\n    Serial.print(\"Digit: \");\\n    Serial.println(digit);\\n    digit = (digit + 1) % 10;\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

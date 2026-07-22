@@ -413,6 +413,33 @@ test('counter blink example runs through WASM with persisted increment state', a
   assert.match(runtime.getSerialSnapshot().events.map((event) => event.data).join(''), /counter: 10/);
 });
 
+test('WASM Arduino random avoids low-bit modulo cycles', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const { runWasmFirmware } = await import('../../apps/web/js/simulation/wasm-firmware-runner.js');
+  const wasm = await compileFirmwareWasmWithClang(`
+    void setup() {
+      Serial.begin(9600);
+      randomSeed(1);
+    }
+
+    void loop() {
+      Serial.println((int)random(0, 4));
+    }
+  `, { cache: false });
+  const clock = new VirtualClock();
+  const scheduler = new EventScheduler(clock);
+  const runtime = new ArduinoRuntime(clock, scheduler, { driveArduinoPin() {} });
+  const result = await runWasmFirmware(runtime, wasm.wasmBase64, { loopIterations: 8 });
+  const values = result.serial.events
+    .filter((event) => event.type === 'data')
+    .map((event) => event.data.trim())
+    .filter(Boolean);
+
+  assert.equal(wasm.ok, true);
+  assert.deepEqual(values, ['3', '0', '0', '3', '0', '1', '2', '0']);
+  assert.notDeepEqual(values.slice(0, 4), ['3', '0', '1', '2']);
+});
+
 test('counter blink WASM session persists globals across simulation frames', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const esp32 = JSON.parse(readFileSync(join(root, 'components/official/esp32-devkit/component.json'), 'utf8'));
@@ -444,8 +471,8 @@ test('counter blink WASM session persists globals across simulation frames', asy
   const second = session.runFrame();
   const serial = [...first.serial.events, ...second.serial.events].map((event) => event.data).join('');
 
-  assert.match(serial, /counter: 3/);
-  assert.match(serial, /counter: 6/);
+  assert.match(serial, /counter: 1/);
+  assert.match(serial, /counter: 2/);
 });
 
 test('Arduino Serial LED example reacts to RX on and off commands through WASM', async () => {
@@ -674,12 +701,10 @@ test('ESP8266 MQTT example connects to virtual broker through WASM', async () =>
     network: project.network
   });
 
-  const first = session.runFrame();
-  const second = session.runFrame();
-  const third = session.runFrame();
-  const fourth = session.runFrame();
-  const serial = [first, second, third, fourth].map(serialText).join('');
-  const publishedTopics = fourth.firmwareResult.mqtt.published.map((message) => message.topic);
+  const frames = Array.from({ length: 10 }, () => session.runFrame());
+  const last = frames.at(-1);
+  const serial = frames.map(serialText).join('');
+  const publishedTopics = last.firmwareResult.mqtt.published.map((message) => message.topic);
 
   assert.equal(wasm.ok, true);
   assert.match(serial, /Wi-Fi connected with internet/);
@@ -690,7 +715,7 @@ test('ESP8266 MQTT example connects to virtual broker through WASM', async () =>
   assert.match(serial, /MQTT keepalive #2/);
   assert.ok(publishedTopics.filter((topic) => topic === 'keep/alive').length >= 2);
   assert.ok(publishedTopics.includes('on_off/water'));
-  assert.equal(fourth.builtInLedStates.get('esp8266-1.led_builtin'), true);
+  assert.equal(last.builtInLedStates.get('esp8266-1.led_builtin'), true);
 });
 
 test('WASM AsyncMqttClient drains queued MQTT messages on poll', async () => {
@@ -1164,6 +1189,383 @@ test('pull-up button example toggles blue LED through WASM pulses', async () => 
   assert.match(serialText(secondPress), /Blue LED OFF/);
 });
 
+test('buzzer example updates buzzer visual state through WASM digitalWrite', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-buzzer-beep/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const components = new Map([
+    ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
+    ['buzzer-1', officialComponent('buzzer-1', 'buzzer', {
+      active: false,
+      inputLevel: 0,
+      activeHigh: true,
+      frequencyHz: 2000,
+      volumePercent: 60,
+      activeType: 'active'
+    })]
+  ]);
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components
+    },
+    nets: [
+      testNet('net-vcc', ['arduino-1.5v', 'buzzer-1.vcc']),
+      testNet('net-gnd', ['arduino-1.gnd', 'buzzer-1.gnd']),
+      testNet('net-sig', ['arduino-1.d8', 'buzzer-1.sig'])
+    ],
+    terminalKind(terminal) {
+      if (/gnd/.test(terminal.terminalId)) {
+        return 'ground';
+      }
+
+      if (/5v|3v3|vcc/.test(terminal.terminalId)) {
+        return 'power';
+      }
+
+      return 'signal';
+    },
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const result = session.runFrame();
+  const buzzer = components.get('buzzer-1');
+
+  assert.equal(wasm.ok, true);
+  assert.match(serialText(result), /Buzzer ON/);
+  assert.equal(buzzer?.properties.active, true);
+  assert.equal(buzzer?.properties.inputLevel, 1);
+});
+
+test('LCD 16x2 I2C example updates display buffer through WASM library shim', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-lcd-16x2-i2c-counter/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const lcd = officialComponent('lcd-1', 'lcd-16x2-i2c', {
+    i2cAddress: 39,
+    columns: 16,
+    rows: 2,
+    backlight: true,
+    line1: '',
+    line2: ''
+  });
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
+        ['lcd-1', lcd]
+      ])
+    },
+    nets: [
+      testNet('net-vcc', ['arduino-1.5v', 'lcd-1.vcc']),
+      testNet('net-gnd', ['arduino-1.gnd', 'lcd-1.gnd']),
+      testNet('net-sda', ['arduino-1.a4', 'lcd-1.sda']),
+      testNet('net-scl', ['arduino-1.a5', 'lcd-1.scl'])
+    ],
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const result = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.match(wasm.libraries.join(','), /liquid-crystal-i2c/);
+  assert.equal(lcd.properties.line1, 'Virtual Lab');
+  assert.match(lcd.properties.line2, /^Count: 0/);
+  assert.equal(lcd.properties.backlight, true);
+  assert.match(serialText(result), /LCD count: 0/);
+});
+
+test('7-segment counter example derives active segments from WASM digitalWrite pins', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-seven-segment-counter/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const display = officialComponent('display-1', 'seven-segment-display', {
+    commonType: 'cathode',
+    forwardVoltageVolts: 2,
+    recommendedCurrentAmps: 0.01,
+    segmentA: false,
+    segmentB: false,
+    segmentC: false,
+    segmentD: false,
+    segmentE: false,
+    segmentF: false,
+    segmentG: false,
+    segmentDp: false
+  });
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
+        ['display-1', display]
+      ])
+    },
+    nets: [
+      testNet('net-gnd', ['arduino-1.gnd', 'display-1.com1', 'display-1.com2']),
+      testNet('net-a', ['arduino-1.d2', 'display-1.a']),
+      testNet('net-b', ['arduino-1.d3', 'display-1.b']),
+      testNet('net-c', ['arduino-1.d4', 'display-1.c']),
+      testNet('net-d', ['arduino-1.d5', 'display-1.d']),
+      testNet('net-e', ['arduino-1.d6', 'display-1.e']),
+      testNet('net-f', ['arduino-1.d7', 'display-1.f']),
+      testNet('net-g', ['arduino-1.d8', 'display-1.g']),
+      testNet('net-dp', ['arduino-1.d9', 'display-1.dp'])
+    ],
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const result = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.match(serialText(result), /Digit: 0/);
+  assert.equal(display.properties.segmentA, true);
+  assert.equal(display.properties.segmentB, true);
+  assert.equal(display.properties.segmentC, true);
+  assert.equal(display.properties.segmentD, true);
+  assert.equal(display.properties.segmentE, true);
+  assert.equal(display.properties.segmentF, true);
+  assert.equal(display.properties.segmentG, false);
+  assert.equal(display.properties.segmentDp, false);
+});
+
+test('74HC595 example drives a 7-segment display through shiftOut', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-74hc595-seven-segment-counter/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const shift = officialComponent('shift-1', 'shift-register-74hc595', {
+    latchedValue: 0,
+    shiftValue: 0,
+    outputEnabled: true,
+    clearActiveLow: true,
+    q0: false,
+    q1: false,
+    q2: false,
+    q3: false,
+    q4: false,
+    q5: false,
+    q6: false,
+    q7: false
+  });
+  const display = officialComponent('display-1', 'seven-segment-display', {
+    commonType: 'cathode',
+    forwardVoltageVolts: 2,
+    recommendedCurrentAmps: 0.01,
+    segmentA: false,
+    segmentB: false,
+    segmentC: false,
+    segmentD: false,
+    segmentE: false,
+    segmentF: false,
+    segmentG: false,
+    segmentDp: false
+  });
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
+        ['shift-1', shift],
+        ['display-1', display]
+      ])
+    },
+    nets: project.connections.map((connection) => testNet(connection.id, connection.terminals)),
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const result = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.match(serialText(result), /Shift digit: 0/);
+  assert.equal(shift.properties.latchedValue, 0b00111111);
+  assert.equal(display.properties.segmentA, true);
+  assert.equal(display.properties.segmentB, true);
+  assert.equal(display.properties.segmentC, true);
+  assert.equal(display.properties.segmentD, true);
+  assert.equal(display.properties.segmentE, true);
+  assert.equal(display.properties.segmentF, true);
+  assert.equal(display.properties.segmentG, false);
+  assert.equal(display.properties.segmentDp, false);
+});
+
+test('ESP32 Simon Says example compiles and drives score display, LEDs and buzzer through WASM', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-simon-says/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const componentTypeById = {
+    'board.esp32.devkit': 'esp32-devkit',
+    'electronic.led.red': 'led-red',
+    'electronic.led.green': 'led-green',
+    'electronic.led.blue': 'led-blue',
+    'electronic.led.yellow': 'led-yellow',
+    'electronic.resistor': 'resistor',
+    'input.button.pull-up': 'pull-up-button',
+    'actuator.buzzer': 'buzzer',
+    'ic.shift-register.74hc595': 'shift-register-74hc595',
+    'display.led.7segment': 'seven-segment-display'
+  };
+  const components = new Map(project.components.map((component) => [
+    component.id,
+    officialComponent(component.id, componentTypeById[component.componentId], component.properties ?? {})
+  ]));
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components
+    },
+    nets: project.connections.map((connection) => testNet(connection.id, connection.terminals)),
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const initial = session.runFrame();
+  const sequenceStart = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.match(serialText(initial), /Simon Says ready/);
+  assert.match(serialText(initial), /Round 1/);
+  assert.doesNotMatch(serialText(initial), /Game over/);
+  assert.equal(components.get('shift-high')?.properties.latchedValue, 0b00111111);
+  assert.equal(components.get('shift-low')?.properties.latchedValue, 0b00111111);
+  assert.ok(sequenceStart.ledEvents.some((event) => event.componentId === 'led-yellow' && event.value === true));
+  assert.equal(components.get('buzzer-1')?.properties.active, true);
+
+  for (let frame = 0; frame < 20; frame++) {
+    session.runFrame();
+  }
+
+  session.updateDigitalInputValue('button-yellow', true);
+  const pressed = session.runFrame();
+
+  assert.ok(pressed.ledEvents.some((event) => event.componentId === 'led-yellow' && event.value === true));
+  assert.equal(components.get('buzzer-1')?.properties.active, true);
+
+  const feedbackFrames = [];
+  for (let frame = 0; frame < 12; frame++) {
+    feedbackFrames.push(session.runFrame());
+  }
+
+  assert.ok(feedbackFrames.some((frame) => frame.ledEvents.some((event) => event.componentId === 'led-yellow' && event.value === false)));
+  assert.doesNotMatch(feedbackFrames.map(serialText).join(''), /Game over/);
+
+  for (let frame = 0; frame < 28; frame++) {
+    session.runFrame();
+  }
+
+  assert.equal(components.get('shift-high')?.properties.latchedValue, 0b00111111);
+  assert.equal(components.get('shift-low')?.properties.latchedValue, 0b00000110);
+  assert.equal(components.get('display-low')?.properties.segmentA, false);
+  assert.equal(components.get('display-low')?.properties.segmentB, true);
+  assert.equal(components.get('display-low')?.properties.segmentC, true);
+  assert.equal(components.get('display-low')?.properties.segmentD, false);
+});
+
+test('DHT22 example reads climate temperature and humidity through WASM shim', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-dht22-climate/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const dht = officialComponent('dht-1', 'dht22-sensor', {
+    temperatureCelsius: 25,
+    humidityPercent: 55,
+    sensorModel: 'DHT22',
+    readIntervalMs: 2000
+  });
+  const climate = officialComponent('climate-1', 'climate-environment', {
+    enabled: true,
+    temperatureC: 28,
+    pressureHpa: 1013.25,
+    humidityPercent: 68
+  });
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
+        ['dht-1', dht],
+        ['climate-1', climate]
+      ])
+    },
+    nets: [
+      testNet('net-vcc', ['arduino-1.5v', 'dht-1.vcc']),
+      testNet('net-gnd', ['arduino-1.gnd', 'dht-1.gnd']),
+      testNet('net-data', ['arduino-1.d2', 'dht-1.data']),
+      testNet('net-env', ['climate-1.climate', 'dht-1.env'])
+    ],
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const result = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.match(wasm.libraries.join(','), /dht/);
+  assert.equal(dht.properties.temperatureCelsius, 28);
+  assert.equal(dht.properties.humidityPercent, 68);
+  assert.match(serialText(result), /Humidity %: 68/);
+  assert.match(serialText(result), /Temperature C: 28/);
+});
+
+test('Arduino Nano blink button example uses board LED_BUILTIN and external LED through WASM', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-nano-blink-button/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
+    constants: { LED_BUILTIN: 13 }
+  });
+  const components = new Map([
+    ['nano-1', officialComponent('nano-1', 'arduino-nano', { logicVoltage: 5, clockMHz: 16, usbPowered: true })],
+    ['button-1', officialComponent('button-1', 'pull-up-button', { pressed: false, activeHigh: true })],
+    ['resistor-1', officialComponent('resistor-1', 'resistor', { resistanceOhms: 220 })],
+    ['led-1', officialComponent('led-1', 'led-blue', {})]
+  ]);
+  const session = await createProjectWasmSimulationSession({
+    state: { components },
+    nets: project.connections.map((connection) => testNet(connection.id, connection.terminals)),
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  session.runFrame();
+  session.updateDigitalInputValue('button-1', true);
+  const pressed = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.match(serialText(pressed), /Nano LED ON/);
+  assert.equal(pressed.ledStates.get('led-1'), true);
+  assert.equal(pressed.builtInLedStates.get('nano-1.led_builtin'), true);
+});
+
+test('Servo sweep example updates servo angle through Servo WASM shim', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-servo-sweep/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const servo = officialComponent('servo-1', 'servo-motor', {
+    angleDegrees: 90,
+    attached: false,
+    minPulseUs: 544,
+    maxPulseUs: 2400,
+    stallCurrentAmps: 0.65,
+    noLoadCurrentAmps: 0.15
+  });
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
+        ['servo-1', servo]
+      ])
+    },
+    nets: project.connections.map((connection) => testNet(connection.id, connection.terminals)),
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const first = session.runFrame();
+  const second = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.match(wasm.libraries.join(','), /servo/);
+  assert.equal(servo.properties.attached, true);
+  assert.equal(servo.properties.angleDegrees, 90);
+  assert.match(serialText(first), /Servo angle: 0/);
+  assert.match(serialText(second), /Servo angle: 90/);
+});
+
 async function runHcsr04WasmDistance(wasmBase64, valueCm) {
   const session = await createHcsr04WasmSession(wasmBase64, valueCm);
 
@@ -1296,6 +1698,18 @@ function testNet(id, references) {
   };
 }
 
+function powerGroundTerminalKind(terminal) {
+  if (/gnd|com/.test(terminal.terminalId)) {
+    return 'ground';
+  }
+
+  if (/5v|3v3|vcc/.test(terminal.terminalId)) {
+    return 'power';
+  }
+
+  return 'signal';
+}
+
 function officialComponent(id, type, properties) {
   const manifest = officialManifestByVisualType(type);
 
@@ -1317,19 +1731,31 @@ function officialManifestByVisualType(type) {
     'ads1015-adc': 'components/official/ads1015/component.json',
     'ads1115-adc': 'components/official/ads1115/component.json',
     'arduino': 'components/official/arduino-uno/component.json',
+    'arduino-nano': 'components/official/arduino-nano/component.json',
+    'esp32-devkit': 'components/official/esp32-devkit/component.json',
     'bmp280-sensor': 'components/official/bmp280/component.json',
+    'buzzer': 'components/official/buzzer/component.json',
     'climate-environment': 'components/official/climate/component.json',
     'distance': 'components/official/distance-range/component.json',
+    'dht11-sensor': 'components/official/dht11/component.json',
+    'dht22-sensor': 'components/official/dht22/component.json',
     'fc37-rain-sensor': 'components/official/fc-37-rain-sensor/component.json',
     'hcsr04': 'components/official/hc-sr04/component.json',
     'ldr-light-sensor': 'components/official/ldr-light-sensor/component.json',
     'led': 'components/official/led-red/component.json',
     'led-blue': 'components/official/led-blue/component.json',
+    'led-green': 'components/official/led-green/component.json',
+    'led-red': 'components/official/led-red/component.json',
+    'led-yellow': 'components/official/led-yellow/component.json',
+    'lcd-16x2-i2c': 'components/official/lcd-16x2-i2c/component.json',
     'light-level': 'components/official/light-level/component.json',
     'mcp3008-adc': 'components/official/mcp3008/component.json',
     'pull-up-button': 'components/official/pull-up-button/component.json',
     'rain-toggle': 'components/official/rain-toggle/component.json',
-    'resistor': 'components/official/resistor/component.json'
+    'resistor': 'components/official/resistor/component.json',
+    'seven-segment-display': 'components/official/seven-segment-display/component.json',
+    'servo-motor': 'components/official/servo-motor/component.json',
+    'shift-register-74hc595': 'components/official/74hc595/component.json'
   }[type];
 
   if (!manifestPath) {

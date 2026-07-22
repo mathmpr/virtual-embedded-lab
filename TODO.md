@@ -257,7 +257,7 @@ npm test
 - [ ] Adicionar potenciômetro.
 - [x] Adicionar botão/push button.
 - [x] Adicionar SSR, bomba d'água e reservatório.
-- [ ] Adicionar buzzer.
+- [x] Adicionar buzzer.
 - [ ] Adicionar servo motor.
 - [ ] Adicionar display LCD 16x2/I2C.
 

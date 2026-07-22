@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Arduino Buzzer Beep",
+  "board": {
+    "width": 1500,
+    "height": 860,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "arduino-1",
+      "componentId": "board.arduino.uno",
+      "position": { "x": 300, "y": 220 },
+      "properties": {}
+    },
+    {
+      "id": "buzzer-1",
+      "componentId": "actuator.buzzer",
+      "position": { "x": 820, "y": 280 },
+      "properties": {
+        "activeHigh": true,
+        "frequencyHz": 2000,
+        "volumePercent": 60,
+        "activeType": "active"
+      }
+    }
+  ],
+  "connections": [
+    { "id": "net-vcc", "color": "#f05252", "terminals": ["arduino-1.5v", "buzzer-1.vcc"] },
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "buzzer-1.gnd"] },
+    { "id": "net-sig", "color": "#ffb454", "terminals": ["arduino-1.d8", "buzzer-1.sig"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "const int BUZZER_PIN = 8;\\nbool buzzing = false;\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    pinMode(BUZZER_PIN, OUTPUT);\\n    digitalWrite(BUZZER_PIN, LOW);\\n    Serial.println(\"Buzzer beep ready\");\\n}\\n\\nvoid loop()\\n{\\n    buzzing = !buzzing;\\n    digitalWrite(BUZZER_PIN, buzzing ? HIGH : LOW);\\n\\n    if (buzzing) {\\n        Serial.println(\"Buzzer ON\");\\n    } else {\\n        Serial.println(\"Buzzer OFF\");\\n    }\\n\\n    delay(500);\\n}\\n"
+    }
+  }
+}

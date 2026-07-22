@@ -26,20 +26,31 @@ export function createComponentState({
     const value = derivedBindingValue(component, binding.source);
 
     if (binding.type === 'class') {
-      component.element.classList.toggle(binding.className, matchesBindingWhen(value, binding.when));
+      bindingTargets(component, binding).forEach((target) => {
+        target.classList.toggle(binding.className, matchesBindingWhen(value, binding.when));
+      });
       return;
     }
 
     if (binding.type === 'classMap') {
-      for (const stateClass of binding.classes ?? []) {
-        component.element.classList.toggle(stateClass.className, matchesRange(value, stateClass));
-      }
+      bindingTargets(component, binding).forEach((target) => {
+        for (const stateClass of binding.classes ?? []) {
+          target.classList.toggle(stateClass.className, matchesRange(value, stateClass));
+        }
+      });
       return;
     }
 
     if (binding.type === 'text') {
       component.element.querySelectorAll(binding.selector).forEach((target) => {
         target.textContent = formatBindingValue(value, binding, component);
+      });
+      return;
+    }
+
+    if (binding.type === 'style') {
+      bindingTargets(component, binding).forEach((target) => {
+        target.style.setProperty(binding.styleProperty, formatStyleBindingValue(value, binding));
       });
     }
   }
@@ -214,6 +225,10 @@ export function createComponentState({
       return `${value}%`;
     }
 
+    if (control.format === 'hex8') {
+      return `0x${Number(value ?? 0).toString(16).toUpperCase().padStart(2, '0')}`;
+    }
+
     if (control.unit) {
       return `${value} ${control.unit}`;
     }
@@ -281,6 +296,12 @@ export function createComponentState({
     return source.value ?? null;
   }
 
+  function bindingTargets(component, binding) {
+    return binding.selector
+      ? component.element.querySelectorAll(binding.selector)
+      : [component.element];
+  }
+
   function formatBindingValue(value, binding, component) {
     if (binding.format === 'wetDry') {
       return value ? 'WET' : 'DRY';
@@ -317,6 +338,14 @@ export function createComponentState({
     }
 
     return String(value ?? '');
+  }
+
+  function formatStyleBindingValue(value, binding) {
+    if (binding.unit) {
+      return `${Number(value ?? 0)}${binding.unit}`;
+    }
+
+    return String(Number(value ?? 0));
   }
 
   function matchesBindingWhen(value, expected) {

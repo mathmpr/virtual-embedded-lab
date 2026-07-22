@@ -1,0 +1,89 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "display.lcd.16x2.i2c",
+    "name": "LCD 16x2 I2C",
+    "category": "display",
+    "subCategory": "character-lcd"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": ["electrical", "firmware", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "i2cAddress": { "type": "number", "default": 39, "minimum": 8, "maximum": 119, "simulationUpdate": "rerun" },
+    "columns": { "type": "number", "default": 16, "minimum": 8, "maximum": 20, "simulationUpdate": "rerun" },
+    "rows": { "type": "number", "default": 2, "minimum": 1, "maximum": 4, "simulationUpdate": "rerun" },
+    "backlight": { "type": "boolean", "default": true, "simulationUpdate": "live" },
+    "line1": { "type": "string", "default": "", "simulationUpdate": "live" },
+    "line2": { "type": "string", "default": "", "simulationUpdate": "live" }
+  },
+  "variants": {
+    "i2cAddress": [
+      { "label": "I2C 0x27", "value": 39 },
+      { "label": "I2C 0x3F", "value": 63 }
+    ]
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "sda", "label": "SDA", "type": "i2c-sda" },
+    { "id": "scl", "label": "SCL", "type": "i2c-scl" }
+  ],
+  "behavior": {
+    "type": "lcd-16x2-i2c",
+    "bus": "i2c",
+    "addressProperty": "i2cAddress",
+    "columnsProperty": "columns",
+    "rowsProperty": "rows",
+    "backlightProperty": "backlight",
+    "lineProperties": ["line1", "line2"],
+    "sdaTerminal": "sda",
+    "sclTerminal": "scl"
+  },
+  "electricalModel": {
+    "type": "sensor-module",
+    "primitive": "i2c-display",
+    "logicVoltage": 5,
+    "bus": "i2c",
+    "inputCurrentAmps": 0.02
+  },
+  "visual": {
+    "type": "lcd-16x2-i2c",
+    "title": "LCD 16x2",
+    "className": "lcd-16x2-i2c",
+    "body": "",
+    "width": 220,
+    "height": 128,
+    "controls": [
+      {
+        "type": "container",
+        "className": "lcd-screen",
+        "children": [
+          { "type": "element", "tag": "span", "className": "lcd-line", "text": "", "dataAttribute": "data-lcd-line=\"1\"" },
+          { "type": "element", "tag": "span", "className": "lcd-line", "text": "", "dataAttribute": "data-lcd-line=\"2\"" }
+        ]
+      },
+      { "type": "variant", "className": "component-select-row compact", "label": "Addr", "property": "i2cAddress" }
+    ],
+    "stateBindings": [
+      { "type": "class", "className": "backlight-on", "source": { "kind": "componentProperty", "property": "backlight" }, "when": true },
+      { "type": "text", "selector": "[data-lcd-line=\"1\"]", "source": { "kind": "componentProperty", "property": "line1" } },
+      { "type": "text", "selector": "[data-lcd-line=\"2\"]", "source": { "kind": "componentProperty", "property": "line2" } }
+    ],
+    "palette": {
+      "group": "Displays",
+      "subgroup": "Character LCD",
+      "icon": "lcd-icon",
+      "order": 70
+    },
+    "terminals": [
+      { "id": "vcc", "label": "VCC", "side": "left", "x": 0, "y": 28, "kind": "power" },
+      { "id": "gnd", "label": "GND", "side": "left", "x": 0, "y": 54, "kind": "ground" },
+      { "id": "sda", "label": "SDA", "side": "right", "x": 220, "y": 50, "kind": "signal" },
+      { "id": "scl", "label": "SCL", "side": "right", "x": 220, "y": 82, "kind": "signal" }
+    ]
+  }
+}

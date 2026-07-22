@@ -119,7 +119,6 @@ function solveLedPath({ graph, arduino, led, drivenHighPins }) {
     };
   }
 
-  diagnostics.push(`${led.id}: nenhum resistor em série encontrado entre saída HIGH e anodo.`);
   return { isLit: false, ledReading: defaultReading, resistorReading: null, diagnostics };
 }
 

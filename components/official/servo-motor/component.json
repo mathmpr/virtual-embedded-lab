@@ -1,0 +1,73 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "actuator.servo.motor",
+    "name": "Servo Motor",
+    "category": "actuator",
+    "subCategory": "motors"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": ["electrical", "firmware", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "angleDegrees": { "type": "number", "default": 90, "minimum": 0, "maximum": 180, "unit": "deg", "simulationUpdate": "live" },
+    "attached": { "type": "boolean", "default": false, "simulationUpdate": "live" },
+    "minPulseUs": { "type": "number", "default": 544, "minimum": 300, "maximum": 1000, "unit": "us", "simulationUpdate": "rerun" },
+    "maxPulseUs": { "type": "number", "default": 2400, "minimum": 1800, "maximum": 2600, "unit": "us", "simulationUpdate": "rerun" },
+    "stallCurrentAmps": { "type": "number", "default": 0.65, "minimum": 0, "maximum": 5, "unit": "A", "simulationUpdate": "rerun" },
+    "noLoadCurrentAmps": { "type": "number", "default": 0.15, "minimum": 0, "maximum": 2, "unit": "A", "simulationUpdate": "rerun" }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "sig", "label": "SIG", "type": "pwm-input" }
+  ],
+  "behavior": {
+    "type": "servo-motor",
+    "inputTerminal": "sig",
+    "angleProperty": "angleDegrees",
+    "attachedProperty": "attached",
+    "minPulseProperty": "minPulseUs",
+    "maxPulseProperty": "maxPulseUs"
+  },
+  "electricalModel": {
+    "type": "load",
+    "primitive": "servo-motor",
+    "recommendedVoltageMin": 4.8,
+    "recommendedVoltageMax": 6,
+    "noLoadCurrentProperty": "noLoadCurrentAmps",
+    "stallCurrentProperty": "stallCurrentAmps"
+  },
+  "visual": {
+    "type": "servo-motor",
+    "title": "Servo",
+    "className": "servo-motor",
+    "body": "",
+    "width": 180,
+    "height": 116,
+    "controls": [
+      { "type": "readout", "className": "servo-readout", "label": "Ângulo", "property": "angleDegrees", "unit": "°" },
+      { "type": "range", "className": "compact-slider-row", "label": "°", "property": "angleDegrees" },
+      {
+        "type": "container",
+        "className": "servo-body",
+        "children": [
+          { "type": "element", "className": "servo-horn", "dataAttribute": "data-servo-horn" }
+        ]
+      }
+    ],
+    "stateBindings": [
+      { "type": "class", "className": "is-attached", "source": { "kind": "componentProperty", "property": "attached" }, "when": true },
+      { "type": "style", "selector": "[data-servo-horn]", "styleProperty": "--servo-angle", "source": { "kind": "componentProperty", "property": "angleDegrees" } }
+    ],
+    "palette": { "group": "Actuators", "subgroup": "Motors", "icon": "servo-icon", "order": 62 },
+    "terminals": [
+      { "id": "vcc", "label": "VCC", "side": "left", "x": 0, "y": 32, "kind": "power" },
+      { "id": "sig", "label": "SIG", "side": "left", "x": 0, "y": 68, "kind": "signal" },
+      { "id": "gnd", "label": "GND", "side": "bottom", "x": 90, "y": 116, "kind": "ground" }
+    ]
+  }
+}
