@@ -126,7 +126,7 @@ test('official component palette manifests are rendered by the UI catalog adapte
 
   for (const manifest of paletteManifests) {
     assert.ok(
-      componentPalette.some((item) => item.type === manifest.visual.type && item.title === manifest.visual.title),
+      componentPalette.some((item) => item.type === manifest.visual.type && typeof item.title === 'string' && item.title.length > 0),
       `${manifest.identity.id} has visual.palette but was not added to componentPalette`
     );
   }

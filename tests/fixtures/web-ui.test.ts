@@ -330,6 +330,8 @@ test('web UI exposes editable Wi-Fi signal controls', () => {
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const firmware = readFileSync(join(root, 'apps/web/js/simulation/firmware-engine.js'), 'utf8');
   const analyzer = readFileSync(join(root, 'apps/web/firmware/clang-analyzer.mjs'), 'utf8');
+  const wifiShim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/40-libraries/wifi.cpp'), 'utf8');
+  const libraryResolver = readFileSync(join(root, 'apps/web/firmware/library-resolver.mjs'), 'utf8');
 
   assert.match(componentTemplate, /renderVisualControl/);
   assert.doesNotMatch(wifiSignal, /data-wifi-slider/);
@@ -356,8 +358,10 @@ test('web UI exposes editable Wi-Fi signal controls', () => {
   assert.match(firmware, /WiFi\.softAP/);
   assert.match(firmware, /WiFi\.scanNetworks/);
   assert.match(firmware, /WiFi\.RSSI/);
-  assert.match(analyzer, /class WiFiClass/);
-  assert.match(analyzer, /stripArduinoIncludes/);
+  assert.doesNotMatch(analyzer, /class WiFiClass/);
+  assert.match(wifiShim, /class WiFiClass/);
+  assert.match(analyzer, /stripResolvedFirmwareIncludes/);
+  assert.match(libraryResolver, /resolveFirmwareLibraryBundle/);
 });
 
 test('web UI exposes FC-37 rain controls and runtime bindings', () => {
@@ -418,6 +422,8 @@ test('web UI exposes LDR light controls and analog runtime bindings', () => {
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
+  const coreConstantsShim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/20-arduino-core/00-constants.cpp'), 'utf8');
+  const coreApiShim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/20-arduino-core/10-api.cpp'), 'utf8');
 
   assert.match(componentTemplate, /renderVisualControl/);
   assert.doesNotMatch(lightLevel, /data-light-enabled/);
@@ -443,8 +449,9 @@ test('web UI exposes LDR light controls and analog runtime bindings', () => {
   assert.match(environmentPayload, /channel === 'light'/);
   assert.match(runtime, /analogRead\(pin\)/);
   assert.match(adapter, /updateLightValue\(componentId, value\)/);
-  assert.match(wasmCompiler, /const int A0 = 14/);
-  assert.match(wasmCompiler, /int analogRead\(int pin\)/);
+  assert.match(coreConstantsShim, /const int A0 = 14/);
+  assert.match(coreApiShim, /int analogRead\(int pin\)/);
+  assert.doesNotMatch(wasmCompiler, /const int A0 = 14/);
 });
 
 test('web UI exposes BMP280 climate controls and I2C runtime bindings', () => {
@@ -460,6 +467,8 @@ test('web UI exposes BMP280 climate controls and I2C runtime bindings', () => {
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
+  const wireShim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/30-buses/wire.cpp'), 'utf8');
+  const bmp280Shim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/40-libraries/bmp280.cpp'), 'utf8');
 
   assert.match(componentTemplate, /renderVisualControl/);
   assert.doesNotMatch(climate, /data-climate-enabled/);
@@ -480,8 +489,10 @@ test('web UI exposes BMP280 climate controls and I2C runtime bindings', () => {
   assert.match(runtime, /wireBegin\(\)/);
   assert.match(runtime, /bmp280ReadTemperature\(address\)/);
   assert.match(adapter, /updateClimateValue\(componentId, value\)/);
-  assert.match(wasmCompiler, /class TwoWire/);
-  assert.match(wasmCompiler, /class BMP280/);
+  assert.match(wireShim, /class TwoWire/);
+  assert.match(bmp280Shim, /class BMP280/);
+  assert.doesNotMatch(wasmCompiler, /class TwoWire/);
+  assert.doesNotMatch(wasmCompiler, /class BMP280/);
 });
 
 test('web UI exposes external ADC controls and runtime bindings', () => {
@@ -497,6 +508,8 @@ test('web UI exposes external ADC controls and runtime bindings', () => {
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
+  const adsShim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/40-libraries/ads.cpp'), 'utf8');
+  const mcp3008Shim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/40-libraries/mcp3008.cpp'), 'utf8');
 
   assert.match(componentTemplate, /renderVisualControl/);
   assert.doesNotMatch(analogSource, /data-analog-voltage/);
@@ -519,9 +532,12 @@ test('web UI exposes external ADC controls and runtime bindings', () => {
   assert.match(runtime, /adcReadSingleEnded\(address, channel\)/);
   assert.match(runtime, /mcp3008Read\(chipSelectPin, channel\)/);
   assert.match(adapter, /updateAnalogVoltageValue\(componentId, value\)/);
-  assert.match(wasmCompiler, /class ADS1015/);
-  assert.match(wasmCompiler, /class ADS1115/);
-  assert.match(wasmCompiler, /class MCP3008/);
+  assert.match(adsShim, /class ADS1015/);
+  assert.match(adsShim, /class ADS1115/);
+  assert.match(mcp3008Shim, /class MCP3008/);
+  assert.doesNotMatch(wasmCompiler, /class ADS1015/);
+  assert.doesNotMatch(wasmCompiler, /class ADS1115/);
+  assert.doesNotMatch(wasmCompiler, /class MCP3008/);
 });
 
 test('web UI exposes board deletion and history operations', () => {
@@ -570,6 +586,7 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   const firmwareIr = readFileSync(join(root, 'apps/web/js/simulation/firmware-engine.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
   const wasmShimRegistry = readFileSync(join(root, 'apps/web/firmware/wasm-shim-registry.mjs'), 'utf8');
+  const libraryIndex = readFileSync(join(root, 'apps/web/firmware/libraries/index.json'), 'utf8');
   const wasmRunner = readFileSync(join(root, 'apps/web/js/simulation/wasm-firmware-runner.js'), 'utf8');
   const wasmImportAdapters = readFileSync(join(root, 'apps/web/js/simulation/wasm-import-adapters.js'), 'utf8');
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
@@ -587,8 +604,9 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   assert.match(wasmCompiler, /wasmShimImportsForLibraries/);
   assert.match(wasmCompiler, /supportedWasmLibraryDocs/);
   assert.match(wasmShimRegistry, /supportedWasmLibraryDocs/);
-  assert.match(wasmShimRegistry, /headers: \['WiFi', 'ESP8266WiFi'\]/);
-  assert.match(wasmShimRegistry, /apis: \['WiFi\.mode'/);
+  assert.match(wasmShimRegistry, /resolveFirmwareLibraries/);
+  assert.match(libraryIndex, /"headers": \["WiFi", "ESP8266WiFi"\]/);
+  assert.match(libraryIndex, /"WiFi\.mode"/);
   assert.match(wasmRunner, /createWasmImportRegistry/);
   assert.match(wasmRunner, /registerDefaultWasmImportAdapters/);
   assert.match(wasmImportAdapters, /libraries: \['WiFi'\]/);

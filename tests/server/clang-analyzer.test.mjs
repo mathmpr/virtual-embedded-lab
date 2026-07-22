@@ -9,12 +9,62 @@ import { runArduinoFirmware } from '../../apps/web/js/simulation/firmware-engine
 import { ArduinoRuntime } from '../../apps/web/js/simulation/arduino-runtime.js';
 import { EventScheduler, VirtualClock } from '../../apps/web/js/simulation/virtual-time.js';
 import { analyzeFirmwareWithClang, compileFirmwareIrWithClang } from '../../apps/web/firmware/clang-analyzer.mjs';
+import {
+  readIncludeNames,
+  resolveFirmwareLibraryBundle,
+  stripResolvedFirmwareIncludes,
+  supportedFirmwareLibraryDocs
+} from '../../apps/web/firmware/library-resolver.mjs';
 import { clearFirmwareWasmBuildCache, compileFirmwareWasmWithClang } from '../../apps/web/firmware/wasm-compiler.mjs';
 
 const root = new URL('../..', import.meta.url).pathname;
 const referenceCode = normalizeProjectCode(JSON.parse(
   readFileSync(join(root, 'examples/hc-sr04-led-distance/project.json'), 'utf8')
 ).code.files['main.ino']);
+
+test('firmware library resolver maps Arduino includes to supported local libraries', () => {
+  const code = `
+    #include <Wire.h>
+    #include <LiquidCrystal_I2C.h>
+    #include <DHT.h>
+    #include <Servo.h>
+    #include <WiFi.h>
+    #include <UnknownVendorSensor.h>
+
+    LiquidCrystal_I2C lcd(0x27, 16, 2);
+    DHT dht(4, DHT22);
+    Servo servo;
+
+    void setup() {
+      Wire.begin();
+      WiFi.begin("VirtualLab", "secret");
+      lcd.init();
+      dht.begin();
+      servo.attach(5);
+    }
+
+    void loop() {}
+  `;
+
+  const bundle = resolveFirmwareLibraryBundle(code);
+  const ids = bundle.libraries.map((library) => library.id);
+
+  assert.deepEqual(readIncludeNames(code), ['Wire', 'LiquidCrystal_I2C', 'DHT', 'Servo', 'WiFi', 'UnknownVendorSensor']);
+  assert.ok(ids.includes('arduino-core'));
+  assert.ok(ids.includes('wire'));
+  assert.ok(ids.includes('liquid-crystal-i2c'));
+  assert.ok(ids.includes('dht'));
+  assert.ok(ids.includes('servo'));
+  assert.ok(ids.includes('wifi'));
+  assert.ok(bundle.imports.includes('wireBegin'));
+  assert.ok(bundle.imports.includes('lcdBegin'));
+  assert.ok(bundle.imports.includes('dhtBegin'));
+  assert.ok(bundle.imports.includes('servoAttach'));
+  assert.ok(bundle.imports.includes('wifiBegin'));
+  assert.match(stripResolvedFirmwareIncludes(code, bundle.libraries), /#include <UnknownVendorSensor\.h>/);
+  assert.doesNotMatch(stripResolvedFirmwareIncludes(code, bundle.libraries), /#include <(?:Wire|LiquidCrystal_I2C|DHT|Servo|WiFi)\.h>/);
+  assert.ok(supportedFirmwareLibraryDocs().some((library) => library.headers.includes('WiFi')));
+});
 
 test('clang analyzer invokes clang-compatible command and parses diagnostics', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'virtual-lab-fake-clang-'));
