@@ -1,3 +1,5 @@
+import { localizeComponentDefinition } from './i18n.js';
+
 export const storageKey = 'virtual-embedded-lab.project';
 
 export const componentDefinitions = {};
@@ -35,9 +37,9 @@ export function installComponentCatalog(manifests) {
 
     if (definition.palette) {
       componentPalette.push({
+        ...definition.palette,
         type: definition.type,
-        title: definition.title,
-        ...definition.palette
+        title: definition.palette.title ?? definition.title
       });
     }
   }
@@ -56,7 +58,7 @@ export function componentDefinitionFromManifest(manifest) {
 
   const terminalById = new Map((manifest.terminals ?? []).map((terminal) => [terminal.id, terminal]));
 
-  return {
+  return localizeComponentDefinition({
     type: visual.type,
     title: visual.title ?? manifest.identity.name,
     className: visual.className ?? visual.type,
@@ -87,7 +89,7 @@ export function componentDefinitionFromManifest(manifest) {
         kind: terminal.kind ?? terminalKindFromManifestType(manifestTerminal?.type)
       };
     })
-  };
+  });
 }
 
 function defaultProperties(properties = {}) {

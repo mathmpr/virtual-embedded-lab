@@ -1,4 +1,5 @@
 import { terminalReference } from '../components.js';
+import { stateText, t } from '../i18n.js';
 import { createPinResolver } from './pin-resolver.js';
 import {
   formatCurrent,
@@ -20,7 +21,7 @@ export function createSignalsPanel({ state, signalMonitor, componentDefinitions,
     const component = state.components.get(state.selectedId);
 
     if (!component) {
-      signalMonitor.innerHTML = '<p class="muted">Selecione um componente para ver sinais derivados das conexões.</p>';
+      signalMonitor.innerHTML = `<p class="muted">${t('Select a component to view derived connection signals.')}</p>`;
       return;
     }
 
@@ -35,14 +36,14 @@ export function createSignalsPanel({ state, signalMonitor, componentDefinitions,
 
     signalMonitor.innerHTML = cards.length > 0
       ? cards.join('')
-      : '<p class="muted">Este componente ainda não possui sinais derivados do projeto.</p>';
+      : `<p class="muted">${t('This component does not have derived project signals yet.')}</p>`;
   }
 
   function signalCardsForComponentSnapshot(snapshot) {
     return [
-      snapshotSignalCard('Propriedades', snapshot.properties),
-      snapshotSignalCard('Terminais e conexões', snapshot.terminals),
-      snapshotSignalCard('Elétrico', snapshot.electrical)
+      snapshotSignalCard(t('Properties'), snapshot.properties),
+      snapshotSignalCard(t('Terminals and connections'), snapshot.terminals),
+      snapshotSignalCard(t('Electrical'), snapshot.electrical)
     ].filter(Boolean);
   }
 
@@ -57,20 +58,20 @@ export function createSignalsPanel({ state, signalMonitor, componentDefinitions,
       .filter(([, value]) => typeof value === 'boolean' || Number.isFinite(Number(value)))
       .map(([key, value]) => {
         if (typeof value === 'boolean') {
-          return signalRow(labelFromPropertyName(key), value ? 1 : 0, value ? 'ON' : 'OFF');
+          return signalRow(labelFromPropertyName(key), value ? 1 : 0, value ? stateText('ON') : stateText('OFF'));
         }
 
         return signalRow(labelFromPropertyName(key), normalizePropertySignal(key, Number(value)), formatPropertySignal(key, Number(value)));
       });
 
-    return rows.length > 0 ? signalCard('Propriedades', rows) : null;
+    return rows.length > 0 ? signalCard(t('Properties'), rows) : null;
   }
 
   function terminalSignalCard(component) {
     const definition = componentDefinitions[component.type];
     const rows = (definition?.terminals ?? []).map((terminal) => terminalSignalRow(component, terminal));
 
-    return rows.length > 0 ? signalCard('Terminais e conexões', rows) : null;
+    return rows.length > 0 ? signalCard(t('Terminals and connections'), rows) : null;
   }
 
   function terminalSignalRow(component, terminal) {
@@ -91,10 +92,10 @@ export function createSignalsPanel({ state, signalMonitor, componentDefinitions,
       return null;
     }
 
-    return signalCard('Elétrico', [
-      signalRow('Tensão', normalizeVoltage(reading.voltageVolts), formatVoltage(reading.voltageVolts)),
-      signalRow('Corrente', normalizeCurrent(reading.currentAmps), formatCurrent(reading.currentAmps)),
-      signalRow('Potência', normalizePower(reading.powerWatts), formatPower(reading.powerWatts))
+    return signalCard(t('Electrical'), [
+      signalRow(t('Voltage'), normalizeVoltage(reading.voltageVolts), formatVoltage(reading.voltageVolts)),
+      signalRow(t('Current'), normalizeCurrent(reading.currentAmps), formatCurrent(reading.currentAmps)),
+      signalRow(t('Power'), normalizePower(reading.powerWatts), formatPower(reading.powerWatts))
     ]);
   }
 
@@ -206,7 +207,7 @@ export function createSignalsPanel({ state, signalMonitor, componentDefinitions,
       <div class="signal-row">
         <span>${label}</span>
         <div class="signal-track"><div class="signal-fill" style="width:${Math.round(normalizedValue * 100)}%"></div></div>
-        <span class="signal-value">${text ?? (value ? 'HIGH' : 'LOW')}</span>
+        <span class="signal-value">${text ?? (value ? stateText('HIGH') : stateText('LOW'))}</span>
       </div>
     `;
   }

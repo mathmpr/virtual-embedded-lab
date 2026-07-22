@@ -1,4 +1,5 @@
 import { slugify, storageKey } from '../components.js';
+import { t } from '../i18n.js';
 import { boardToProject, projectCodeOrReference, projectToSnapshot } from '../project-serializer.js';
 
 export function createProjectActions({
@@ -208,21 +209,21 @@ export function createProjectActions({
     saveActiveFirmware();
     const project = currentProject();
     localStorage.setItem(storageKey, JSON.stringify(project));
-    consoleOutput.textContent = `Projeto salvo no navegador: ${project.components.length} componentes, ${project.connections.length} conexoes eletricas, ${project.environmentConnections.length} conexoes ambientais.`;
+    consoleOutput.textContent = `${t('Project saved in browser')}: ${project.components.length} ${t('components')}, ${project.connections.length} ${t('electrical connections')}, ${project.environmentConnections.length} ${t('environment connections')}.`;
   }
 
   function loadProjectFromLocalStorage() {
     const saved = localStorage.getItem(storageKey);
 
     if (!saved) {
-      renderProblems(['Nenhum projeto salvo no navegador.']);
+      renderProblems([t('No project saved in browser.')]);
       return;
     }
 
     try {
       restoreProject(JSON.parse(saved));
     } catch (error) {
-      renderProblems([`Falha ao carregar projeto salvo: ${error.message}`]);
+      renderProblems([`${t('Failed to load saved project')}: ${error.message}`]);
     }
   }
 
@@ -237,7 +238,7 @@ export function createProjectActions({
     link.download = `${slugify(project.name)}.json`;
     link.click();
     URL.revokeObjectURL(url);
-    consoleOutput.textContent = 'Projeto exportado como JSON.';
+    consoleOutput.textContent = t('Project exported as JSON.');
   }
 
   async function importProjectFile(event) {
@@ -252,7 +253,7 @@ export function createProjectActions({
       const project = JSON.parse(await file.text());
       restoreProject(project);
     } catch (error) {
-      renderProblems([`Falha ao importar projeto: ${error.message}`]);
+      renderProblems([`${t('Failed to import project')}: ${error.message}`]);
     }
   }
 
@@ -265,7 +266,7 @@ export function createProjectActions({
       recordHistory();
     }
 
-    consoleOutput.textContent = `Projeto carregado: ${project.name}`;
+    consoleOutput.textContent = `${t('Project loaded')}: ${project.name}`;
   }
 
   function currentProject() {

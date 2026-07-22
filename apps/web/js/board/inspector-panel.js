@@ -1,4 +1,5 @@
 import { terminalReference } from '../components.js';
+import { stateText, t } from '../i18n.js';
 import { escapeHtml, formatCurrent, formatPower, formatVoltage, labelFromPropertyName } from './formatters.js';
 
 export function createInspectorPanel({
@@ -18,7 +19,7 @@ export function createInspectorPanel({
     const component = state.components.get(state.selectedId);
 
     if (!component) {
-      inspectorContent.innerHTML = '<p class="muted">Selecione um componente ou fio.</p>';
+      inspectorContent.innerHTML = `<p class="muted">${t('Select a component or wire.')}</p>`;
       return;
     }
 
@@ -195,7 +196,7 @@ export function createInspectorPanel({
 
   function formatInspectorPropertyValue(propertyName, value, propertySchema) {
     if (propertySchema?.type === 'boolean') {
-      return value ? 'ON' : 'OFF';
+      return value ? stateText('ON') : stateText('OFF');
     }
 
     if (propertySchema?.unit) {

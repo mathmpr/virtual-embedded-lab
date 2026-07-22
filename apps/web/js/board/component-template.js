@@ -1,3 +1,5 @@
+import { stateText, t } from '../i18n.js';
+
 export function renderComponentTemplate(definition, componentId, variantsForProperty) {
   const body = renderComponentBody(definition, variantsForProperty);
 
@@ -15,7 +17,7 @@ export function renderComponentTemplate(definition, componentId, variantsForProp
   }).join('');
 
   return `
-    <button class="delete-component" title="Remover componente" data-delete-component>×</button>
+    <button class="delete-component" title="${escapeHtml(t('Remover componente'))}" data-delete-component>×</button>
     <div class="component-header">${escapeHtml(definition.title)}</div>
     <div class="component-body" style="min-height:${definition.height ?? 104}px">${body}${terminals}</div>
   `;
@@ -61,7 +63,7 @@ function renderPulseButton(control) {
     <button class="${escapeHtml(control.className ?? 'component-pulse-button')}" type="button"
       ${renderPropertyAttribute(control.property)}
       data-pulse-duration-ms="${escapeHtml(control.durationMs ?? 160)}">
-      ${escapeHtml(control.label ?? 'Press')}
+      ${escapeHtml(control.label ?? t('Press'))}
     </button>
   `;
 }
@@ -148,7 +150,7 @@ function formatControlValue(control, definition) {
   const value = definition.properties[control.property] ?? control.value ?? '';
 
   if (control.format === 'onOff') {
-    return value ? 'ON' : 'OFF';
+    return value ? stateText('ON') : stateText('OFF');
   }
 
   if (control.format === 'percent') {

@@ -1,3 +1,5 @@
+import { propertyLabel } from '../i18n.js';
+
 export function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -52,9 +54,7 @@ export function formatPropertySignal(key, value) {
 }
 
 export function labelFromPropertyName(key) {
-  return key
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/^./, (char) => char.toUpperCase());
+  return propertyLabel(key);
 }
 
 export function formatCurrent(value) {

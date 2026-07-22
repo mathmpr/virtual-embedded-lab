@@ -1,4 +1,5 @@
 import { environmentPayloadForComponent } from '../simulation/environment-payload.js';
+import { stateText, t } from '../i18n.js';
 
 export function createComponentState({
   state,
@@ -218,7 +219,7 @@ export function createComponentState({
     const value = component.properties[control.property] ?? control.value ?? '';
 
     if (control.format === 'onOff') {
-      return value ? 'ON' : 'OFF';
+      return value ? stateText('ON') : stateText('OFF');
     }
 
     if (control.format === 'percent') {
@@ -304,17 +305,17 @@ export function createComponentState({
 
   function formatBindingValue(value, binding, component) {
     if (binding.format === 'wetDry') {
-      return value ? 'WET' : 'DRY';
+      return value ? t('WET') : t('DRY');
     }
 
     if (binding.format === 'lightLevel') {
       const raw = Math.round(Number(value ?? 0) * 1023);
-      return raw < 300 ? 'DARK' : raw < 700 ? 'DIM' : 'BRIGHT';
+      return raw < 300 ? t('DARK') : raw < 700 ? t('DIM') : t('BRIGHT');
     }
 
     if (binding.format === 'addressWhenEnabled') {
       const address = component.properties[binding.addressProperty] ?? binding.address ?? 0;
-      return value ? `0x${Number(address).toString(16).toUpperCase()}` : binding.disabledText ?? 'OFF';
+      return value ? `0x${Number(address).toString(16).toUpperCase()}` : binding.disabledText ?? t('OFF');
     }
 
     if (binding.format === 'fixed') {
@@ -322,15 +323,15 @@ export function createComponentState({
     }
 
     if (binding.format === 'raw') {
-      return `${Math.round(Number(value ?? 0))} raw`;
+      return `${Math.round(Number(value ?? 0))} ${t('raw')}`;
     }
 
     if (binding.format === 'onOff') {
-      return value ? 'ON' : 'OFF';
+      return value ? stateText('ON') : stateText('OFF');
     }
 
     if (binding.format === 'highLow') {
-      return value ? 'HIGH' : 'LOW';
+      return value ? stateText('HIGH') : stateText('LOW');
     }
 
     if (binding.text !== undefined) {

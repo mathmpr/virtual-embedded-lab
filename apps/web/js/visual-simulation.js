@@ -3,6 +3,7 @@ import {
   createProjectWasmSimulationSession
 } from './simulation/simulation-engine.js';
 import { analyzeFirmwareWithBackend, compileFirmwareWasmWithBackend } from './simulation/firmware-analysis-client.js';
+import { t } from './i18n.js';
 import { normalizeProjectCode } from './project-serializer.js';
 
 export function createVisualSimulation({ state, renderSignals, renderSerial, renderProblems, consoleOutput, getNets, terminalKind, codeEditor, consumeSerialRx, clearSerialRx, appendSerialEvents, clearSerialHistory, onSimulationResult, onSimulationStopped = () => {} }) {
@@ -54,7 +55,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
         state.running = false;
         onSimulationStopped();
         renderProblems(firmwareAnalysis.diagnostics.map(formatDiagnostic));
-        consoleOutput.textContent = 'Simulação bloqueada: Clang encontrou erro no firmware.';
+        consoleOutput.textContent = t('Simulation blocked: Clang found a firmware error.');
         return;
       }
 
@@ -62,7 +63,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
         state.running = false;
         onSimulationStopped();
         renderProblems((firmwareWasm.diagnostics ?? []).map(formatDiagnostic));
-        consoleOutput.textContent = 'Simulação bloqueada: firmware WASM não foi compilado.';
+        consoleOutput.textContent = t('Simulation blocked: WASM firmware was not compiled.');
         return;
       }
 
@@ -81,12 +82,12 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
       consoleOutput.textContent = renderConsole(result);
       renderSignals();
       appendSerialEvents(result.serial.events.filter((event) => event.direction !== 'RX'));
-      renderProblems(result.diagnostics.length > 0 ? result.diagnostics : ['Nenhum problema crítico reportado pelo kernel.']);
+      renderProblems(result.diagnostics.length > 0 ? result.diagnostics : [t('No critical problems reported by the kernel.')]);
       scheduleNextSimulationFrame(result);
     } catch (error) {
       state.running = false;
       onSimulationStopped();
-      renderProblems([`Falha de simulação: ${error.message}`]);
+      renderProblems([`${t('Simulation failed')}: ${error.message}`]);
     } finally {
       runningFrame = false;
     }
@@ -102,7 +103,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     stopSimulationTimer();
     clearLedAnimation();
     onSimulationStopped();
-    consoleOutput.textContent += '\nSimulação pausada.';
+    consoleOutput.textContent += `\n${t('Simulation paused.')}`;
   }
 
   function resetSimulation() {
@@ -131,10 +132,10 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     applyLedStates(new Map());
     applyBuiltInLedStates(new Map());
     onSimulationResult({ electrical: state.electrical });
-    consoleOutput.textContent = 'Runtime pronto.';
+    consoleOutput.textContent = t('Runtime ready.');
     renderSignals();
     renderSerial();
-    renderProblems(['Circuito ainda não simulado.']);
+    renderProblems([t('Circuit not simulated yet.')]);
   }
 
   function updateDistanceValue(componentId, valueCm) {

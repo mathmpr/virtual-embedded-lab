@@ -108,6 +108,7 @@ button.active {
 
 .menu {
   display: flex;
+  align-items: center;
   gap: 6px;
 }
 
@@ -115,6 +116,28 @@ button.active {
 .run-controls button {
   height: 31px;
   padding: 0 12px;
+  font-size: 12px;
+}
+
+.language-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 31px;
+  padding: 0 9px;
+  color: var(--muted);
+  font-size: 11px;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.04);
+}
+
+.language-picker select {
+  height: 23px;
+  color: var(--text);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 6px;
+  background: #1f2226;
   font-size: 12px;
 }
 

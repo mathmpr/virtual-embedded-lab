@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { componentDefinitionFromManifest } from '../../apps/web/js/components.js';
 import { renderComponentTemplate } from '../../apps/web/js/board/component-template.js';
+import { getLocale, setLocale, supportedLocales, t } from '../../apps/web/js/i18n.js';
 
 const root = new URL('../..', import.meta.url).pathname;
 
@@ -162,6 +163,53 @@ test('web UI script defines the MVP components', () => {
   assert.match(css, /\.built-in-led/);
   assert.match(css, /\.examples-dialog/);
   assert.match(css, /\.example-card/);
+});
+
+test('web UI defaults visible product text to Portuguese', () => {
+  const html = readFileSync(join(root, 'apps/web/index.html'), 'utf8');
+  const manifest = JSON.parse(readFileSync(join(root, 'components/official/seven-segment-display/component.json'), 'utf8'));
+  const definition = componentDefinitionFromManifest(manifest);
+  const componentHtml = renderComponentTemplate(definition, 'display-1', (_type, propertyName) => definition.variants?.[propertyName] ?? []);
+
+  assert.match(html, /Laboratório Embarcado Virtual/);
+  assert.match(html, /Build without components/);
+  assert.match(html, />Executar<\/button>/);
+  assert.match(html, />Pausar<\/button>/);
+  assert.match(html, />Reiniciar<\/button>/);
+  assert.match(html, />Desfazer<\/button>/);
+  assert.match(html, />Refazer<\/button>/);
+  assert.match(html, /Arraste componentes aqui/);
+  assert.doesNotMatch(html, />Run<\/button>|>Pause<\/button>|>Reset<\/button>|>Undo<\/button>|>Redo<\/button>|>Drag components here<\/div>/);
+  assert.equal(definition.title, 'Display LED de 7 segmentos');
+  assert.equal(definition.palette?.group, 'Displays');
+  assert.equal(definition.palette?.subgroup, 'Displays LED');
+  assert.match(componentHtml, /Cátodo comum/);
+  assert.doesNotMatch(componentHtml, /Common cathode/);
+});
+
+test('web UI exposes a persisted language selector with Portuguese, English and Spanish', () => {
+  const html = readFileSync(join(root, 'apps/web/index.html'), 'utf8');
+  const initialLocale = getLocale();
+
+  assert.match(html, /id="languageSelector"/);
+  assert.match(html, /value="pt-BR"/);
+  assert.match(html, /value="en"/);
+  assert.match(html, /value="es"/);
+  assert.deepEqual(supportedLocales, ['pt-BR', 'en', 'es']);
+
+  setLocale('pt-BR');
+  assert.equal(t('Run'), 'Executar');
+  assert.equal(t('Virtual Embedded Lab'), 'Laboratório Embarcado Virtual');
+
+  setLocale('en');
+  assert.equal(t('Run'), 'Run');
+  assert.equal(t('Virtual Embedded Lab'), 'Virtual Embedded Lab');
+
+  setLocale('es');
+  assert.equal(t('Run'), 'Ejecutar');
+  assert.equal(t('Virtual Embedded Lab'), 'Laboratorio Embebido Virtual');
+
+  setLocale(initialLocale);
 });
 
 test('web server exposes official component and example catalog APIs', () => {
@@ -568,7 +616,7 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   assert.match(adapter, /createProjectWasmSimulationSession/);
   assert.match(adapter, /compileFirmwareWasmWithBackend/);
   assert.match(adapter, /firmwareWasm\.ok !== true/);
-  assert.match(adapter, /firmware WASM não foi compilado/);
+  assert.match(adapter, /Simulation blocked: WASM firmware was not compiled\./);
   assert.match(adapter, /firmwareConstantsForBoard/);
   assert.match(adapter, /LED_BUILTIN: led\.pin/);
   assert.doesNotMatch(adapter, /shouldUseWasmFirmware/);

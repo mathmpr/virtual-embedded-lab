@@ -12,6 +12,7 @@ import {
 } from './nets.js';
 import { createBottomPanelResizer } from './panel-resizer.js';
 import { createVisualSimulation } from './visual-simulation.js';
+import { applyDocumentTranslations, bindLanguageSelector, t } from './i18n.js';
 import { createComponentBinder } from './board/component-binder.js';
 import { createComponentState } from './board/component-state.js';
 import { renderComponentTemplate } from './board/component-template.js';
@@ -33,7 +34,7 @@ export function createBoardEditor(document) {
   const componentLayer = document.querySelector('#componentLayer');
   const wireLayer = document.querySelector('#wireLayer');
   const inspectorContent = document.querySelector('#inspectorContent');
-  const codeEditor = createCodeEditor(document.querySelector('#codeEditor'), '// Carregando exemplo...\n');
+  const codeEditor = createCodeEditor(document.querySelector('#codeEditor'), `// ${t('Loading example...')}\n`);
   const firmwareTarget = document.querySelector('#firmwareTarget');
   const currentFirmwareName = document.querySelector('#currentFirmwareName');
   const consoleOutput = document.querySelector('#consoleOutput');
@@ -160,10 +161,12 @@ export function createBoardEditor(document) {
   });
 
   async function start() {
+    applyDocumentTranslations(document);
+    bindLanguageSelector(document);
     setupBoardSurface();
     renderSignals();
     renderSerial();
-    renderProblems(['Circuito ainda não simulado.']);
+    renderProblems([t('Circuit not simulated yet.')]);
     await loadComponents();
     renderPalette();
     bindPalette();
@@ -188,7 +191,7 @@ export function createBoardEditor(document) {
       await loadOfficialComponents();
     } catch (error) {
       renderProblems([error.message]);
-      setConsoleText(`Falha ao carregar componentes oficiais: ${error.message}`);
+      setConsoleText(`${t('Failed to load official components')}: ${error.message}`);
       throw error;
     }
   }
@@ -278,7 +281,7 @@ export function createBoardEditor(document) {
   }
 
   function syncAudioButton(enabled = buzzerAudio.enabled) {
-    toggleAudioButton.textContent = enabled ? 'Audio On' : 'Audio Off';
+    toggleAudioButton.textContent = enabled ? t('Audio On') : t('Audio Off');
     toggleAudioButton.classList.toggle('active', enabled);
     toggleAudioButton.setAttribute('aria-pressed', String(enabled));
   }
@@ -287,14 +290,14 @@ export function createBoardEditor(document) {
     const dialog = document.querySelector('#examplesDialog');
     const examplesList = document.querySelector('#examplesList');
 
-    examplesList.innerHTML = '<p class="muted">Carregando exemplos...</p>';
+    examplesList.innerHTML = `<p class="muted">${t('Loading examples...')}</p>`;
     dialog.showModal();
 
     try {
       const examples = await loadExampleList();
 
       examplesList.innerHTML = examples.length === 0
-        ? '<p class="muted">Nenhum exemplo encontrado.</p>'
+        ? `<p class="muted">${t('No examples found.')}</p>`
         : examples.map((example) => `
           <button class="example-card" value="${example.id}" data-example-id="${example.id}">
             <strong>${example.name}</strong>
@@ -310,7 +313,7 @@ export function createBoardEditor(document) {
         });
       });
     } catch (error) {
-      examplesList.innerHTML = `<p class="muted">Falha ao carregar exemplos: ${escapeHtml(error.message)}</p>`;
+      examplesList.innerHTML = `<p class="muted">${t('Failed to load examples')}: ${escapeHtml(error.message)}</p>`;
     }
   }
 
@@ -539,8 +542,8 @@ export function createBoardEditor(document) {
       await loadExampleById('hc-sr04-led-distance', false);
     } catch (error) {
       codeEditor.value = '';
-      renderProblems([`Falha ao carregar exemplo default: ${error.message}`]);
-      setConsoleText('Nenhum projeto carregado.');
+      renderProblems([`${t('Failed to load default example')}: ${error.message}`]);
+      setConsoleText(t('No project loaded.'));
     }
   }
 

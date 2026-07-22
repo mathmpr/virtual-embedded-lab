@@ -1,3 +1,4 @@
+import { t } from '../i18n.js';
 import { escapeHtml } from './formatters.js';
 
 export function createSerialPanel({ document, state, serialMonitor }) {
@@ -59,14 +60,14 @@ export function createSerialPanel({ document, state, serialMonitor }) {
     const events = state.serialHistory;
 
     if (events.length === 0) {
-      serialMonitor.innerHTML = '<p class="muted">Nenhuma mensagem serial.</p>';
+      serialMonitor.innerHTML = `<p class="muted">${t('No serial messages.')}</p>`;
       return;
     }
 
     serialMonitor.innerHTML = events.map((event) => `
       <div class="serial-row">
         <span class="serial-direction ${event.direction.toLowerCase()}">${event.direction}</span>
-        <span class="serial-meta">${escapeHtml(event.componentId ?? 'serial')}<br>${event.baudRate ?? 'no baud'}<br>${event.timeUs} us</span>
+        <span class="serial-meta">${escapeHtml(event.componentId ?? t('serial'))}<br>${event.baudRate ?? t('no baud')}<br>${event.timeUs} us</span>
         <span class="serial-data">${escapeHtml(event.data)}</span>
       </div>
     `).join('');
@@ -111,8 +112,9 @@ export function createSerialPanel({ document, state, serialMonitor }) {
   function syncSerialAutoScrollButton(button) {
     button.classList.toggle('active', state.serialAutoScroll);
     button.setAttribute('aria-pressed', String(state.serialAutoScroll));
-    button.setAttribute('aria-label', `Auto-scroll Serial ${state.serialAutoScroll ? 'ativado' : 'desativado'}`);
-    button.title = `Auto-scroll Serial ${state.serialAutoScroll ? 'ativado' : 'desativado'}`;
+    const label = state.serialAutoScroll ? t('Auto-scroll Serial enabled') : t('Auto-scroll Serial disabled');
+    button.setAttribute('aria-label', label);
+    button.title = label;
   }
 
   function syncSerialTargets(select) {
@@ -130,7 +132,7 @@ export function createSerialPanel({ document, state, serialMonitor }) {
 
     select.innerHTML = targets.length > 0
       ? targets.map((target) => `<option value="${escapeHtml(target.id)}">${escapeHtml(target.label)}</option>`).join('')
-      : '<option value="">RX alvo</option>';
+      : `<option value="">${t('Target RX Serial')}</option>`;
 
     if (targets.some((target) => target.id === selected)) {
       select.value = selected;

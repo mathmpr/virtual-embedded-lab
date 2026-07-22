@@ -1,4 +1,5 @@
 import { terminalReference } from '../components.js';
+import { propertyLabel, stateText } from '../i18n.js';
 
 export function createSignalSnapshot({ graph, runtime, runtimesByComponent = null, electrical }) {
   const signalsByNet = new Map();
@@ -47,7 +48,7 @@ function propertySignals(component) {
         return {
           label: labelFromPropertyName(key),
           value: value ? 1 : 0,
-          text: value ? 'ON' : 'OFF'
+          text: value ? stateText('ON') : stateText('OFF')
         };
       }
 
@@ -173,7 +174,7 @@ function runtimeSignalForTerminal({ graph, runtime, terminal }) {
     const state = runtime.getPinsSnapshot()[pin.number];
     return {
       value: state.value === 'HIGH' ? 1 : 0,
-      text: `${state.value} / ${state.mode}`,
+      text: `${stateText(state.value)} / ${state.mode}`,
       name: pin.name ?? `GPIO ${pin.number}`
     };
   }
@@ -216,9 +217,7 @@ function connectedTerminalLabels(componentId, net) {
 }
 
 function labelFromPropertyName(name) {
-  return String(name)
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (char) => char.toUpperCase());
+  return propertyLabel(name);
 }
 
 function formatPropertySignal(key, value) {

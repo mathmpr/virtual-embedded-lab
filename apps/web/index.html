@@ -3,7 +3,9 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Virtual Embedded Lab</title>
+    <title data-i18n="Virtual Embedded Lab">Laboratório Embarcado Virtual</title>
+    <link rel="icon" href="./favicon.ico" sizes="any">
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./styles.css">
     <script type="importmap">
       {
@@ -37,92 +39,100 @@
           </div>
         </div>
         <nav class="menu">
-          <button id="openExamples">Exemplos</button>
+          <button id="openExamples" data-i18n="Examples">Exemplos</button>
+          <label class="language-picker">
+            <span data-i18n="Language">Idioma</span>
+            <select id="languageSelector" data-i18n-aria-label="Language" aria-label="Idioma">
+              <option value="pt-BR">Português</option>
+              <option value="en">English</option>
+              <option value="es">Español</option>
+            </select>
+          </label>
         </nav>
         <div class="run-controls">
-          <button id="toggleAudio" type="button" aria-pressed="false" title="Ativar audio dos componentes">Audio Off</button>
-          <button id="startSimulation" class="primary">Run</button>
-          <button id="pauseSimulation">Pause</button>
-          <button id="resetSimulation">Reset</button>
+          <button id="toggleAudio" type="button" aria-pressed="false" data-i18n="Audio Off" data-i18n-title="Enable component audio" title="Ativar áudio dos componentes">Áudio desligado</button>
+          <button id="startSimulation" class="primary" data-i18n="Run">Executar</button>
+          <button id="pauseSimulation" data-i18n="Pause">Pausar</button>
+          <button id="resetSimulation" data-i18n="Reset">Reiniciar</button>
         </div>
       </header>
 
       <main class="workspace-grid">
         <aside class="tool-window palette">
-          <div class="tool-title">Componentes</div>
+          <div class="tool-title" data-i18n="Components">Componentes</div>
           <div class="palette-scroll">
-            <p class="muted">Carregando componentes oficiais...</p>
+            <p class="muted" data-i18n="Loading official components...">Carregando componentes oficiais...</p>
           </div>
         </aside>
 
         <section class="board-panel">
           <div class="board-toolbar">
-            <span>Board visual</span>
+            <span data-i18n="Board visual">Placa visual</span>
             <div>
-              <button id="undoBoard" disabled>Undo</button>
-              <button id="redoBoard" disabled>Redo</button>
-              <button id="saveProject">Salvar</button>
-              <button id="loadSavedProject">Carregar</button>
-              <button id="exportProject">Exportar</button>
-              <button id="importProject">Importar</button>
-              <button id="clearBoard">Limpar</button>
+              <button id="undoBoard" disabled data-i18n="Undo">Desfazer</button>
+              <button id="redoBoard" disabled data-i18n="Redo">Refazer</button>
+              <button id="saveProject" data-i18n="Save">Salvar</button>
+              <button id="loadSavedProject" data-i18n="Load">Carregar</button>
+              <button id="exportProject" data-i18n="Export">Exportar</button>
+              <button id="importProject" data-i18n="Import">Importar</button>
+              <button id="clearBoard" data-i18n="Clear">Limpar</button>
               <input id="projectFileInput" type="file" accept="application/json,.json" hidden>
             </div>
           </div>
-          <div id="board" class="board" aria-label="Board visual">
+          <div id="board" class="board" data-i18n-aria-label="Board visual" aria-label="Placa visual">
             <div id="boardViewport" class="board-viewport">
               <svg id="wireLayer" class="wire-layer"></svg>
               <div id="componentLayer" class="component-layer"></div>
             </div>
-            <div class="board-watermark">Drag components here</div>
+            <div class="board-watermark" data-i18n="Drag components here">Arraste componentes aqui</div>
           </div>
         </section>
 
         <aside class="tool-window inspector">
-          <div class="tool-title">Propriedades</div>
+          <div class="tool-title" data-i18n="Properties">Propriedades</div>
           <div id="inspectorContent" class="inspector-content">
-            <p class="muted">Selecione um componente ou fio.</p>
+            <p class="muted" data-i18n="Select a component or wire.">Selecione um componente ou fio.</p>
           </div>
           <div class="inspector-signals">
-            <div class="tool-title">Sinais</div>
+            <div class="tool-title" data-i18n="Signals">Sinais</div>
             <div id="signalMonitor" class="signal-monitor"></div>
           </div>
         </aside>
 
         <section class="bottom-panel">
-          <div id="bottomResizeHandle" class="bottom-resize-handle" title="Redimensionar painel inferior"></div>
+          <div id="bottomResizeHandle" class="bottom-resize-handle" data-i18n-title="Resize bottom panel" title="Redimensionar painel inferior"></div>
           <div class="tabs">
-            <button class="active" data-bottom-tab="code">Código</button>
-            <button data-bottom-tab="console">Console</button>
+            <button class="active" data-bottom-tab="code" data-i18n="Code">Código</button>
+            <button data-bottom-tab="console" data-i18n="Console">Console</button>
             <button data-bottom-tab="serial">Serial</button>
-            <button data-bottom-tab="problems">Problemas</button>
+            <button data-bottom-tab="problems" data-i18n="Problems">Problemas</button>
           </div>
           <div class="bottom-grid">
             <div class="editor-panel bottom-view active" data-bottom-panel="code">
               <div class="editor-header">
                 <span id="currentFirmwareName">main.ino</span>
-                <select id="firmwareTarget" class="firmware-target" aria-label="Firmware ativo">
+                <select id="firmwareTarget" class="firmware-target" data-i18n-aria-label="Active firmware" aria-label="Firmware ativo">
                   <option value="">main.ino</option>
                 </select>
               </div>
-              <div id="codeEditor" class="code-editor" aria-label="Editor de código Arduino"></div>
+              <div id="codeEditor" class="code-editor" data-i18n-aria-label="Arduino code editor" aria-label="Editor de código Arduino"></div>
             </div>
             <div class="runtime-panel">
               <div class="panel-card bottom-view" data-bottom-panel="console">
-                <strong>Console</strong>
-                <pre id="consoleOutput">Runtime pronto.</pre>
+                <strong data-i18n="Console">Console</strong>
+                <pre id="consoleOutput" data-i18n="Runtime ready.">Runtime pronto.</pre>
               </div>
               <div class="panel-card bottom-view" data-bottom-panel="problems">
-                <strong>Problemas</strong>
+                <strong data-i18n="Problems">Problemas</strong>
                 <ul id="problemList" class="problem-list"></ul>
               </div>
               <div class="panel-card bottom-view" data-bottom-panel="serial">
                 <strong>Serial</strong>
                 <div class="serial-controls">
-                  <select id="serialTarget" aria-label="Destino RX Serial">
-                    <option value="">RX alvo</option>
+                  <select id="serialTarget" data-i18n-aria-label="Target RX Serial" aria-label="Destino RX Serial">
+                    <option value="" data-i18n="Target RX Serial">RX alvo</option>
                   </select>
-                  <select id="serialBaudRate" aria-label="Baud rate Serial">
+                  <select id="serialBaudRate" data-i18n-aria-label="Serial baud rate" aria-label="Taxa de baud Serial">
                     <option value="300">300</option>
                     <option value="1200">1200</option>
                     <option value="2400">2400</option>
@@ -138,14 +148,14 @@
                     <option value="250000">250000</option>
                   </select>
                   <input id="serialInput" type="text" placeholder="RX">
-                  <button id="sendSerialInput">Enviar</button>
+                  <button id="sendSerialInput" data-i18n="Send">Enviar</button>
                 </div>
                 <div id="serialMonitor" class="serial-monitor">
-                  <p class="muted">Nenhuma mensagem serial.</p>
+                  <p class="muted" data-i18n="No serial messages.">Nenhuma mensagem serial.</p>
                 </div>
                 <div class="serial-actions">
-                  <button id="toggleSerialAutoScroll" class="serial-autoscroll-toggle active" type="button" aria-label="Auto-scroll Serial ativado" aria-pressed="true" title="Auto-scroll Serial">⇣ Auto</button>
-                  <button id="clearSerialHistory" class="serial-clear-button" title="Limpar histórico Serial">Clear</button>
+                  <button id="toggleSerialAutoScroll" class="serial-autoscroll-toggle active" type="button" data-i18n-aria-label="Auto-scroll Serial enabled" aria-label="Rolagem automática Serial ativada" aria-pressed="true" data-i18n-title="Auto-scroll Serial" title="Rolagem automática Serial">⇣ Auto</button>
+                  <button id="clearSerialHistory" class="serial-clear-button" data-i18n-title="Clear" title="Limpar" data-i18n="Clear">Limpar</button>
                 </div>
               </div>
             </div>
@@ -157,13 +167,13 @@
         <form method="dialog" class="examples-modal">
           <div class="modal-header">
             <div>
-              <strong>Exemplos</strong>
-              <span>Carregue um projeto completo com board e código.</span>
+              <strong data-i18n="Examples">Exemplos</strong>
+              <span data-i18n="Load a complete project with board and code.">Carregue um projeto completo com board e código.</span>
             </div>
-            <button value="cancel" aria-label="Fechar">×</button>
+            <button value="cancel" data-i18n-aria-label="Close" aria-label="Fechar">×</button>
           </div>
           <div id="examplesList" class="examples-list">
-            <p class="muted">Carregando exemplos...</p>
+            <p class="muted" data-i18n="Loading examples...">Carregando exemplos...</p>
           </div>
         </form>
       </dialog>
