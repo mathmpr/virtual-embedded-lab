@@ -454,6 +454,11 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
   const sensorAdapters = readFileSync(join(root, 'apps/web/js/simulation/sensor-behavior-adapters.js'), 'utf8');
   const legacyIr = readFileSync(join(root, 'apps/web/js/simulation/legacy-ir-simulation.js'), 'utf8');
+  const firmwareIr = readFileSync(join(root, 'apps/web/js/simulation/firmware-engine.js'), 'utf8');
+  const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
+  const wasmShimRegistry = readFileSync(join(root, 'apps/web/firmware/wasm-shim-registry.mjs'), 'utf8');
+  const wasmRunner = readFileSync(join(root, 'apps/web/js/simulation/wasm-firmware-runner.js'), 'utf8');
+  const wasmImportAdapters = readFileSync(join(root, 'apps/web/js/simulation/wasm-import-adapters.js'), 'utf8');
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
 
   assert.doesNotMatch(adapter, /runProjectSimulation/);
@@ -463,6 +468,18 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   assert.match(legacyIr, /Deprecated IR execution adapter/);
   assert.match(legacyIr, /firmware-engine\.js/);
   assert.match(legacyIr, /runLegacyIrProjectSimulation/);
+  assert.match(firmwareIr, /legacyIrFirmwareEngine/);
+  assert.match(firmwareIr, /allowNewComponentDependencies: false/);
+  assert.match(wasmCompiler, /resolveWasmShimLibraries/);
+  assert.match(wasmCompiler, /wasmShimImportsForLibraries/);
+  assert.match(wasmCompiler, /supportedWasmLibraryDocs/);
+  assert.match(wasmShimRegistry, /supportedWasmLibraryDocs/);
+  assert.match(wasmShimRegistry, /headers: \['WiFi'\]/);
+  assert.match(wasmShimRegistry, /apis: \['WiFi\.mode'/);
+  assert.match(wasmRunner, /createWasmImportRegistry/);
+  assert.match(wasmRunner, /registerDefaultWasmImportAdapters/);
+  assert.match(wasmImportAdapters, /libraries: \['WiFi'\]/);
+  assert.match(wasmImportAdapters, /capabilities: \['wifi'\]/);
   assert.doesNotMatch(adapter, /d13High/);
   assert.doesNotMatch(adapter, /distanceCm\s*</);
   assert.match(engine, /createCircuitGraph/);

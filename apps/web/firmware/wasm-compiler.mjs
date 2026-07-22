@@ -3,6 +3,12 @@ import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { spawn } from 'node:child_process';
+import {
+  resolveWasmShimLibraries,
+  stripRegisteredFirmwareIncludes,
+  supportedWasmLibraryDocs,
+  wasmShimImportsForLibraries
+} from './wasm-shim-registry.mjs';
 
 const defaultTimeoutMs = 8000;
 const wasmBuildCache = new Map();
@@ -13,7 +19,8 @@ export async function compileFirmwareWasmWithClang(code, options = {}) {
   const sourcePath = join(workDir, 'main.ino.cpp');
   const wasmPath = join(workDir, 'firmware.wasm');
   const constantExports = firmwareConstantExports(code);
-  const source = wasmShim(code, { constants: options.constants ?? {}, constantExports });
+  const libraries = resolveWasmShimLibraries(code);
+  const source = wasmShim(code, { constants: options.constants ?? {}, constantExports, libraries });
   const sandbox = resolveWasmSandbox(options.sandbox);
   const cacheKey = wasmBuildCacheKey({
     source,
@@ -68,7 +75,9 @@ export async function compileFirmwareWasmWithClang(code, options = {}) {
       bytes: wasm.byteLength,
       exports: ['__vl_setup', '__vl_loop', 'memory', ...constantExports.map((name) => `__vl_const_${name}`)],
       constantExports,
-      imports: ['digitalRead', 'digitalWrite', 'pinMode', 'analogRead', 'delay', 'delayMicroseconds', 'millis', 'micros', 'pulseIn', 'serialBegin', 'serialAvailable', 'serialRead', 'serialWrite', 'serialPrint', 'serialPrintln', 'serialPrintFloat', 'serialPrintlnFloat', 'wireBegin', 'wireBeginTransmission', 'wireWrite', 'wireEndTransmission', 'wireRequestFrom', 'wireAvailable', 'wireRead', 'bmp280Begin', 'bmp280ReadTemperature', 'bmp280ReadPressure', 'adcBegin', 'adcReadSingleEnded', 'adcComputeVolts', 'spiBegin', 'spiTransfer', 'mcp3008Begin', 'mcp3008Read', 'wifiMode', 'wifiBegin', 'wifiStatus', 'wifiSoftAP', 'wifiScanNetworks', 'wifiRssi', 'wifiRssiForSsid', 'wifiInternetAvailable'],
+      imports: wasmShimImportsForLibraries(libraries),
+      libraries: libraries.map((library) => library.id),
+      supportedLibraries: supportedWasmLibraryDocs(),
       cacheHit: false,
       cacheKey,
       sandbox: sandbox.name
@@ -265,7 +274,7 @@ function isMissingWasmLinker(error) {
 function wasmShim(code, options = {}) {
   const source = normalizeFirmwareSource(code);
 
-  return `${shimSource(options.constants ?? {})}\n${inferredAliasSource(source)}${stripArduinoIncludes(source)}\n${constantExportWrappers(options.constantExports ?? [])}${entrypointWrappers()}\n`;
+  return `${shimSource(options.constants ?? {})}\n${inferredAliasSource(source)}${stripRegisteredFirmwareIncludes(source, options.libraries ?? [])}\n${constantExportWrappers(options.constantExports ?? [])}${entrypointWrappers()}\n`;
 }
 
 function shimSource(constants = {}) {
@@ -515,10 +524,6 @@ function firmwareConstantExports(code) {
   }
 
   return [...names];
-}
-
-function stripArduinoIncludes(code) {
-  return code.replace(/^\s*#include\s+[<"](?:Arduino|WiFi|Wire|SPI)\.h[>"].*$/gm, '');
 }
 
 function normalizeFirmwareSource(code) {

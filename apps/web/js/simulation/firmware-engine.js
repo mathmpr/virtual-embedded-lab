@@ -3,6 +3,12 @@ import { wifiStatusCodes } from './arduino-runtime.js';
 // Deprecated JS IR firmware engine.
 // The web UI executes firmware through WASM. Keep this module for legacy tests
 // and analyzer compatibility only; implement new firmware APIs in the WASM shim.
+export const legacyIrFirmwareEngine = {
+  status: 'deprecated',
+  purpose: 'fallback-debug-temporary',
+  allowNewComponentDependencies: false,
+  replacement: 'wasm'
+};
 
 const declarationPattern = /^(?:const\s+)?(?:(?:unsigned\s+)?long|float|double|int|bool|char|String)\s*(?:\*)?\s+/;
 
