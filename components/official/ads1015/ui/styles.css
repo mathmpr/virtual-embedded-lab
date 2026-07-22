@@ -1,0 +1,29 @@
+.ads1015-icon,
+.ads1115-icon {
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 0.18) 0 10%, transparent 11% 89%, rgb(255 255 255 / 0.18) 90%),
+    linear-gradient(135deg, #355d7d, #20324b);
+}
+
+.adc-module {
+  background: linear-gradient(145deg, #2f4054, #202832);
+}
+
+.adc-chip {
+  height: 48px;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 8px;
+  color: #dce0e8;
+  font: 700 11px var(--mono);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 9px, rgb(76 141 255 / 0.14) 9px 12px),
+    linear-gradient(135deg, #202b3a, #121820);
+  transition: box-shadow 180ms ease;
+}
+
+.adc-module.online .adc-chip {
+  box-shadow: 0 0 22px rgb(76 141 255 / 0.22);
+}

@@ -37,6 +37,11 @@
     "type": "wireless-environment",
     "capability": "wifi"
   },
+  "contributions": {
+    "styles": {
+      "files": ["./ui/styles.css"]
+    }
+  },
   "visual": {
     "type": "wifi-signal",
     "title": "Wi-Fi Signal",

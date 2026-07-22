@@ -40,6 +40,11 @@
     "activeProperty": "active",
     "inputLevelProperty": "inputLevel"
   },
+  "contributions": {
+    "styles": {
+      "files": ["./ui/styles.css"]
+    }
+  },
   "electricalModel": {
     "type": "load",
     "primitive": "buzzer",

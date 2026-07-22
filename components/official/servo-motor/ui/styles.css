@@ -1,0 +1,50 @@
+.servo-icon {
+  background:
+    radial-gradient(circle at 50% 50%, #e8eef7 0 18%, transparent 19%),
+    linear-gradient(90deg, transparent 0 42%, #f2b84b 43% 57%, transparent 58%),
+    linear-gradient(135deg, #31517a, #1a2533);
+}
+
+.servo-motor {
+  background: linear-gradient(145deg, #283a52, #172331);
+}
+
+.servo-body {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  border: 1px solid #40546e;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #172536, #101821);
+}
+
+.servo-horn {
+  --servo-angle: 90;
+  width: 74px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #dce8f8, #8ca6c8);
+  transform: rotate(calc(var(--servo-angle) * 1deg - 90deg));
+  transform-origin: 50% 50%;
+  transition: transform 180ms ease;
+  box-shadow: 0 0 14px rgb(140 166 200 / 0.35);
+}
+
+.servo-horn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f2b84b;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 12px rgb(242 184 75 / 0.5);
+}
+
+.servo-motor.is-attached .servo-body {
+  border-color: #5c9dff;
+  box-shadow: 0 0 18px rgb(92 157 255 / 0.22);
+}

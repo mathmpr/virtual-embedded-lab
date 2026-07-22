@@ -79,6 +79,9 @@
     },
     "simulationBehaviors": {
       "modules": ["./simulation/behavior.js"]
+    },
+    "styles": {
+      "files": ["./ui/styles.css"]
     }
   },
   "visual": {

@@ -1,0 +1,36 @@
+.lcd-icon {
+  background:
+    linear-gradient(90deg, #89b96b 0 72%, #31482c 73%),
+    repeating-linear-gradient(0deg, transparent 0 5px, rgb(255 255 255 / 0.14) 6px 7px);
+}
+
+.lcd-16x2-i2c {
+  background: linear-gradient(145deg, #203521, #18222a);
+}
+
+.lcd-screen {
+  display: grid;
+  gap: 4px;
+  padding: 13px 14px;
+  min-height: 56px;
+  border: 1px solid #284933;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #263c2b, #172319);
+  color: #8fa37e;
+  box-shadow: inset 0 0 18px rgb(0 0 0 / 0.35);
+}
+
+.lcd-16x2-i2c.backlight-on .lcd-screen {
+  border-color: #8dd27f;
+  color: #d9ffb7;
+  background: linear-gradient(145deg, #385932, #203620);
+  box-shadow: inset 0 0 20px rgb(141 210 127 / 0.18), 0 0 18px rgb(92 168 82 / 0.16);
+}
+
+.lcd-line {
+  min-height: 15px;
+  overflow: hidden;
+  white-space: pre;
+  font: 800 13px var(--mono);
+  letter-spacing: 0.08em;
+}

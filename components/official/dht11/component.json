@@ -38,6 +38,9 @@
     },
     "simulationBehaviors": {
       "modules": ["../dht22/simulation/behavior.js"]
+    },
+    "styles": {
+      "files": ["../dht22/ui/styles.css"]
     }
   },
   "electricalModel": {

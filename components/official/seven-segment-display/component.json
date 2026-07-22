@@ -58,6 +58,11 @@
     },
     "commonTerminals": ["com1", "com2"]
   },
+  "contributions": {
+    "styles": {
+      "files": ["./ui/styles.css"]
+    }
+  },
   "electricalModel": {
     "type": "multi-led",
     "primitive": "seven-segment-led",

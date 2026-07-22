@@ -1,0 +1,24 @@
+.dht-icon {
+  background:
+    repeating-linear-gradient(0deg, #d8e4ff 0 2px, transparent 3px 7px),
+    linear-gradient(135deg, #396a78, #1a2b34);
+}
+
+.dht-sensor {
+  background: linear-gradient(145deg, #294a55, #19242c);
+}
+
+.dht-grille {
+  display: grid;
+  place-items: center;
+  min-height: 26px;
+  margin-top: 6px;
+  border: 1px solid #385162;
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.1) 0 2px, transparent 2px 7px),
+    linear-gradient(135deg, #172631, #101820);
+  color: #c9eaff;
+  font: 900 11px var(--mono);
+  letter-spacing: 0.08em;
+}

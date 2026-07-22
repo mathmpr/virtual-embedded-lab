@@ -4,12 +4,12 @@ import { fileURLToPath } from 'node:url';
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = join(moduleDir, '..', '..', '..');
-const catalogPath = join(moduleDir, 'libraries', 'index.json');
+const coreLibrariesPath = join(moduleDir, 'core-libraries.json');
 const officialComponentsRoot = join(workspaceRoot, 'components', 'official');
-const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
+const coreLibrariesCatalog = JSON.parse(readFileSync(coreLibrariesPath, 'utf8'));
 
 export const firmwareLibraries = [
-  ...catalog.libraries,
+  ...coreLibrariesCatalog.libraries,
   ...readComponentFirmwareLibraries(officialComponentsRoot)
 ];
 
