@@ -283,6 +283,8 @@ function shimSource(constants = {}) {
   return `using uint8_t = unsigned char;
 using uint16_t = unsigned short;
 using uint32_t = unsigned int;
+using size_t = unsigned long;
+#define IRAM_ATTR
 
 extern "C" void __vl_pinMode(int pin, int mode);
 extern "C" void __vl_digitalWrite(int pin, int value);
@@ -328,11 +330,27 @@ extern "C" int __vl_wifiScanNetworks();
 extern "C" int __vl_wifiRssi();
 extern "C" int __vl_wifiRssiForSsid(const char *ssid);
 extern "C" bool __vl_wifiInternetAvailable();
+extern "C" int __vl_tcpConnect(const char *host, int port);
+extern "C" int __vl_tcpPrint(const char *data);
+extern "C" int __vl_tcpPrintln(const char *data);
+extern "C" int __vl_tcpAvailable();
+extern "C" int __vl_tcpRead();
+extern "C" void __vl_tcpStop();
+extern "C" int __vl_tcpConnected();
+extern "C" void __vl_mqttSetServer(const char *host, int port);
+extern "C" int __vl_mqttConnect();
+extern "C" void __vl_mqttDisconnect();
+extern "C" int __vl_mqttConnected();
+extern "C" unsigned short __vl_mqttSubscribe(const char *topic, int qos);
+extern "C" unsigned short __vl_mqttPublish(const char *topic, int qos, bool retain, const char *payload);
+extern "C" int __vl_mqttReadMessage(const char *subscribedTopic, char *topic, int topicMax, char *payload, int payloadMax);
 
 const int LOW = 0;
 const int HIGH = 1;
 const int INPUT = 0;
 const int OUTPUT = 1;
+const int INPUT_PULLUP = 2;
+const int FALLING = 2;
 const int LED_BUILTIN = ${ledBuiltin};
 const int A0 = 14;
 const int A1 = 15;
@@ -360,6 +378,130 @@ void delayMicroseconds(unsigned long microseconds) { __vl_delayMicroseconds(micr
 unsigned long pulseIn(int pin, int value, unsigned long timeout = 1000000) { return __vl_pulseIn(pin, value, timeout); }
 unsigned long millis() { return __vl_millis(); }
 unsigned long micros() { return __vl_micros(); }
+void yield() {}
+int digitalPinToInterrupt(int pin) { return pin; }
+void attachInterrupt(int, void (*)(), int) {}
+
+int __vl_append_char(char *buffer, size_t size, int index, char value) {
+  if (index < (int)size - 1) {
+    buffer[index] = value;
+  }
+  return index + 1;
+}
+
+int __vl_append_string(char *buffer, size_t size, int index, const char *value) {
+  int source = 0;
+  while (value && value[source] != 0) {
+    index = __vl_append_char(buffer, size, index, value[source]);
+    source++;
+  }
+  return index;
+}
+
+int __vl_append_int(char *buffer, size_t size, int index, int value) {
+  char digits[16];
+  int count = 0;
+  if (value < 0) {
+    index = __vl_append_char(buffer, size, index, '-');
+    value = -value;
+  }
+  do {
+    digits[count++] = (char)('0' + (value % 10));
+    value /= 10;
+  } while (value > 0 && count < 16);
+  while (count > 0) {
+    index = __vl_append_char(buffer, size, index, digits[--count]);
+  }
+  return index;
+}
+
+void __vl_terminate(char *buffer, size_t size, int index) {
+  if (size == 0) {
+    return;
+  }
+  buffer[index < (int)size ? index : (int)size - 1] = 0;
+}
+
+int snprintf(char *buffer, size_t size, const char *, const char *first, const char *second) {
+  int index = __vl_append_string(buffer, size, 0, first);
+  index = __vl_append_char(buffer, size, index, ':');
+  index = __vl_append_string(buffer, size, index, second);
+  __vl_terminate(buffer, size, index);
+  return index;
+}
+
+int snprintf(char *buffer, size_t size, const char *, const char *first, const char *second, int third) {
+  int index = __vl_append_string(buffer, size, 0, first);
+  index = __vl_append_char(buffer, size, index, ':');
+  index = __vl_append_string(buffer, size, index, second);
+  index = __vl_append_char(buffer, size, index, ':');
+  index = __vl_append_int(buffer, size, index, third);
+  __vl_terminate(buffer, size, index);
+  return index;
+}
+
+int snprintf(char *buffer, size_t size, const char *, const char *first, const char *second, const char *third, const char *fourth) {
+  int index = __vl_append_string(buffer, size, 0, first);
+  index = __vl_append_char(buffer, size, index, ':');
+  index = __vl_append_string(buffer, size, index, second);
+  index = __vl_append_char(buffer, size, index, ':');
+  index = __vl_append_string(buffer, size, index, third);
+  index = __vl_append_char(buffer, size, index, ':');
+  index = __vl_append_string(buffer, size, index, fourth);
+  __vl_terminate(buffer, size, index);
+  return index;
+}
+
+class String {
+public:
+  String() { clear(); }
+  String(const char *value) { assign(value); }
+  void operator+=(char value) {
+    int currentLength = length();
+    if (currentLength < 127) {
+      buffer[currentLength] = value;
+      buffer[currentLength + 1] = 0;
+    }
+  }
+  bool operator==(const char *value) const { return equals(value); }
+  const char *c_str() const { return buffer; }
+  int toInt() const {
+    int value = 0;
+    int sign = buffer[0] == '-' ? -1 : 1;
+    int index = sign < 0 ? 1 : 0;
+    while (buffer[index] >= '0' && buffer[index] <= '9') {
+      value = value * 10 + (buffer[index] - '0');
+      index++;
+    }
+    return value * sign;
+  }
+private:
+  char buffer[128];
+  void clear() { buffer[0] = 0; }
+  int length() const {
+    int index = 0;
+    while (buffer[index] != 0 && index < 127) { index++; }
+    return index;
+  }
+  void assign(const char *value) {
+    int index = 0;
+    while (value && value[index] != 0 && index < 127) {
+      buffer[index] = value[index];
+      index++;
+    }
+    buffer[index] = 0;
+  }
+  bool equals(const char *value) const {
+    int index = 0;
+    while (buffer[index] != 0 || (value && value[index] != 0)) {
+      if (!value || buffer[index] != value[index]) {
+        return false;
+      }
+      index++;
+    }
+    return true;
+  }
+};
 
 class HardwareSerial {
 public:
@@ -481,9 +623,164 @@ public:
   int RSSI() { return __vl_wifiRssi(); }
   int RSSI(const char *ssid) { return __vl_wifiRssiForSsid(ssid); }
   bool internetAvailable() { return __vl_wifiInternetAvailable(); }
+  void disconnect() {}
+  void setAutoReconnect(bool) {}
+  void persistent(bool) {}
+  void scanDelete() {}
+  String SSID(int) { return String("VirtualLab"); }
 };
 
 WiFiClass WiFi;
+
+class WiFiClient {
+public:
+  int connect(const char *host, int port) { return __vl_tcpConnect(host, port); }
+  int print(const char *value) { return __vl_tcpPrint(value); }
+  int println() { return __vl_tcpPrintln(""); }
+  int println(const char *value) { return __vl_tcpPrintln(value); }
+  int available() { return __vl_tcpAvailable(); }
+  int read() { return __vl_tcpRead(); }
+  void stop() { __vl_tcpStop(); }
+  int connected() { return __vl_tcpConnected(); }
+};
+
+class WiFiEventHandler {};
+class WiFiEventStationModeGotIP {};
+class WiFiEventStationModeDisconnected {};
+
+class ESPClass {
+public:
+  void restart() {}
+  void wdtDisable() {}
+  void wdtEnable(int) {}
+  void wdtFeed() {}
+};
+
+ESPClass ESP;
+const int WDTO_8S = 8000;
+
+enum AsyncMqttClientDisconnectReason {
+  TCP_DISCONNECTED = 0,
+  MQTT_UNACCEPTABLE_PROTOCOL_VERSION = 1,
+  MQTT_IDENTIFIER_REJECTED = 2,
+  MQTT_SERVER_UNAVAILABLE = 3,
+  MQTT_MALFORMED_CREDENTIALS = 4,
+  MQTT_NOT_AUTHORIZED = 5
+};
+
+struct AsyncMqttClientMessageProperties {
+  bool dup;
+  unsigned char qos;
+  bool retain;
+};
+
+class AsyncMqttClient {
+public:
+  AsyncMqttClient() : connectCallback(0), disconnectCallback(0), messageCallback(0), subscriptionCount(0) {}
+  void setServer(const char *host, unsigned short port) { __vl_mqttSetServer(host, port); }
+  void onConnect(void (*callback)(bool)) { connectCallback = callback; }
+  void onDisconnect(void (*callback)(AsyncMqttClientDisconnectReason)) { disconnectCallback = callback; }
+  void onMessage(void (*callback)(char *, char *, AsyncMqttClientMessageProperties, size_t, size_t, size_t)) { messageCallback = callback; }
+  void connect() {
+    if (__vl_mqttConnect() && connectCallback) {
+      connectCallback(false);
+    }
+  }
+  void disconnect() {
+    __vl_mqttDisconnect();
+    if (disconnectCallback) {
+      disconnectCallback(TCP_DISCONNECTED);
+    }
+  }
+  bool connected() {
+    bool active = __vl_mqttConnected();
+    if (active) {
+      pollMessages();
+    }
+    return active;
+  }
+  unsigned short subscribe(const char *topic, unsigned char qos) {
+    unsigned short packetId = __vl_mqttSubscribe(topic, qos);
+    if (subscriptionCount < 8) {
+      copySubscription(subscriptionCount, topic);
+      subscriptionCount++;
+    }
+    pollMessages();
+    return packetId;
+  }
+  unsigned short publish(const char *topic, unsigned char qos, bool retain, const char *payload) {
+    unsigned short packetId = __vl_mqttPublish(topic, qos, retain, payload);
+    pollMessages();
+    return packetId;
+  }
+private:
+  void (*connectCallback)(bool);
+  void (*disconnectCallback)(AsyncMqttClientDisconnectReason);
+  void (*messageCallback)(char *, char *, AsyncMqttClientMessageProperties, size_t, size_t, size_t);
+  char subscriptions[8][128];
+  int subscriptionCount;
+  void copySubscription(int slot, const char *topic) {
+    int index = 0;
+    while (topic && topic[index] != 0 && index < 127) {
+      subscriptions[slot][index] = topic[index];
+      index++;
+    }
+    subscriptions[slot][index] = 0;
+  }
+  void pollMessages() {
+    for (int index = 0; index < subscriptionCount; index++) {
+      for (int attempt = 0; attempt < 16; attempt++) {
+        if (!deliverSubscribedMessage(subscriptions[index])) {
+          break;
+        }
+      }
+    }
+  }
+  bool deliverSubscribedMessage(const char *subscription) {
+    if (!messageCallback) {
+      return false;
+    }
+    char topic[128];
+    char payload[256];
+    int length = __vl_mqttReadMessage(subscription, topic, 128, payload, 256);
+    if (length >= 0) {
+      AsyncMqttClientMessageProperties properties = { false, 0, false };
+      messageCallback(topic, payload, properties, (size_t)length, 0, (size_t)length);
+      return true;
+    }
+    return false;
+  }
+};
+
+class SimpleTimer {
+public:
+  SimpleTimer() : count(0) {}
+  int setInterval(unsigned long interval, void (*callback)()) {
+    if (count >= 8) {
+      return -1;
+    }
+    timers[count] = { interval, millis(), callback };
+    count++;
+    return count;
+  }
+  void run() {
+    unsigned long now = millis();
+    for (int index = 0; index < count; index++) {
+      if (timers[index].callback && now - timers[index].last >= timers[index].interval) {
+        timers[index].last = now;
+        timers[index].callback();
+      }
+    }
+  }
+private:
+  struct TimerEntry {
+    unsigned long interval;
+    unsigned long last;
+    void (*callback)();
+  };
+  TimerEntry timers[8];
+  int count;
+};
 `;
 }
 

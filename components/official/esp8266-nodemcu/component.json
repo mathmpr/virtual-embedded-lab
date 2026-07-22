@@ -1,0 +1,122 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "board.esp8266.nodemcu",
+    "name": "ESP8266 NodeMCU",
+    "category": "microcontroller",
+    "subCategory": "esp8266"
+  },
+  "simulation": {
+    "kind": "microcontroller",
+    "effects": ["firmware", "electrical", "environment", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "logicVoltage": {
+      "type": "number",
+      "default": 3.3,
+      "unit": "V",
+      "simulationUpdate": "rerun"
+    },
+    "wifiMode": {
+      "type": "string",
+      "default": "station",
+      "simulationUpdate": "rerun"
+    }
+  },
+  "terminals": [
+    { "id": "3v3", "label": "3V3", "type": "power-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "vin", "label": "VIN", "type": "power-input" },
+    { "id": "d0", "label": "D0/GPIO16", "type": "digital-io" },
+    { "id": "d1", "label": "D1/GPIO5", "type": "digital-io" },
+    { "id": "d2", "label": "D2/GPIO4", "type": "digital-io" },
+    { "id": "d3", "label": "D3/GPIO0", "type": "digital-io" },
+    { "id": "d4", "label": "D4/GPIO2", "type": "digital-io" },
+    { "id": "d5", "label": "D5/GPIO14", "type": "digital-io" },
+    { "id": "d6", "label": "D6/GPIO12", "type": "digital-io" },
+    { "id": "d7", "label": "D7/GPIO13", "type": "digital-io" },
+    { "id": "d8", "label": "D8/GPIO15", "type": "digital-io" },
+    { "id": "rx", "label": "RX/GPIO3", "type": "uart-io" },
+    { "id": "tx", "label": "TX/GPIO1", "type": "uart-io" },
+    { "id": "a0", "label": "A0", "type": "analog-input" }
+  ],
+  "electricalModel": {
+    "type": "microcontroller",
+    "logicVoltage": 3.3,
+    "recommendedPinCurrentAmps": 0.012
+  },
+  "behavior": {
+    "type": "microcontroller",
+    "runtime": "arduino-compatible",
+    "wireless": ["wifi"],
+    "pinMap": {
+      "d0": { "number": 16, "name": "GPIO16/D0", "capabilities": ["digital"] },
+      "d1": { "number": 5, "name": "GPIO5/D1", "capabilities": ["digital", "i2c-scl", "pwm", "interrupt"] },
+      "d2": { "number": 4, "name": "GPIO4/D2", "capabilities": ["digital", "i2c-sda", "pwm", "interrupt"] },
+      "d3": { "number": 0, "name": "GPIO0/D3", "capabilities": ["digital", "pwm", "interrupt", "strapping"] },
+      "d4": { "number": 2, "name": "GPIO2/D4", "capabilities": ["digital", "pwm", "interrupt", "led", "strapping"] },
+      "d5": { "number": 14, "name": "GPIO14/D5", "capabilities": ["digital", "pwm", "interrupt", "spi-sck"] },
+      "d6": { "number": 12, "name": "GPIO12/D6", "capabilities": ["digital", "pwm", "interrupt", "spi-miso"] },
+      "d7": { "number": 13, "name": "GPIO13/D7", "capabilities": ["digital", "pwm", "interrupt", "spi-mosi"] },
+      "d8": { "number": 15, "name": "GPIO15/D8", "capabilities": ["digital", "pwm", "interrupt", "spi-cs", "strapping"] },
+      "rx": { "number": 3, "name": "GPIO3/RX0", "capabilities": ["digital", "uart-rx"] },
+      "tx": { "number": 1, "name": "GPIO1/TX0", "capabilities": ["digital", "uart-tx"] },
+      "a0": { "number": 17, "analogNumber": 0, "name": "ADC0/A0", "capabilities": ["analog"] }
+    },
+    "buses": {
+      "i2c": [
+        { "id": "wire", "sda": "d2", "scl": "d1" }
+      ],
+      "spi": [
+        { "id": "hspi", "sck": "d5", "miso": "d6", "mosi": "d7", "defaultCs": "d8" }
+      ],
+      "uart": [
+        { "id": "uart0", "rx": "rx", "tx": "tx" }
+      ]
+    },
+    "builtInLeds": [
+      {
+        "id": "led_builtin",
+        "label": "LED",
+        "pin": 2,
+        "terminalId": "d4",
+        "activeHigh": false,
+        "color": "blue",
+        "description": "LED built-in comum do ESP8266 NodeMCU ligado ao GPIO2/D4, ativo em LOW."
+      }
+    ]
+  },
+  "visual": {
+    "type": "esp8266-nodemcu",
+    "title": "ESP8266 NodeMCU",
+    "className": "esp8266-nodemcu",
+    "body": "3.3V logic / Wi-Fi",
+    "width": 260,
+    "height": 330,
+    "palette": {
+      "group": "Boards",
+      "subgroup": "ESP8266",
+      "icon": "esp8266-icon",
+      "order": 13
+    },
+    "terminals": [
+      { "id": "3v3", "side": "top", "x": 45, "y": 0, "kind": "power" },
+      { "id": "gnd", "side": "top", "x": 95, "y": 0, "kind": "ground" },
+      { "id": "vin", "side": "top", "x": 145, "y": 0, "kind": "power" },
+      { "id": "d0", "side": "left", "x": 0, "y": 45, "kind": "signal" },
+      { "id": "d1", "side": "left", "x": 0, "y": 70, "kind": "signal" },
+      { "id": "d2", "side": "left", "x": 0, "y": 95, "kind": "signal" },
+      { "id": "d3", "side": "left", "x": 0, "y": 120, "kind": "signal" },
+      { "id": "d4", "side": "left", "x": 0, "y": 145, "kind": "signal" },
+      { "id": "d5", "side": "right", "x": 260, "y": 45, "kind": "signal" },
+      { "id": "d6", "side": "right", "x": 260, "y": 70, "kind": "signal" },
+      { "id": "d7", "side": "right", "x": 260, "y": 95, "kind": "signal" },
+      { "id": "d8", "side": "right", "x": 260, "y": 120, "kind": "signal" },
+      { "id": "rx", "side": "right", "x": 260, "y": 160, "kind": "signal" },
+      { "id": "tx", "side": "right", "x": 260, "y": 185, "kind": "signal" },
+      { "id": "a0", "side": "bottom", "x": 130, "y": 330, "kind": "signal" }
+    ]
+  }
+}

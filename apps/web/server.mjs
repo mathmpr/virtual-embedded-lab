@@ -3,6 +3,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { compileFirmwareIrWithClang } from './firmware/clang-analyzer.mjs';
 import { compileFirmwareWasmWithClang } from './firmware/wasm-compiler.mjs';
+import { handleMqttBridgeRequest } from './network/mqtt-bridge.mjs';
 
 const port = Number(process.env.PORT ?? 4173);
 const host = process.env.HOST ?? '127.0.0.1';
@@ -83,6 +84,11 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (url.pathname.startsWith('/api/network/mqtt/')) {
+      await handleMqttBridgeRequest(url.pathname, request, response);
+      return;
+    }
+
     const pathname = url.pathname === '/' ? '/index.html' : url.pathname;
     const base = pathname.startsWith('/examples/') || pathname.startsWith('/node_modules/') ? root : webRoot;
     const filePath = normalize(join(base, pathname));
@@ -95,7 +101,8 @@ const server = createServer(async (request, response) => {
 
     const content = await readFile(filePath);
     response.writeHead(200, {
-      'Content-Type': contentTypes.get(extname(filePath)) ?? 'application/octet-stream'
+      'Content-Type': contentTypes.get(extname(filePath)) ?? 'application/octet-stream',
+      'Cache-Control': 'no-store'
     });
     response.end(content);
   } catch {

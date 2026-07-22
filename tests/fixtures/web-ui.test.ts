@@ -65,6 +65,7 @@ test('web UI script defines the MVP components', () => {
     'components/official/arduino-uno/component.json',
     'components/official/bmp280/component.json',
     'components/official/esp32-devkit/component.json',
+    'components/official/esp8266-nodemcu/component.json',
     'components/official/hc-sr04/component.json',
     'components/official/fc-37-rain-sensor/component.json',
     'components/official/ldr-light-sensor/component.json',
@@ -474,7 +475,7 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   assert.match(wasmCompiler, /wasmShimImportsForLibraries/);
   assert.match(wasmCompiler, /supportedWasmLibraryDocs/);
   assert.match(wasmShimRegistry, /supportedWasmLibraryDocs/);
-  assert.match(wasmShimRegistry, /headers: \['WiFi'\]/);
+  assert.match(wasmShimRegistry, /headers: \['WiFi', 'ESP8266WiFi'\]/);
   assert.match(wasmShimRegistry, /apis: \['WiFi\.mode'/);
   assert.match(wasmRunner, /createWasmImportRegistry/);
   assert.match(wasmRunner, /registerDefaultWasmImportAdapters/);

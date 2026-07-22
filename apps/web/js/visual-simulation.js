@@ -239,7 +239,8 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
           terminalKind,
           wasmByComponentId: firmwareWasm.byComponentId,
           wasmDiagnosticsByComponentId: firmwareWasm.diagnosticsByComponentId,
-          serialRx
+          serialRx,
+          network: state.network ?? {}
         });
         return wasmSimulationSession.runFrame();
       }
@@ -250,7 +251,8 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
         terminalKind,
         wasmBase64: firmwareWasm.wasmBase64,
         wasmDiagnostics: firmwareWasm.diagnostics ?? [],
-        serialRx
+        serialRx,
+        network: state.network ?? {}
       });
       return wasmSimulationSession.runFrame();
     }

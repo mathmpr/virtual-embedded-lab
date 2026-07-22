@@ -1,10 +1,10 @@
 # Virtual Embedded Lab - TODO
 
-Atualizado em 2026-07-21.
+Atualizado em 2026-07-22.
 
 ## Estado Atual
 
-O projeto possui uma fundação testável e um protótipo web funcional. A aplicação ainda não é um simulador completo, mas já valida o fluxo visual do exemplo HC-SR04 + LED no navegador.
+O projeto possui uma fundação testável e um protótipo web funcional. A aplicação ainda não é um simulador completo, mas já executa firmware WASM, multi-board, sensores/ADCs, Wi-Fi, HTTP virtual, MQTT virtual/real e o cenário de bomba/caixa d'água no navegador.
 
 Para executar:
 
@@ -41,6 +41,8 @@ npm test
 - [x] Exemplo `examples/hc-sr04-led-distance/project.json` contém board, conexões, cores de fios e `main.ino`.
 - [x] Exemplo `examples/esp32-counter-blink/project.json` valida firmware WASM com variável persistente, incremento e módulo `% 10`.
 - [x] Exemplo `examples/esp32-wifi-failover/project.json` valida múltiplas redes Wi-Fi, RSSI por SSID e failover por internet ativa.
+- [x] Exemplos multi-board mantêm firmwares separados por microcontrolador.
+- [x] Exemplo `examples/esp-water-control-pump-reservoir/project.json` valida ESP32 sender, ESP8266 asker, MQTT real, SSR, bomba e reservatório.
 
 ### Componentes oficiais atuais
 
@@ -54,6 +56,11 @@ npm test
 - [x] Controle ambiental de Wi-Fi com SSID, internet ativa e força de sinal.
 - [x] ESP32 DevKitC V4 com pinos oficiais dos headers J2/J3.
 - [x] ESP32 DevKitC V4 com LED `PWR` e LED programável `LD` associado ao GPIO2.
+- [x] ESP8266 NodeMCU.
+- [x] Pull-up Button.
+- [x] Water Pump.
+- [x] 1-Channel Solid State Relay.
+- [x] Water Reservoir.
 
 ### Núcleo de simulação
 
@@ -84,6 +91,11 @@ npm test
 - [x] Interface web usa WASM como único caminho de execução de firmware; falha de compilação WASM bloqueia a simulação em vez de cair para IR.
 - [x] Exemplo ESP32 + Wi-Fi Signal compila e executa pelo caminho WASM.
 - [x] Exemplo ESP32 + múltiplas redes Wi-Fi escolhe a rede mais forte com internet ativa pelo caminho WASM.
+- [x] `WiFiClient` com HTTP virtual.
+- [x] `AsyncMqttClient` com broker virtual.
+- [x] `AsyncMqttClient` com broker real via bridge backend Node.
+- [x] `SimpleTimer` suficiente para keepalive/poll MQTT por tempo virtual.
+- [x] Execução multi-board com uma sessão WASM por microcontrolador.
 
 ### Solver elétrico incremental
 
@@ -146,6 +158,9 @@ npm test
 - [ ] Validação de tipos de terminal ainda é parcial.
 - [ ] Undo/Redo existe apenas durante a sessão atual.
 - [ ] O monitor de sinais ainda não renderiza waveform temporal real.
+- [ ] MQTT real ainda não cobre autenticação/TLS, QoS completo, retained messages persistentes ou sessões duráveis.
+- [ ] HTTP ainda é virtual/determinístico; TLS/HTTPS real e DNS real estão fora do MVP atual.
+- [ ] Exemplo `ESP Water Control Pump Reservoir` depende de backend/broker externo compatível com `https://github.com/mathmpr/water-control` quando usado em modo real.
 - [ ] Não há seleção múltipla.
 - [ ] Não há snap-to-grid.
 - [ ] Não há Electron integrado.
@@ -217,10 +232,11 @@ npm test
 - [x] Adicionar `electricalModel` e `behavior` obrigatórios quando o componente impactar a simulação.
 - [x] Criar testes de catálogo para garantir que todo componente com `visual.palette` aparece na UI.
 - [x] Criar teste de consistência entre `visual.terminals` e `terminals` do manifest.
-- [ ] Adicionar suporte a múltiplos microcontroladores no grafo.
+- [x] Adicionar suporte a múltiplos microcontroladores no grafo.
 - [ ] Generalizar mapeamento de pinos digitais/analógicos por manifest do microcontrolador.
 - [ ] Adicionar Arduino Nano.
 - [x] Adicionar ESP32 DevKit.
+- [x] Adicionar ESP8266 NodeMCU.
 - [x] Adicionar componente ambiental Wi-Fi Signal.
 - [x] Adicionar exemplo ESP32 + Wi-Fi Signal.
 - [x] Adicionar exemplo ESP32 + Wi-Fi Failover.
@@ -239,7 +255,8 @@ npm test
 - [x] Adicionar ADS1115 ADC com leitura I2C/WASM.
 - [x] Adicionar MCP3008 ADC com leitura SPI/WASM.
 - [ ] Adicionar potenciômetro.
-- [ ] Adicionar botão/push button.
+- [x] Adicionar botão/push button.
+- [x] Adicionar SSR, bomba d'água e reservatório.
 - [ ] Adicionar buzzer.
 - [ ] Adicionar servo motor.
 - [ ] Adicionar display LCD 16x2/I2C.

@@ -171,6 +171,11 @@ export function createComponentState({
       return;
     }
 
+    if (definition?.behavior?.channel === 'water') {
+      simulation.updateWaterValue?.(component.id, environmentPayloadForComponent(component));
+      return;
+    }
+
     if (definition?.behavior?.type === 'analog-voltage-source') {
       simulation.updateAnalogVoltageValue(component.id, environmentPayloadForComponent(component));
       return;
@@ -262,6 +267,17 @@ export function createComponentState({
       return net ? state.electrical.netReadings.get(net.id)?.[source.property] ?? source.fallback ?? null : source.fallback ?? null;
     }
 
+    if (source.kind === 'terminalRuntimeSignal') {
+      const signal = state.signalsByComponent.get(component.id)?.terminals?.find((item) => item.terminalId === source.terminalId);
+      const value = Number(signal?.value ?? source.fallback ?? 0);
+
+      if (source.invertProperty && component.properties[source.invertProperty] === false) {
+        return value ? 0 : 1;
+      }
+
+      return value;
+    }
+
     return source.value ?? null;
   }
 
@@ -286,6 +302,14 @@ export function createComponentState({
 
     if (binding.format === 'raw') {
       return `${Math.round(Number(value ?? 0))} raw`;
+    }
+
+    if (binding.format === 'onOff') {
+      return value ? 'ON' : 'OFF';
+    }
+
+    if (binding.format === 'highLow') {
+      return value ? 'HIGH' : 'LOW';
     }
 
     if (binding.text !== undefined) {

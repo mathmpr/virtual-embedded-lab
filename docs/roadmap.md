@@ -31,15 +31,19 @@
 - LEDs vermelho, verde e azul.
 - HC-SR04 e controle ambiental de distância.
 - ESP32 DevKitC V4 e controle ambiental Wi-Fi Signal.
+- ESP8266 NodeMCU para cenários Wi-Fi/MQTT.
 - FC-37 Rain Sensor e controle ambiental Rain Environment.
+- Pull-up Button para entradas momentâneas.
 - LDR Light Sensor, controle ambiental Light Environment e exemplo analógico com `analogRead(A0)`.
 - BMP280 Pressure/Temperature, Climate Environment e exemplo I2C com classe shim `BMP280`.
 - ADS1015, ADS1115, MCP3008 e Analog Voltage Source para validar ADCs externos por I2C/SPI.
+- Water Pump, 1-Channel Solid State Relay e Water Reservoir para cenário hidráulico simplificado.
 - API `GET /api/components`.
 - API `GET /api/examples` e `GET /api/examples/:id`.
 - Exemplo HC-SR04 + LED carregado a partir de `examples/hc-sr04-led-distance/project.json`.
 - Exemplos ESP32 counter blink, ESP32 Wi-Fi Signal e ESP32 Wi-Fi Failover.
 - Exemplo FC-37 Rain Digital.
+- Exemplos Serial, Serial bridge multi-board, pull-up button, ESP32 HTTP/TCP, ESP8266 MQTT water pump e ESP Water Control Pump Reservoir.
 
 ### Firmware e Simulação
 
@@ -50,6 +54,9 @@
 - Separação visual de Serial TX/RX.
 - HC-SR04 respondendo ao runtime.
 - ESP32/Wi-Fi inicial por imports WASM, incluindo múltiplas redes e failover por RSSI/internet ativa.
+- ESP8266/Wi-Fi inicial por imports WASM.
+- `WiFiClient` com HTTP virtual e `AsyncMqttClient` com MQTT virtual ou MQTT real via bridge backend.
+- Simulação multi-board com uma sessão WASM por microcontrolador.
 - Solver incremental para caminho série LED/resistor.
 - Diagnósticos de resistor ausente, sobrecorrente, potência excedida, resistência excessiva, tensão insuficiente e curtos básicos.
 
@@ -72,6 +79,7 @@
 ### Firmware
 
 - Ampliar cobertura do shim/imports WASM para novas APIs Arduino/ESP32.
+- Ampliar cobertura ESP32/ESP8266 para periféricos reais como PWM, ADC avançado, timers, interrupções, I2C/SPI bruto e bibliotecas mais completas.
 - Remover ou rebaixar a IR JavaScript depreciada para ferramenta auxiliar/testes.
 - Exibir diagnósticos inline no CodeMirror.
 - Avaliar cache persistente/distribuído para builds WASM em deploy público.

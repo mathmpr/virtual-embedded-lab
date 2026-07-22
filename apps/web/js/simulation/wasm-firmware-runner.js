@@ -59,6 +59,9 @@ function createImports(runtime, getMemory) {
       runtime,
       readCString(pointer) {
         return readCString(getMemory(), pointer);
+      },
+      writeCString(pointer, maxLength, value) {
+        return writeCString(getMemory(), pointer, maxLength, value);
       }
     })
   };
@@ -83,6 +86,7 @@ function wasmFirmwareResult(runtime, snapshots) {
     i2c: runtime.getI2cSnapshot(),
     spi: runtime.getSpiSnapshot(),
     wifi: runtime.getWifiSnapshot(),
+    mqtt: runtime.getMqttSnapshot(),
     source: 'wasm'
   };
 }
@@ -115,4 +119,21 @@ function readCString(memory, pointer) {
   }
 
   return new TextDecoder().decode(bytes.subarray(pointer, end));
+}
+
+function writeCString(memory, pointer, maxLength, value) {
+  if (!memory || !pointer || maxLength <= 0) {
+    return 0;
+  }
+
+  const bytes = new Uint8Array(memory.buffer);
+  const text = String(value ?? '');
+  const length = Math.max(0, Math.min(maxLength - 1, text.length));
+
+  for (let index = 0; index < length; index += 1) {
+    bytes[pointer + index] = text.charCodeAt(index) & 0xff;
+  }
+
+  bytes[pointer + length] = 0;
+  return length;
 }

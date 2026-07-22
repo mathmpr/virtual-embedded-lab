@@ -1,10 +1,10 @@
 import { terminalReference } from '../components.js';
 
-export function createSignalSnapshot({ graph, runtime, electrical }) {
+export function createSignalSnapshot({ graph, runtime, runtimesByComponent = null, electrical }) {
   const signalsByNet = new Map();
 
   for (const net of graph.nets) {
-    signalsByNet.set(net.id, netSignal({ graph, runtime, electrical, net }));
+    signalsByNet.set(net.id, netSignal({ graph, runtime, runtimesByComponent, electrical, net }));
   }
 
   const signalsByComponent = new Map();
@@ -13,7 +13,7 @@ export function createSignalSnapshot({ graph, runtime, electrical }) {
     const properties = propertySignals(component);
     const terminals = (component.terminals ?? []).map((terminal) => {
       const net = graph.findTerminalNet(component.id, terminal.id);
-      const signal = signalForTerminal({ graph, runtime, electrical, terminal: { componentId: component.id, terminalId: terminal.id }, net });
+      const signal = signalForTerminal({ graph, runtime, runtimesByComponent, electrical, terminal: { componentId: component.id, terminalId: terminal.id }, net });
       const connected = connectedTerminalLabels(component.id, net);
       const pinLabel = signal.name ? ` (${signal.name})` : '';
 
@@ -61,14 +61,14 @@ function propertySignals(component) {
     });
 }
 
-function signalForTerminal({ graph, runtime, electrical, terminal, net }) {
-  const directRuntime = runtimeSignalForTerminal({ graph, runtime, terminal });
+function signalForTerminal({ graph, runtime, runtimesByComponent, electrical, terminal, net }) {
+  const directRuntime = runtimeSignalForTerminal({ graph, runtime: runtimeForTerminal({ graph, runtime, runtimesByComponent, terminal }), terminal });
 
   if (directRuntime) {
     return directRuntime;
   }
 
-  const netRuntime = runtimeSignalForNet({ graph, runtime, net });
+  const netRuntime = runtimeSignalForNet({ graph, runtime, runtimesByComponent, net });
 
   if (netRuntime) {
     return netRuntime;
@@ -99,8 +99,8 @@ function signalForTerminal({ graph, runtime, electrical, terminal, net }) {
   };
 }
 
-function netSignal({ graph, runtime, electrical, net }) {
-  const runtimeSignal = runtimeSignalForNet({ graph, runtime, net });
+function netSignal({ graph, runtime, runtimesByComponent, electrical, net }) {
+  const runtimeSignal = runtimeSignalForNet({ graph, runtime, runtimesByComponent, net });
 
   if (runtimeSignal) {
     return runtimeSignal;
@@ -123,13 +123,17 @@ function netSignal({ graph, runtime, electrical, net }) {
   };
 }
 
-function runtimeSignalForNet({ graph, runtime, net }) {
+function runtimeSignalForNet({ graph, runtime, runtimesByComponent, net }) {
   if (!net) {
     return null;
   }
 
   for (const terminal of net.terminals) {
-    const signal = runtimeSignalForTerminal({ graph, runtime, terminal });
+    const signal = runtimeSignalForTerminal({
+      graph,
+      runtime: runtimeForTerminal({ graph, runtime, runtimesByComponent, terminal }),
+      terminal
+    });
 
     if (signal) {
       return signal;
@@ -139,7 +143,25 @@ function runtimeSignalForNet({ graph, runtime, net }) {
   return null;
 }
 
+function runtimeForTerminal({ graph, runtime, runtimesByComponent, terminal }) {
+  if (!runtimesByComponent) {
+    return runtime;
+  }
+
+  const component = graph.components.get(terminal.componentId);
+
+  if (component?.behavior?.type === 'microcontroller') {
+    return runtimesByComponent.get(component.id) ?? runtime;
+  }
+
+  return runtime;
+}
+
 function runtimeSignalForTerminal({ graph, runtime, terminal }) {
+  if (!runtime) {
+    return null;
+  }
+
   const component = graph.components.get(terminal.componentId);
   const pin = component?.behavior?.pinMap?.[terminal.terminalId];
 

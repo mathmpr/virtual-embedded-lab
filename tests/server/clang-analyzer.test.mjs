@@ -134,6 +134,28 @@ test('clang frontend normalizes escaped newlines from project JSON firmware', as
   assert.match(result.program.loop.map((statement) => statement.name ?? statement.type).join('\n'), /Serial.println/);
 });
 
+test('clang analyzer accepts ESP32 WiFiClient TCP example', async () => {
+  const project = JSON.parse(
+    readFileSync(join(root, 'examples/esp32-wifi-tcp-jsonplaceholder/project.json'), 'utf8')
+  );
+  const result = await analyzeFirmwareWithClang(normalizeProjectCode(project.code.files['main.ino']));
+
+  assert.equal(result.available, true);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.diagnostics, []);
+});
+
+test('clang analyzer accepts ESP8266 AsyncMqttClient example', async () => {
+  const project = JSON.parse(
+    readFileSync(join(root, 'examples/esp8266-mqtt-water-pump/project.json'), 'utf8')
+  );
+  const result = await analyzeFirmwareWithClang(normalizeProjectCode(project.code.files['main.ino']));
+
+  assert.equal(result.available, true);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.diagnostics, []);
+});
+
 test('clang frontend accepts LED_PIN and PIN as implicit LED_BUILTIN aliases when not declared', async () => {
   const result = await compileFirmwareIrWithClang(`
     void setup() {

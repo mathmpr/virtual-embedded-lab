@@ -1,0 +1,249 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "ESP Water Control Pump Reservoir",
+  "board": {
+    "width": 1800,
+    "height": 1000,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "esp8266-asker",
+      "componentId": "board.esp8266.nodemcu",
+      "position": {
+        "x": 0,
+        "y": 180
+      },
+      "properties": {
+        "logicVoltage": 3.3,
+        "wifiMode": "station"
+      }
+    },
+    {
+      "id": "esp32-sender",
+      "componentId": "board.esp32.devkit",
+      "position": {
+        "x": 1040,
+        "y": 110
+      },
+      "properties": {
+        "logicVoltage": 3.3,
+        "wifiMode": "station",
+        "bluetoothEnabled": false
+      }
+    },
+    {
+      "id": "wifi-1",
+      "componentId": "environment.wifi-signal",
+      "position": {
+        "x": 650,
+        "y": 50
+      },
+      "properties": {
+        "ssid": "VirtualLab",
+        "connected": true,
+        "strengthPercent": 88
+      }
+    },
+    {
+      "id": "ssr-1",
+      "componentId": "module.relay.ssr.one-channel",
+      "position": {
+        "x": 530,
+        "y": 265
+      },
+      "properties": {
+        "activeHigh": false,
+        "ratedCurrentAmps": 2,
+        "ratedVoltageVolts": 24
+      }
+    },
+    {
+      "id": "pump-1",
+      "componentId": "actuator.water-pump",
+      "position": {
+        "x": 770,
+        "y": 300
+      },
+      "properties": {
+        "enabled": false,
+        "flowLitersPerHour": 1200,
+        "nominalVoltageVolts": 5,
+        "currentAmps": 0.5
+      }
+    },
+    {
+      "id": "reservoir-1",
+      "componentId": "environment.water-reservoir",
+      "position": {
+        "x": 760,
+        "y": 597
+      },
+      "properties": {
+        "capacityLiters": 10000,
+        "currentLiters": 0,
+        "overflowActive": false
+      }
+    },
+    {
+      "id": "fc37-detect",
+      "componentId": "sensor.rain.fc-37",
+      "position": {
+        "x": 1340,
+        "y": 500
+      },
+      "properties": {
+        "thresholdPercent": 50,
+        "wetAnalogValue": 1600,
+        "dryAnalogValue": 120,
+        "activeLow": true
+      }
+    },
+    {
+      "id": "fc37-income",
+      "componentId": "sensor.rain.fc-37",
+      "position": {
+        "x": 1340,
+        "y": 675
+      },
+      "properties": {
+        "thresholdPercent": 50,
+        "wetAnalogValue": 1600,
+        "dryAnalogValue": 120,
+        "activeLow": true
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "net-power-asker",
+      "color": "#f05252",
+      "terminals": [
+        "esp8266-asker.3v3",
+        "ssr-1.vcc",
+        "ssr-1.loadIn"
+      ]
+    },
+    {
+      "id": "net-gnd-asker",
+      "color": "#f5f7fa",
+      "terminals": [
+        "esp8266-asker.gnd",
+        "ssr-1.gnd",
+        "pump-1.gnd"
+      ]
+    },
+    {
+      "id": "net-relay-control",
+      "color": "#45d6c4",
+      "terminals": [
+        "esp8266-asker.d5",
+        "ssr-1.in"
+      ]
+    },
+    {
+      "id": "net-pump-switched",
+      "color": "#ffb454",
+      "terminals": [
+        "ssr-1.loadOut",
+        "pump-1.vin"
+      ]
+    },
+    {
+      "id": "net-power-sender",
+      "color": "#f05252",
+      "terminals": [
+        "esp32-sender.3v3",
+        "fc37-detect.vcc",
+        "fc37-income.vcc"
+      ]
+    },
+    {
+      "id": "net-gnd-sender",
+      "color": "#f5f7fa",
+      "terminals": [
+        "esp32-sender.gnd",
+        "fc37-detect.gnd",
+        "fc37-income.gnd"
+      ]
+    },
+    {
+      "id": "net-detect-analog",
+      "color": "#6fbf73",
+      "terminals": [
+        "fc37-detect.ao",
+        "esp32-sender.io34"
+      ]
+    },
+    {
+      "id": "net-income-analog",
+      "color": "#7aa7ff",
+      "terminals": [
+        "fc37-income.ao",
+        "esp32-sender.io35"
+      ]
+    }
+  ],
+  "environmentConnections": [
+    {
+      "source": "wifi-1.env",
+      "target": "esp8266-asker.d1",
+      "color": "#6fbf73"
+    },
+    {
+      "source": "wifi-1.env",
+      "target": "esp32-sender.io21",
+      "color": "#6fbf73"
+    },
+    {
+      "source": "pump-1.outlet",
+      "target": "reservoir-1.water",
+      "color": "#72d7ff"
+    },
+    {
+      "source": "reservoir-1.water",
+      "target": "fc37-detect.ao",
+      "color": "#72d7ff"
+    },
+    {
+      "source": "reservoir-1.water",
+      "target": "fc37-income.ao",
+      "color": "#72d7ff"
+    }
+  ],
+  "network": {
+    "mqtt": {
+      "mode": "real",
+      "brokers": {
+        "192.168.200.70": {
+          "port": 1883,
+          "online": true,
+          "messages": []
+        }
+      }
+    }
+  },
+  "firmwares": {
+    "esp8266-asker": {
+      "language": "arduino-cpp",
+      "entry": "main-esp8266-asker.ino",
+      "files": {
+        "main-esp8266-asker.ino": "#include <ESP8266WiFi.h>\n#include <AsyncMqttClient.h>\n#include <SimpleTimer.h>\n\n// This example mirrors the real water-control project broker/API contract.\n// MQTT topics, payload format and tokens are expected to match:\n// https://github.com/mathmpr/water-control\n\n#define LED_PIN 2\n#define SSR_PIN 14\n\nAsyncMqttClient mqttClient;\nSimpleTimer keepAliveTimer;\nSimpleTimer mqttConnectTimer;\nSimpleTimer mqttPollTimer;\n\nbool connected = false;\nbool mqttConnected = false;\nbool enabledWaterPump = false;\nchar payload[96];\n\nconst char *toggleWaterTopic = \"toggle/water\";\nconst char *onOffWaterTopic = \"on_off/water\";\nconst char *keepAliveTopic = \"keep/alive\";\nconst char *mqttServer = \"192.168.200.70\";\nconst uint16_t mqttPort = 1883;\nconst char *askerSecretKey = \"ASKER_SECRET_KEY\";\nconst char *iam = \"asker\";\n\nvoid publishStatus(bool status, const char *type)\n{\n    snprintf(payload, sizeof(payload), \"%s:%s:%s:%s\", askerSecretKey, iam, type, status ? \"1\" : \"0\");\n    mqttClient.publish(onOffWaterTopic, 0, false, payload);\n}\n\nvoid toggleWaterPump(bool status)\n{\n    enabledWaterPump = status;\n    digitalWrite(SSR_PIN, enabledWaterPump ? LOW : HIGH);\n    Serial.println(enabledWaterPump ? \"Pump ON\" : \"Pump OFF\");\n    publishStatus(status, \"mqtt\");\n}\n\nvoid pollMqtt()\n{\n    if (mqttConnected) {\n        mqttClient.connected();\n    }\n}\n\nvoid publishKeepAlive()\n{\n    if (mqttClient.connected()) {\n        snprintf(payload, sizeof(payload), \"%s:%s\", askerSecretKey, iam);\n        mqttClient.publish(keepAliveTopic, 0, false, payload);\n        Serial.println(\"asker keepalive\");\n    }\n}\n\nvoid connectMqtt()\n{\n    if (connected && !mqttConnected) {\n        mqttClient.connect();\n    }\n}\n\nvoid onMqttConnect(bool sessionPresent)\n{\n    mqttConnected = true;\n    digitalWrite(LED_PIN, LOW);\n    Serial.println(\"asker MQTT connected\");\n    mqttClient.subscribe(toggleWaterTopic, 0);\n    publishKeepAlive();\n}\n\nvoid onMqttDisconnect(AsyncMqttClientDisconnectReason reason)\n{\n    mqttConnected = false;\n    digitalWrite(LED_PIN, HIGH);\n}\n\nvoid onMqttMessage(char *topic, char *data, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)\n{\n    if (topic[0] == 't') {\n        toggleWaterPump(len > 0 && data[0] == '1');\n    }\n}\n\nvoid setup()\n{\n    Serial.begin(9600);\n    pinMode(LED_PIN, OUTPUT);\n    pinMode(SSR_PIN, OUTPUT);\n    digitalWrite(LED_PIN, HIGH);\n    digitalWrite(SSR_PIN, HIGH);\n\n    WiFi.mode(WIFI_STA);\n    WiFi.begin(\"VirtualLab\", \"secret\");\n    connected = WiFi.status() == WL_CONNECTED && WiFi.internetAvailable();\n    Serial.println(connected ? \"asker Wi-Fi connected\" : \"asker Wi-Fi disconnected\");\n\n    mqttClient.onConnect(onMqttConnect);\n    mqttClient.onDisconnect(onMqttDisconnect);\n    mqttClient.onMessage(onMqttMessage);\n    mqttClient.setServer(mqttServer, mqttPort);\n\n    keepAliveTimer.setInterval(8300, publishKeepAlive);\n    mqttConnectTimer.setInterval(5700, connectMqtt);\n    mqttPollTimer.setInterval(1000, pollMqtt);\n    connectMqtt();\n}\n\nvoid loop()\n{\n    keepAliveTimer.run();\n    mqttConnectTimer.run();\n    mqttPollTimer.run();\n    delay(1000);\n}\n"
+      }
+    },
+    "esp32-sender": {
+      "language": "arduino-cpp",
+      "entry": "main-esp32-sender.ino",
+      "files": {
+        "main-esp32-sender.ino": "#include <WiFi.h>\n#include <AsyncMqttClient.h>\n#include <SimpleTimer.h>\n\n// This example mirrors the real water-control project broker/API contract.\n// MQTT topics, payload format and tokens are expected to match:\n// https://github.com/mathmpr/water-control\n\n#define LED_BUILTIN 2\n\nAsyncMqttClient mqtt;\nSimpleTimer waterDetectTimer;\nSimpleTimer waterIncomeTimer;\nSimpleTimer keepAliveTimer;\nSimpleTimer mqttConnectTimer;\n\nbool connected = false;\nbool mqttConnected = false;\nchar payload[96];\n\nconst char *detectWaterTopic = \"detect/water\";\nconst char *incomeWaterTopic = \"income/water\";\nconst char *keepAliveTopic = \"keep/alive\";\nconst char *mqttServer = \"192.168.200.70\";\nconst uint16_t mqttPort = 1883;\nconst char *senderSecretKey = \"SENDER_SECRET_KEY\";\nconst char *iam = \"sender\";\n\nconst int waterDetectSensor = 34;\nconst int waterIncomeSensor = 35;\nint sendDetectAt = 300;\nint sendIncomeAt = 250;\n\nvoid connectMqtt()\n{\n    if (connected && !mqttConnected) {\n        mqtt.connect();\n    }\n}\n\nint readAvg(int pin)\n{\n    long sum = 0;\n\n    for (int index = 0; index < 16; index++) {\n        sum += analogRead(pin);\n        delayMicroseconds(2);\n    }\n\n    return (int)(sum / 16);\n}\n\nvoid publishSensor(const char *topic, int value, const char *label)\n{\n    snprintf(payload, sizeof(payload), \"%s:%s:%d\", senderSecretKey, iam, value);\n    mqtt.publish(topic, 0, false, payload);\n    Serial.print(\"sender publish \");\n    Serial.println(label);\n}\n\nvoid detectWater()\n{\n    int value = readAvg(waterDetectSensor) / 4;\n    Serial.print(\"Detect: \");\n    Serial.println(value);\n\n    if (mqttConnected && value > sendDetectAt) {\n        publishSensor(detectWaterTopic, value, \"detect/water\");\n    }\n}\n\nvoid incomeWater()\n{\n    int value = readAvg(waterIncomeSensor) / 4;\n    Serial.print(\"Income: \");\n    Serial.println(value);\n\n    if (mqttConnected && value > sendIncomeAt) {\n        publishSensor(incomeWaterTopic, value, \"income/water\");\n    }\n}\n\nvoid keepAlive()\n{\n    if (mqttConnected) {\n        snprintf(payload, sizeof(payload), \"%s:%s\", senderSecretKey, iam);\n        mqtt.publish(keepAliveTopic, 0, false, payload);\n        Serial.println(\"sender keepalive\");\n    }\n}\n\nvoid onMqttConnect(bool sessionPresent)\n{\n    mqttConnected = true;\n    digitalWrite(LED_BUILTIN, HIGH);\n    Serial.println(\"sender MQTT connected\");\n}\n\nvoid onMqttDisconnect(AsyncMqttClientDisconnectReason reason)\n{\n    mqttConnected = false;\n    digitalWrite(LED_BUILTIN, LOW);\n}\n\nvoid setup()\n{\n    Serial.begin(9600);\n    pinMode(LED_BUILTIN, OUTPUT);\n    digitalWrite(LED_BUILTIN, LOW);\n\n    WiFi.mode(WIFI_STA);\n    WiFi.begin(\"VirtualLab\", \"secret\");\n    connected = WiFi.status() == WL_CONNECTED && WiFi.internetAvailable();\n    Serial.println(connected ? \"sender Wi-Fi connected\" : \"sender Wi-Fi disconnected\");\n\n    mqtt.setServer(mqttServer, mqttPort);\n    mqtt.onConnect(onMqttConnect);\n    mqtt.onDisconnect(onMqttDisconnect);\n\n    waterDetectTimer.setInterval(5000, detectWater);\n    waterIncomeTimer.setInterval(16500, incomeWater);\n    keepAliveTimer.setInterval(8300, keepAlive);\n    mqttConnectTimer.setInterval(7450, connectMqtt);\n    connectMqtt();\n}\n\nvoid loop()\n{\n    waterDetectTimer.run();\n    waterIncomeTimer.run();\n    keepAliveTimer.run();\n    mqttConnectTimer.run();\n    delay(1000);\n}\n"
+      }
+    }
+  },
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main-esp8266-asker.ino",
+    "files": {
+      "main-esp8266-asker.ino": "#include <ESP8266WiFi.h>\n#include <AsyncMqttClient.h>\n#include <SimpleTimer.h>\n\n// This example mirrors the real water-control project broker/API contract.\n// MQTT topics, payload format and tokens are expected to match:\n// https://github.com/mathmpr/water-control\n\n#define LED_PIN 2\n#define SSR_PIN 14\n\nAsyncMqttClient mqttClient;\nSimpleTimer keepAliveTimer;\nSimpleTimer mqttConnectTimer;\nSimpleTimer mqttPollTimer;\n\nbool connected = false;\nbool mqttConnected = false;\nbool enabledWaterPump = false;\nchar payload[96];\n\nconst char *toggleWaterTopic = \"toggle/water\";\nconst char *onOffWaterTopic = \"on_off/water\";\nconst char *keepAliveTopic = \"keep/alive\";\nconst char *mqttServer = \"192.168.200.70\";\nconst uint16_t mqttPort = 1883;\nconst char *askerSecretKey = \"ASKER_SECRET_KEY\";\nconst char *iam = \"asker\";\n\nvoid publishStatus(bool status, const char *type)\n{\n    snprintf(payload, sizeof(payload), \"%s:%s:%s:%s\", askerSecretKey, iam, type, status ? \"1\" : \"0\");\n    mqttClient.publish(onOffWaterTopic, 0, false, payload);\n}\n\nvoid toggleWaterPump(bool status)\n{\n    enabledWaterPump = status;\n    digitalWrite(SSR_PIN, enabledWaterPump ? LOW : HIGH);\n    Serial.println(enabledWaterPump ? \"Pump ON\" : \"Pump OFF\");\n    publishStatus(status, \"mqtt\");\n}\n\nvoid pollMqtt()\n{\n    if (mqttConnected) {\n        mqttClient.connected();\n    }\n}\n\nvoid publishKeepAlive()\n{\n    if (mqttClient.connected()) {\n        snprintf(payload, sizeof(payload), \"%s:%s\", askerSecretKey, iam);\n        mqttClient.publish(keepAliveTopic, 0, false, payload);\n        Serial.println(\"asker keepalive\");\n    }\n}\n\nvoid connectMqtt()\n{\n    if (connected && !mqttConnected) {\n        mqttClient.connect();\n    }\n}\n\nvoid onMqttConnect(bool sessionPresent)\n{\n    mqttConnected = true;\n    digitalWrite(LED_PIN, LOW);\n    Serial.println(\"asker MQTT connected\");\n    mqttClient.subscribe(toggleWaterTopic, 0);\n    publishKeepAlive();\n}\n\nvoid onMqttDisconnect(AsyncMqttClientDisconnectReason reason)\n{\n    mqttConnected = false;\n    digitalWrite(LED_PIN, HIGH);\n}\n\nvoid onMqttMessage(char *topic, char *data, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)\n{\n    if (topic[0] == 't') {\n        toggleWaterPump(len > 0 && data[0] == '1');\n    }\n}\n\nvoid setup()\n{\n    Serial.begin(9600);\n    pinMode(LED_PIN, OUTPUT);\n    pinMode(SSR_PIN, OUTPUT);\n    digitalWrite(LED_PIN, HIGH);\n    digitalWrite(SSR_PIN, HIGH);\n\n    WiFi.mode(WIFI_STA);\n    WiFi.begin(\"VirtualLab\", \"secret\");\n    connected = WiFi.status() == WL_CONNECTED && WiFi.internetAvailable();\n    Serial.println(connected ? \"asker Wi-Fi connected\" : \"asker Wi-Fi disconnected\");\n\n    mqttClient.onConnect(onMqttConnect);\n    mqttClient.onDisconnect(onMqttDisconnect);\n    mqttClient.onMessage(onMqttMessage);\n    mqttClient.setServer(mqttServer, mqttPort);\n\n    keepAliveTimer.setInterval(8300, publishKeepAlive);\n    mqttConnectTimer.setInterval(5700, connectMqtt);\n    mqttPollTimer.setInterval(1000, pollMqtt);\n    connectMqtt();\n}\n\nvoid loop()\n{\n    keepAliveTimer.run();\n    mqttConnectTimer.run();\n    mqttPollTimer.run();\n    delay(1000);\n}\n"
+    }
+  }
+}

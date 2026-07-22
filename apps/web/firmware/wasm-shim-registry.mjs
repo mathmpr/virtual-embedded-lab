@@ -50,10 +50,31 @@ const firmwareLibraries = [
   },
   {
     id: 'wifi',
-    headers: ['WiFi'],
-    identifiers: ['WiFi', 'WIFI_STA', 'WL_CONNECTED'],
+    headers: ['WiFi', 'ESP8266WiFi'],
+    identifiers: ['WiFi', 'WIFI_STA', 'WL_CONNECTED', 'WiFiEventHandler'],
     imports: ['wifiMode', 'wifiBegin', 'wifiStatus', 'wifiSoftAP', 'wifiScanNetworks', 'wifiRssi', 'wifiRssiForSsid', 'wifiInternetAvailable'],
-    apis: ['WiFi.mode', 'WiFi.begin', 'WiFi.status', 'WiFi.softAP', 'WiFi.scanNetworks', 'WiFi.RSSI', 'WiFi.internetAvailable']
+    apis: ['WiFi.mode', 'WiFi.begin', 'WiFi.status', 'WiFi.softAP', 'WiFi.scanNetworks', 'WiFi.RSSI', 'WiFi.internetAvailable', 'WiFi.disconnect', 'WiFi.SSID']
+  },
+  {
+    id: 'tcp-client',
+    headers: ['WiFiClient'],
+    identifiers: ['WiFiClient'],
+    imports: ['tcpConnect', 'tcpPrint', 'tcpPrintln', 'tcpAvailable', 'tcpRead', 'tcpStop', 'tcpConnected'],
+    apis: ['WiFiClient.connect', 'WiFiClient.print', 'WiFiClient.println', 'WiFiClient.available', 'WiFiClient.read', 'WiFiClient.stop', 'WiFiClient.connected']
+  },
+  {
+    id: 'mqtt',
+    headers: ['AsyncMqttClient'],
+    identifiers: ['AsyncMqttClient'],
+    imports: ['mqttSetServer', 'mqttConnect', 'mqttDisconnect', 'mqttConnected', 'mqttSubscribe', 'mqttPublish', 'mqttReadMessage'],
+    apis: ['AsyncMqttClient.setServer', 'AsyncMqttClient.onConnect', 'AsyncMqttClient.onDisconnect', 'AsyncMqttClient.onMessage', 'AsyncMqttClient.connect', 'AsyncMqttClient.connected', 'AsyncMqttClient.subscribe', 'AsyncMqttClient.publish']
+  },
+  {
+    id: 'simple-timer',
+    headers: ['SimpleTimer'],
+    identifiers: ['SimpleTimer'],
+    imports: [],
+    apis: ['SimpleTimer.setInterval', 'SimpleTimer.run']
   }
 ];
 

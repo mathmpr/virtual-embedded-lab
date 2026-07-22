@@ -1,0 +1,79 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "actuator.water-pump",
+    "name": "Water Pump",
+    "category": "actuator",
+    "subCategory": "water"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": ["electrical", "environment", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "enabled": { "type": "boolean", "default": false, "simulationUpdate": "live" },
+    "flowLitersPerHour": { "type": "number", "default": 240, "minimum": 0, "maximum": 10000, "unit": "L/h", "simulationUpdate": "live" },
+    "nominalVoltageVolts": { "type": "number", "default": 5, "minimum": 3, "maximum": 24, "unit": "V", "simulationUpdate": "rerun" },
+    "currentAmps": { "type": "number", "default": 0.5, "minimum": 0, "maximum": 10, "unit": "A", "simulationUpdate": "rerun" }
+  },
+  "variants": {
+    "flowLitersPerHour": [
+      { "label": "120 L/h", "value": 120 },
+      { "label": "240 L/h", "value": 240 },
+      { "label": "400 L/h", "value": 400 },
+      { "label": "800 L/h", "value": 800 },
+      { "label": "1200 L/h", "value": 1200 }
+    ]
+  },
+  "terminals": [
+    { "id": "vin", "label": "VIN", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "inlet", "label": "IN", "type": "fluid-input" },
+    { "id": "outlet", "label": "OUT", "type": "fluid-output" }
+  ],
+  "behavior": {
+    "type": "water-pump",
+    "flowProperty": "flowLitersPerHour",
+    "enabledProperty": "enabled",
+    "powerTerminal": "vin",
+    "groundTerminal": "gnd",
+    "inletTerminal": "inlet",
+    "outletTerminal": "outlet"
+  },
+  "electricalModel": {
+    "type": "load",
+    "primitive": "motor-pump",
+    "nominalVoltageProperty": "nominalVoltageVolts",
+    "currentProperty": "currentAmps"
+  },
+  "visual": {
+    "type": "water-pump",
+    "title": "Water Pump",
+    "className": "water-pump",
+    "body": "OFF",
+    "width": 190,
+    "height": 126,
+    "controls": [
+      { "type": "readout", "className": "pump-readout", "label": "Pump", "property": "enabled", "format": "onOff" },
+      { "type": "variant", "className": "component-select-row", "label": "Flow", "property": "flowLitersPerHour" },
+      { "type": "element", "className": "pump-impeller", "text": "FLOW" }
+    ],
+    "stateBindings": [
+      { "type": "class", "className": "is-running", "source": { "kind": "componentProperty", "property": "enabled" }, "when": true }
+    ],
+    "palette": {
+      "group": "Actuators",
+      "subgroup": "Water",
+      "icon": "water-pump-icon",
+      "order": 70
+    },
+    "terminals": [
+      { "id": "vin", "label": "VIN", "side": "left", "x": 0, "y": 34, "kind": "power" },
+      { "id": "inlet", "label": "IN", "side": "left", "x": 0, "y": 78, "kind": "environment" },
+      { "id": "outlet", "label": "OUT", "side": "right", "x": 190, "y": 78, "kind": "environment" },
+      { "id": "gnd", "label": "GND", "side": "bottom", "x": 95, "y": 126, "kind": "ground" }
+    ]
+  }
+}

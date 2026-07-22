@@ -13,6 +13,7 @@ import {
   applyButtonInputs,
   applyLightSensorInputs,
   applyRainSensorInputs,
+  applyWaterPumpSystems,
   registerSensorBehaviorAdapters
 } from './sensor-behavior-adapters.js';
 import {
@@ -23,8 +24,8 @@ import { createSignalSnapshot } from './signal-snapshot.js';
 import { EventScheduler, VirtualClock } from './virtual-time.js';
 import { createWasmFirmwareSession } from './wasm-firmware-runner.js';
 
-export async function createProjectWasmSimulationSession({ state, nets, terminalKind, wasmBase64, wasmDiagnostics = [], serialRx = [] }) {
-  const context = createSimulationContext({ state, nets, terminalKind, serialRx });
+export async function createProjectWasmSimulationSession({ state, nets, terminalKind, wasmBase64, wasmDiagnostics = [], serialRx = [], network = {} }) {
+  const context = createSimulationContext({ state, nets, terminalKind, serialRx, network });
   const { graph, runtime, environment, clock, scheduler } = context;
   const wasmSession = await createWasmFirmwareSession(runtime, wasmBase64);
   const program = programFromWasmConstants(wasmSession.constants);
@@ -52,6 +53,9 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
     updateAnalogVoltageValue(componentId, value) {
       environment.write(`${componentId}.analog-voltage`, normalizeEnvironmentValue('analog-voltage', value));
     },
+    updateWaterValue(componentId, value) {
+      environment.write(`${componentId}.water`, normalizeEnvironmentValue('water', value));
+    },
     updateDigitalInputValue(componentId, value) {
       const binding = inputBindings.buttonBindings.find((item) => item.button.id === componentId);
 
@@ -65,18 +69,20 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
         runtime.serialReceive(data);
       }
 
+      applyWaterPumpSystems({ runtime, environment, clock, waterBindings: inputBindings.waterBindings });
       applyRainSensorInputs({ runtime, environment, rainBindings: inputBindings.rainBindings });
       applyLightSensorInputs({ runtime, environment, lightBindings: inputBindings.lightBindings });
       applyButtonInputs({ runtime, buttonBindings: inputBindings.buttonBindings });
 
       const firmwareResult = wasmSession.runLoop({ loopIterations: 3, drainEvents: true });
+      applyWaterPumpSystems({ runtime, environment, clock, waterBindings: inputBindings.waterBindings });
 
       return finalizeSimulationResult({ clock, graph, runtime, environment, firmwareResult, diagnostics: [...diagnostics], pins: program.pins, source: 'wasm' });
     }
   };
 }
 
-export async function createProjectMultiWasmSimulationSession({ state, nets, terminalKind, wasmByComponentId, wasmDiagnosticsByComponentId = new Map(), serialRx = [] }) {
+export async function createProjectMultiWasmSimulationSession({ state, nets, terminalKind, wasmByComponentId, wasmDiagnosticsByComponentId = new Map(), serialRx = [], network = {} }) {
   const clock = new VirtualClock();
   const scheduler = new EventScheduler(clock);
   const graph = createCircuitGraph({ components: state.components, nets, terminalKind });
@@ -84,6 +90,7 @@ export async function createProjectMultiWasmSimulationSession({ state, nets, ter
   const runtimesByComponent = new Map();
   const sessions = [];
   const diagnostics = [];
+  const inputBindingsByComponent = new Map();
 
   bindEnvironmentChannels({ graph, environment, diagnostics });
 
@@ -95,7 +102,7 @@ export async function createProjectMultiWasmSimulationSession({ state, nets, ter
       continue;
     }
 
-    const runtime = new ArduinoRuntime(clock, scheduler, graph, { componentId: component.id });
+    const runtime = new ArduinoRuntime(clock, scheduler, graph, { componentId: component.id, http: network.http ?? {}, mqtt: network.mqtt ?? {} });
     const wasmSession = await createWasmFirmwareSession(runtime, wasm.wasmBase64);
 
     runtimesByComponent.set(component.id, runtime);
@@ -114,6 +121,15 @@ export async function createProjectMultiWasmSimulationSession({ state, nets, ter
 
   for (const session of sessions) {
     bindWifiEnvironment({ graph, runtime: session.runtime });
+    inputBindingsByComponent.set(session.component.id, bindSimulationInputs({
+      graph,
+      environment,
+      runtime: session.runtime,
+      clock,
+      scheduler,
+      program: session.pins,
+      diagnostics
+    }));
     wasmSessionSetup(session);
   }
 
@@ -128,7 +144,14 @@ export async function createProjectMultiWasmSimulationSession({ state, nets, ter
       let firmwareResult = null;
 
       for (const session of sessions) {
+        const inputBindings = inputBindingsByComponent.get(session.component.id) ?? {};
+        applyWaterPumpSystems({ runtime: session.runtime, environment, clock, waterBindings: inputBindings.waterBindings ?? [] });
+        applyRainSensorInputs({ runtime: session.runtime, environment, rainBindings: inputBindings.rainBindings ?? [] });
+        applyLightSensorInputs({ runtime: session.runtime, environment, lightBindings: inputBindings.lightBindings ?? [] });
+        applyButtonInputs({ runtime: session.runtime, buttonBindings: inputBindings.buttonBindings ?? [] });
+
         const result = session.wasmSession.runLoop({ loopIterations: 3, drainEvents: true });
+        applyWaterPumpSystems({ runtime: session.runtime, environment, clock, waterBindings: inputBindings.waterBindings ?? [] });
 
         firmwareResult = result;
         pinEvents.push(...result.pinEvents.map((event) => ({ ...event, componentId: session.component.id })));
@@ -151,8 +174,8 @@ export async function createProjectMultiWasmSimulationSession({ state, nets, ter
   };
 }
 
-export async function runProjectWasmSimulation({ state, nets, terminalKind, wasmBase64, wasmDiagnostics = [], serialRx = [] }) {
-  const context = createSimulationContext({ state, nets, terminalKind, serialRx });
+export async function runProjectWasmSimulation({ state, nets, terminalKind, wasmBase64, wasmDiagnostics = [], serialRx = [], network = {} }) {
+  const context = createSimulationContext({ state, nets, terminalKind, serialRx, network });
   const { graph, runtime, environment, clock, scheduler } = context;
   const wasmSession = await createWasmFirmwareSession(runtime, wasmBase64);
   const program = programFromWasmConstants(wasmSession.constants);
@@ -228,9 +251,10 @@ function routeSerialTxToConnectedRx({ graph, runtimesByComponent, sourceComponen
 function finalizeMultiSimulationResult({ clock, graph, environment, runtimesByComponent, firmwareResult, pinEvents, serialEvents, diagnostics, source }) {
   const primaryRuntime = runtimesByComponent.get(firstRuntimeComponentId({ graph, runtimesByComponent })) ?? [...runtimesByComponent.values()][0];
   const electrical = solveElectricalState({ graph, runtime: primaryRuntime, runtimesByComponent });
-  const signalSnapshot = createSignalSnapshot({ graph, runtime: primaryRuntime, electrical });
+  const signalSnapshot = createSignalSnapshot({ graph, runtime: primaryRuntime, runtimesByComponent, electrical });
 
   diagnostics.push(...electrical.diagnostics);
+  diagnostics.push(...mqttDiagnostics(firmwareResult.mqtt));
 
   return {
     source,
@@ -288,12 +312,12 @@ function emptyFirmwareResult() {
   };
 }
 
-export function createSimulationContext({ state, nets, terminalKind, serialRx = [] }) {
+export function createSimulationContext({ state, nets, terminalKind, serialRx = [], network = {} }) {
   const clock = new VirtualClock();
   const scheduler = new EventScheduler(clock);
   const graph = createCircuitGraph({ components: state.components, nets, terminalKind });
   const environment = new EnvironmentEngine();
-  const runtime = new ArduinoRuntime(clock, scheduler, graph);
+  const runtime = new ArduinoRuntime(clock, scheduler, graph, { http: network.http ?? {}, mqtt: network.mqtt ?? {} });
 
   for (const data of serialRx) {
     runtime.serialReceive(data);
@@ -348,6 +372,7 @@ export function finalizeSimulationResult({ clock, graph, runtime, environment, f
   const electrical = solveElectricalState({ graph, runtime });
   const signalSnapshot = createSignalSnapshot({ graph, runtime, electrical });
   diagnostics.push(...electrical.diagnostics);
+  diagnostics.push(...mqttDiagnostics(firmwareResult.mqtt));
 
   return {
     source,
@@ -372,6 +397,16 @@ export function finalizeSimulationResult({ clock, graph, runtime, environment, f
     serial: firmwareResult.serial ?? runtime.getSerialSnapshot(),
     diagnostics
   };
+}
+
+function mqttDiagnostics(mqtt) {
+  if (!mqtt || mqtt.mode !== 'real') {
+    return [];
+  }
+
+  return (mqtt.errors ?? []).map((error) => {
+    return `MQTT real ${error.action}: ${error.error}`;
+  });
 }
 
 export function applyBoardConstants({ graph, program }) {

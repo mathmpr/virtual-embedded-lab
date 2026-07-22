@@ -844,7 +844,10 @@ button:disabled {
 .bmp280-readout,
 .analog-readout,
 .adc-readout,
-.button-readout {
+.button-readout,
+.pump-readout,
+.relay-readout,
+.reservoir-readout {
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -889,9 +892,49 @@ button:disabled {
 .rain-toggle input[type="range"],
 .light-level input[type="range"],
 .climate-environment input[type="range"],
-.analog-voltage-source input[type="range"] {
+.analog-voltage-source input[type="range"],
+.water-pump input[type="range"],
+.water-reservoir input[type="range"] {
   width: 100%;
   accent-color: var(--accent);
+}
+
+.water-pump .pump-impeller,
+.solid-state-relay-1ch .relay-channel,
+.water-reservoir .reservoir-waterline {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  border: 1px solid #34485e;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #172331, #101922);
+  color: #9fb2c8;
+  font: 800 11px var(--mono);
+  letter-spacing: 0.08em;
+}
+
+.water-pump.is-running .pump-impeller {
+  border-color: #45d6c4;
+  color: #b7fff5;
+  box-shadow: inset 0 0 18px rgb(69 214 196 / 0.25), 0 0 18px rgb(69 214 196 / 0.22);
+}
+
+.solid-state-relay-1ch.is-active .relay-channel {
+  border-color: #ffb454;
+  color: #ffe3ad;
+  background: linear-gradient(135deg, #443019, #1d211c);
+  box-shadow: inset 0 0 18px rgb(255 180 84 / 0.25), 0 0 18px rgb(255 180 84 / 0.2);
+}
+
+.water-reservoir .reservoir-waterline {
+  border-color: #315d86;
+  background: linear-gradient(0deg, rgb(55 146 210 / 0.42), rgb(23 35 49 / 0.88));
+  color: #d6efff;
+}
+
+.water-reservoir.is-overflowing .reservoir-waterline {
+  border-color: #72d7ff;
+  box-shadow: 0 0 20px rgb(114 215 255 / 0.38);
 }
 
 .compact-slider-row {

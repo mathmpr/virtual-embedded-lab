@@ -56,6 +56,10 @@ export function boardToProject({ state, board, codeEditor, nets, terminalKind })
     project.firmwares = Object.fromEntries(firmwares.entries());
   }
 
+  if (state.network && Object.keys(state.network).length > 0) {
+    project.network = structuredClone(state.network);
+  }
+
   return project;
 }
 
@@ -94,6 +98,7 @@ export function projectToSnapshot(project) {
     wires: [...electricalWires, ...environmentWires],
     firmwares: new Map(Object.entries(project.firmwares ?? {})),
     activeFirmwareComponentId: Object.keys(project.firmwares ?? {})[0] ?? null,
+    network: structuredClone(project.network ?? {}),
     nextComponentId: nextCounterFromIds(components.map((component) => component.id)),
     nextWireId: nextCounterFromIds([...electricalWires, ...environmentWires].map((wire) => wire.id)),
     selectedId: components[0]?.id ?? null,

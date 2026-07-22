@@ -1,0 +1,80 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "module.relay.ssr.one-channel",
+    "name": "1-Channel Solid State Relay",
+    "category": "module",
+    "subCategory": "relay"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": ["electrical", "firmware", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "activeHigh": { "type": "boolean", "default": true, "simulationUpdate": "rerun" },
+    "ratedCurrentAmps": { "type": "number", "default": 2, "minimum": 0, "maximum": 40, "unit": "A", "simulationUpdate": "rerun" },
+    "ratedVoltageVolts": { "type": "number", "default": 24, "minimum": 0, "maximum": 240, "unit": "V", "simulationUpdate": "rerun" }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "in", "label": "IN", "type": "digital-input" },
+    { "id": "loadIn", "label": "LOAD+", "type": "switched-input" },
+    { "id": "loadOut", "label": "LOAD-", "type": "switched-output" }
+  ],
+  "behavior": {
+    "type": "solid-state-relay",
+    "inputTerminal": "in",
+    "loadInTerminal": "loadIn",
+    "loadOutTerminal": "loadOut",
+    "activeHighProperty": "activeHigh"
+  },
+  "electricalModel": {
+    "type": "switch",
+    "primitive": "solid-state-relay",
+    "ratedCurrentProperty": "ratedCurrentAmps",
+    "ratedVoltageProperty": "ratedVoltageVolts"
+  },
+  "visual": {
+    "type": "solid-state-relay-1ch",
+    "title": "SSR 1CH",
+    "className": "solid-state-relay-1ch",
+    "body": "OFF",
+    "width": 176,
+    "height": 118,
+    "controls": [
+      { "type": "readout", "className": "relay-readout", "label": "IN", "text": "LOW", "dataAttribute": "data-relay-state" },
+      { "type": "checkbox", "className": "wifi-checkbox-row", "label": "Active HIGH", "property": "activeHigh" },
+      { "type": "element", "className": "relay-channel", "text": "LOAD" }
+    ],
+    "stateBindings": [
+      {
+        "type": "class",
+        "className": "is-active",
+        "source": { "kind": "componentProperty", "property": "active" },
+        "when": true
+      },
+      {
+        "type": "text",
+        "selector": "[data-relay-state]",
+        "source": { "kind": "componentProperty", "property": "inputLevel" },
+        "format": "highLow"
+      }
+    ],
+    "palette": {
+      "group": "Modules",
+      "subgroup": "Relays",
+      "icon": "relay-icon",
+      "order": 65
+    },
+    "terminals": [
+      { "id": "vcc", "label": "VCC", "side": "left", "x": 0, "y": 28, "kind": "power" },
+      { "id": "in", "label": "IN", "side": "left", "x": 0, "y": 62, "kind": "signal" },
+      { "id": "loadIn", "label": "LOAD+", "side": "right", "x": 176, "y": 44, "kind": "signal" },
+      { "id": "loadOut", "label": "LOAD-", "side": "right", "x": 176, "y": 82, "kind": "signal" },
+      { "id": "gnd", "label": "GND", "side": "bottom", "x": 88, "y": 118, "kind": "ground" }
+    ]
+  }
+}

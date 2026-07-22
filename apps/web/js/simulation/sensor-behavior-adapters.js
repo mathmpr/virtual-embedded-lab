@@ -16,18 +16,57 @@ export function registerSensorBehaviorAdapters(registry) {
   registry.register('adc-i2c', bindI2cAdcConverters);
   registry.register('adc-spi', bindSpiAdcConverters);
   registry.register('momentary-button', bindMomentaryButtons);
+  registry.register('water-pump', bindWaterPumpSystems);
 }
 
 export function applyRainSensorInputs({ runtime, environment, rainBindings }) {
   for (const binding of rainBindings) {
-    const rain = environment.read(binding.channelId);
+    const rain = normalizeWetEnvironmentValue(environment.read(binding.channelId));
     const activeLow = binding.sensor.properties.activeLow !== false;
     const isWet = Boolean(rain?.active);
     const value = isWet
       ? activeLow ? 'LOW' : 'HIGH'
       : activeLow ? 'HIGH' : 'LOW';
 
-    runtime.driveInput(binding.pin, value);
+    if (Number.isInteger(binding.digitalPin)) {
+      runtime.driveInput(binding.digitalPin, value);
+    }
+
+    if (Number.isInteger(binding.analogPin)) {
+      const wetRaw = Number(binding.sensor.properties[binding.sensor.behavior?.wetAnalogProperty] ?? 300);
+      const dryRaw = Number(binding.sensor.properties[binding.sensor.behavior?.dryAnalogProperty] ?? 900);
+      const analogRaw = isWet ? wetRaw : dryRaw;
+      runtime.driveAnalogInput(binding.analogPin, analogRaw, {
+        maxRaw: Number(binding.sensor.behavior?.analogMaxRaw ?? 1023),
+        sourceComponentId: binding.sensor.id
+      });
+    }
+  }
+}
+
+export function applyWaterPumpSystems({ runtime, environment, clock, waterBindings }) {
+  for (const binding of waterBindings ?? []) {
+    const relayInput = runtime.getPin(binding.relayInputPin).value;
+    const relayActive = binding.activeHigh ? relayInput === 'HIGH' : relayInput === 'LOW';
+    const nowUs = clock.nowUs();
+    const elapsedHours = Math.max(0, nowUs - binding.lastUpdatedUs) / 3_600_000_000;
+    const flowLiters = relayActive ? binding.flowLitersPerHour * elapsedHours : 0;
+    const capacityLiters = Math.max(0, Number(binding.reservoir.properties.capacityLiters ?? 0));
+    const currentLiters = Math.max(0, Math.min(capacityLiters, Number(binding.reservoir.properties.currentLiters ?? 0) + flowLiters));
+    const overflowActive = capacityLiters > 0 && currentLiters >= capacityLiters && relayActive;
+
+    binding.lastUpdatedUs = nowUs;
+    binding.relay.properties.active = relayActive;
+    binding.relay.properties.inputLevel = relayInput === 'HIGH' ? 1 : 0;
+    binding.pump.properties.enabled = relayActive;
+    binding.reservoir.properties.currentLiters = Number(currentLiters.toFixed(3));
+    binding.reservoir.properties.overflowActive = overflowActive;
+
+    environment.write(`${binding.reservoir.id}.water`, normalizeEnvironmentValue('water', {
+      active: overflowActive,
+      currentLiters,
+      capacityLiters
+    }));
   }
 }
 
@@ -220,15 +259,20 @@ function bindSpiAdcConverters({ graph, environment, runtime, diagnostics, compon
 
 function bindRainSensorAdapter({ graph, environment, runtime, diagnostics, components }) {
   const rainBindings = [];
-  const rainSources = graph.findComponentsByBehaviorChannel('rain');
+  const rainSources = [
+    ...graph.findComponentsByBehaviorChannel('rain'),
+    ...graph.findComponentsByBehaviorChannel('water')
+  ];
 
   for (const sensor of components) {
     const digitalTerminal = sensor.behavior?.digitalOutputTerminal ?? 'do';
-    const pin = resolveDigitalPinConnectedToTerminal(graph, { componentId: sensor.id, terminalId: digitalTerminal });
+    const analogTerminal = sensor.behavior?.analogOutputTerminal ?? 'ao';
+    const digitalPin = resolveRuntimeDigitalPinConnectedToTerminal(graph, runtime, { componentId: sensor.id, terminalId: digitalTerminal });
+    const analogPin = resolveRuntimeAnalogPinConnectedToTerminal(graph, runtime, { componentId: sensor.id, terminalId: analogTerminal });
     const rainSource = rainSourceForSensor({ graph, rainSources, sensor });
 
-    if (!Number.isInteger(pin)) {
-      diagnostics.push(`${sensor.id}: DO não está ligado a um pino digital do Arduino.`);
+    if (!Number.isInteger(digitalPin) && !Number.isInteger(analogPin)) {
+      diagnostics.push(`${sensor.id}: DO/AO não está ligado a pino digital ou analógico de microcontrolador.`);
       continue;
     }
 
@@ -239,13 +283,54 @@ function bindRainSensorAdapter({ graph, environment, runtime, diagnostics, compo
 
     rainBindings.push({
       sensor,
-      pin,
-      channelId: `${rainSource.id}.rain`
+      digitalPin,
+      analogPin,
+      channelId: `${rainSource.id}.${rainSource.behavior?.channel ?? 'rain'}`
     });
   }
 
   applyRainSensorInputs({ runtime, environment, rainBindings });
   return { rainBindings };
+}
+
+function bindWaterPumpSystems({ graph, runtime, environment, clock, diagnostics, components }) {
+  const waterBindings = [];
+
+  for (const pump of components) {
+    const relay = relayForPump(graph, pump);
+    const reservoir = reservoirForPump(graph, pump);
+
+    if (!relay) {
+      diagnostics.push(`${pump.id}: nenhum SSR conectado à bomba.`);
+      continue;
+    }
+
+    if (!reservoir) {
+      diagnostics.push(`${pump.id}: nenhum reservatório conectado à saída de água.`);
+      continue;
+    }
+
+    const relayInputPin = resolveRuntimeDigitalPinConnectedToTerminal(graph, runtime, {
+      componentId: relay.id,
+      terminalId: relay.behavior?.inputTerminal ?? 'in'
+    });
+
+    if (!Number.isInteger(relayInputPin)) {
+      continue;
+    }
+
+    waterBindings.push({
+      pump,
+      relay,
+      reservoir,
+      relayInputPin,
+      activeHigh: relay.properties[relay.behavior?.activeHighProperty ?? 'activeHigh'] !== false,
+      flowLitersPerHour: Number(pump.properties[pump.behavior?.flowProperty ?? 'flowLitersPerHour'] ?? 0),
+      lastUpdatedUs: runtime.clock.nowUs()
+    });
+  }
+
+  return { waterBindings };
 }
 
 function bindLightSensorAdapter({ graph, environment, runtime, diagnostics, components }) {
@@ -302,14 +387,98 @@ function bindMomentaryButtons({ graph, runtime, diagnostics, components }) {
 }
 
 function rainSourceForSensor({ graph, rainSources, sensor }) {
-  const digitalTerminal = sensor.behavior?.digitalOutputTerminal ?? 'do';
+  const terminals = [
+    sensor.behavior?.digitalOutputTerminal ?? 'do',
+    sensor.behavior?.analogOutputTerminal ?? 'ao',
+    sensor.behavior?.environmentTerminal ?? null
+  ].filter(Boolean);
 
   return rainSources.find((source) => {
-    return graph.areConnected(
-      { componentId: source.id, terminalId: source.behavior?.outputTerminal ?? source.behavior?.channel ?? 'rain' },
-      { componentId: sensor.id, terminalId: digitalTerminal }
-    );
+    const sourceTerminal = source.behavior?.outputTerminal ?? source.behavior?.channel ?? source.behavior?.waterTerminal ?? 'rain';
+    return terminals.some((terminalId) => graph.areConnected(
+      { componentId: source.id, terminalId: sourceTerminal },
+      { componentId: sensor.id, terminalId }
+    ));
   }) ?? rainSources[0] ?? null;
+}
+
+function reservoirForPump(graph, pump) {
+  const outletTerminal = pump.behavior?.outletTerminal ?? 'outlet';
+  const reservoirs = graph.findComponentsByBehaviorType('water-reservoir');
+
+  return reservoirs.find((reservoir) => {
+    return graph.areConnected(
+      { componentId: pump.id, terminalId: outletTerminal },
+      { componentId: reservoir.id, terminalId: reservoir.behavior?.waterTerminal ?? 'water' }
+    );
+  }) ?? null;
+}
+
+function relayForPump(graph, pump) {
+  const relays = graph.findComponentsByBehaviorType('solid-state-relay');
+
+  return relays.find((relay) => {
+    return graph.areConnected(
+      { componentId: relay.id, terminalId: relay.behavior?.loadOutTerminal ?? 'loadOut' },
+      { componentId: pump.id, terminalId: pump.behavior?.powerTerminal ?? 'vin' }
+    ) || graph.areConnected(
+      { componentId: relay.id, terminalId: relay.behavior?.loadInTerminal ?? 'loadIn' },
+      { componentId: pump.id, terminalId: pump.behavior?.powerTerminal ?? 'vin' }
+    );
+  }) ?? null;
+}
+
+function resolveRuntimeDigitalPinConnectedToTerminal(graph, runtime, terminal) {
+  const pin = resolveRuntimePinConnectedToTerminal(graph, runtime, terminal, 'digital', 'number');
+  return runtime.componentId ? pin : pin ?? resolveDigitalPinConnectedToTerminal(graph, terminal);
+}
+
+function resolveRuntimeAnalogPinConnectedToTerminal(graph, runtime, terminal) {
+  const pin = resolveRuntimePinConnectedToTerminal(graph, runtime, terminal, 'analog', 'analogNumber');
+  return runtime.componentId ? pin : pin ?? resolveAnalogPinConnectedToTerminal(graph, terminal);
+}
+
+function resolveRuntimePinConnectedToTerminal(graph, runtime, terminal, capability, numberField) {
+  if (!runtime.componentId) {
+    return null;
+  }
+
+  const board = graph.components.get(runtime.componentId);
+  const net = graph.findTerminalNet(terminal.componentId, terminal.terminalId);
+
+  if (!board || !net) {
+    return null;
+  }
+
+  for (const netTerminal of net.terminals) {
+    if (netTerminal.componentId !== board.id) {
+      continue;
+    }
+
+    const pin = board.behavior?.pinMap?.[netTerminal.terminalId];
+
+    if (!pin?.capabilities?.includes(capability)) {
+      continue;
+    }
+
+    if (Number.isInteger(pin[numberField])) {
+      return pin[numberField];
+    }
+
+    if (numberField === 'analogNumber' && Number.isInteger(pin.number)) {
+      return pin.number;
+    }
+  }
+
+  return null;
+}
+
+function normalizeWetEnvironmentValue(value) {
+  if (value?.capacityLiters !== undefined || value?.currentLiters !== undefined) {
+    return normalizeEnvironmentValue('water', value);
+  }
+
+  return normalizeEnvironmentValue('rain', value);
 }
 
 function analogSourceForTerminal(graph, terminal) {

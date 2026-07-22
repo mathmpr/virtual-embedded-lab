@@ -34,6 +34,14 @@ export function environmentPayloadForComponent(component) {
     });
   }
 
+  if (behavior.channel === 'water') {
+    return normalizeEnvironmentValue('water', {
+      active: component.properties[behavior.overflowProperty],
+      currentLiters: component.properties[behavior.currentProperty],
+      capacityLiters: component.properties[behavior.capacityProperty]
+    });
+  }
+
   return normalizeEnvironmentValue(behavior.channel, component.properties[behavior.valueProperty]);
 }
 
@@ -84,6 +92,18 @@ export function normalizeEnvironmentValue(channel, value) {
     return {
       enabled: Boolean(value?.enabled ?? true),
       voltageVolts: clamp(Number(value?.voltageVolts ?? 0), 0, 5)
+    };
+  }
+
+  if (channel === 'water') {
+    const capacityLiters = Math.max(0, Number(value?.capacityLiters ?? 10));
+    const currentLiters = clamp(Number(value?.currentLiters ?? 0), 0, capacityLiters);
+
+    return {
+      active: Boolean(value?.active) || currentLiters >= capacityLiters && capacityLiters > 0,
+      currentLiters,
+      capacityLiters,
+      fillPercent: capacityLiters > 0 ? clamp(currentLiters / capacityLiters * 100, 0, 100) : 0
     };
   }
 

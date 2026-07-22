@@ -2,7 +2,7 @@
 
 Ambiente visual local-first para criação, programação e simulação comportamental de projetos eletrônicos embarcados.
 
-O projeto já possui um protótipo web funcional com board visual, catálogo oficial de componentes, editor CodeMirror, runtime Arduino inicial, análise de firmware com Clang local, Serial TX/RX, Wi-Fi simulado para ESP32, entradas analógicas por WASM, I2C/SPI inicial para sensores e ADCs, solver elétrico incremental e exemplos completos HC-SR04 + LED, FC-37, LDR, BMP280 e ADCs externos.
+O projeto já possui um protótipo web funcional com board visual, catálogo oficial de componentes, editor CodeMirror, runtime Arduino inicial, análise de firmware com Clang local, Serial TX/RX, Wi-Fi simulado para ESP32/ESP8266, entradas analógicas por WASM, I2C/SPI inicial para sensores e ADCs, HTTP virtual, MQTT virtual/real, solver elétrico incremental, simulação multi-board e exemplos completos para HC-SR04 + LED, FC-37, LDR, BMP280, ADCs externos e controle de bomba d'água por broker MQTT.
 
 ## Requirements
 
@@ -12,6 +12,12 @@ Obrigatórios:
 - Dependências do projeto instaladas com `npm install`.
 - `clang++` disponível no `PATH`, ou configurado por `CLANGXX`/`CLANG_PATH`.
 - `lld`/`wasm-ld` disponível no toolchain do Clang.
+
+Opcionais por cenário:
+
+- Docker ou Podman para isolar compilação WASM em uso público.
+- Broker MQTT TCP acessível pela rede quando um projeto usa `network.mqtt.mode: "real"`.
+- Para o exemplo `ESP Water Control Pump Reservoir`, o fluxo real depende do contrato MQTT/backend do projeto externo `https://github.com/mathmpr/water-control`.
 
 A UI usa WASM como caminho único de execução de firmware. Portanto, `clang++` e `wasm-ld` são necessários para rodar simulações de firmware localmente. Sem `clang++`, o servidor retorna `CLANG_UNAVAILABLE`. Sem `wasm-ld`, `/api/firmware/compile-wasm` retorna `WASM_TOOLCHAIN_UNAVAILABLE`.
 
@@ -129,10 +135,10 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 - A UI carrega componentes oficiais por `GET /api/components`.
 - Exemplos ficam em `examples/**/project.json` e são carregados pelo modal `Exemplos`.
 - O exemplo default atual é `examples/hc-sr04-led-distance/project.json`.
-- Há exemplos WASM para HC-SR04, ESP32 counter blink, ESP32 Wi-Fi Signal, ESP32 Wi-Fi Failover, FC-37 Rain Digital, LDR Light Analog, BMP280 Weather I2C, ADS1015/ADS1115 Single Ended e MCP3008 Single Ended.
+- Há exemplos WASM para HC-SR04, Arduino Serial LED, Serial bridge multi-board, pull-up button, ESP32 counter blink, ESP32 Wi-Fi Signal, ESP32 Wi-Fi Failover, ESP32 HTTP/TCP, ESP8266 MQTT water pump, FC-37 Rain Digital, LDR Light Analog, BMP280 Weather I2C, ADS1015/ADS1115 Single Ended, MCP3008 Single Ended e ESP Water Control Pump Reservoir.
 - Componentes oficiais ficam em `components/official/**/component.json`.
 - Novos componentes oficiais devem seguir `docs/official-component-guidelines.md`, `docs/component-contract.md` e o template `add-components/new-component-example.md` antes da implementação.
-- O catálogo oficial já inclui Arduino UNO, ESP32 DevKitC V4, HC-SR04, FC-37 Rain Sensor, LDR Light Sensor, BMP280, ADS1015, ADS1115, MCP3008, distância, Rain Environment, Light Environment, Climate Environment, Analog Voltage Source, Wi-Fi Signal, resistores, capacitores e LEDs vermelho/verde/azul.
+- O catálogo oficial já inclui Arduino UNO, ESP32 DevKitC V4, ESP8266 NodeMCU, HC-SR04, FC-37 Rain Sensor, LDR Light Sensor, BMP280, ADS1015, ADS1115, MCP3008, pull-up button, distância, Rain Environment, Light Environment, Climate Environment, Analog Voltage Source, Wi-Fi Signal, water pump, solid-state relay, water reservoir, resistores, capacitores e LEDs vermelho/verde/azul.
 - O Arduino UNO expõe LED built-in `L` em D13/`LED_BUILTIN`; o ESP32 DevKitC V4 expõe `PWR` e LED programável `LD` em GPIO2/`LED_BUILTIN`.
 - Sketches de blink em LED built-in rodam continuamente até Pause/Reset, respeitando `delay()` por tempo virtual e animando a timeline de `digitalWrite`; `LED_PIN`/`PIN` sem declaração são tratados como aliases de `LED_BUILTIN`.
 - O board suporta pan/zoom, drag-and-drop, fios coloridos, remoção de fios/componentes, Undo/Redo em memória e import/export JSON.
@@ -143,7 +149,9 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 - A IR JavaScript ainda existe no código como legado/testes, mas está depreciada como caminho de execução de firmware, isolada em `legacy-ir-simulation.js` e não deve receber novas features.
 - O servidor possui o endpoint `POST /api/firmware/compile-wasm`, que compila firmware C/C++ freestanding para WASM quando `clang++` e `lld/wasm-ld` estão disponíveis.
 - Builds WASM bem-sucedidos são cacheados em memória por hash do código, constantes e configuração de toolchain/sandbox.
-- O suporte ESP32/Wi-Fi cobre `WiFi.mode`, `WiFi.begin`, `WiFi.status`, `WiFi.softAP`, `WiFi.scanNetworks`, `WiFi.RSSI`, `WiFi.RSSI(ssid)` e `WiFi.internetAvailable()` via imports WASM conectados ao `ArduinoRuntime`, usando componentes ambientais Wi-Fi Signal standalone como fontes de SSID, internet ativa e força de sinal.
+- O suporte ESP32/ESP8266/Wi-Fi cobre `WiFi.mode`, `WiFi.begin`, `WiFi.status`, `WiFi.softAP`, `WiFi.scanNetworks`, `WiFi.RSSI`, `WiFi.RSSI(ssid)`, `WiFi.internetAvailable()`, `WiFiClient` TCP/HTTP virtual e `AsyncMqttClient` MQTT virtual ou real via imports WASM conectados ao `ArduinoRuntime`.
+- Projetos multi-board podem manter firmwares separados por microcontrolador; o seletor de firmware permite alternar o código ativo no editor e o runtime executa uma sessão WASM por placa.
+- O exemplo `ESP Water Control Pump Reservoir` modela ESP32 sender, ESP8266 asker, SSR, bomba e reservatório. Ele usa MQTT real e espera tópicos/payloads/tokens compatíveis com `https://github.com/mathmpr/water-control`.
 - O suporte FC-37 cobre leitura digital por `digitalRead` em `DO`, alimentada pelo Rain Environment standalone sem resetar o tempo virtual quando a chuva muda.
 - O suporte LDR cobre `analogRead(A0)` via divisor de tensão com resistor, alimentado pelo Light Environment standalone sem resetar o tempo virtual quando a luminosidade muda.
 - O suporte BMP280 cobre `Wire.begin()` e uma classe shim `BMP280` mínima, registrada por endereço I2C, alimentada pelo Climate Environment standalone sem resetar o tempo virtual quando temperatura/pressão mudam.
@@ -154,10 +162,12 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 - Ainda não há Electron integrado.
 - O solver ainda não é nodal/SPICE geral.
 - A conexão ambiental ainda é desenhada como fio visual comum, apesar de ser serializada separadamente.
-- O ESP32 ainda não substitui o Arduino UNO no solver de GPIO; o mapeamento genérico de pinos por manifest continua pendente.
+- O mapeamento de pinos por manifest existe para cenários principais, mas ainda não cobre todo o modelo elétrico/periférico de ESP32/ESP8266.
 - O firmware WASM ainda cobre um subset de Arduino/C++; APIs fora do shim bloqueiam a simulação até serem implementadas no caminho WASM.
+- `WiFiClient` usa HTTP virtual por adapter separado, com rotas declaráveis em `network.http`; `AsyncMqttClient` usa broker MQTT virtual declarado em `network.mqtt` ou broker MQTT real via bridge backend quando `network.mqtt.mode` é `"real"`. TLS/HTTPS criptográfico real, autenticação MQTT e sessões persistentes de broker ainda não fazem parte do simulador determinístico.
 - O suporte I2C/SPI ainda é inicial: `Wire`/`SPI` existem como subsets mínimos para dispositivos registrados pelo runtime; não há barramento bruto completo nem bibliotecas Adafruit/MCP completas.
 - O FC-37 já expõe `AO` no manifest, mas leitura analógica do FC-37 ainda está fora da entrega inicial.
+- O exemplo de caixa d'água não é autossuficiente em modo real: ele depende de um broker/backend compatível com `https://github.com/mathmpr/water-control`, tokens válidos para `asker`/`sender` e broker MQTT TCP acessível.
 - Fallback de compilação no browser foi avaliado e não faz parte do MVP público; o caminho recomendado é servidor com `clang++`/`wasm-ld` isolado por container.
 - Undo/Redo existe apenas durante a sessão atual.
 - O monitor de sinais ainda é contextual/ilustrativo, sem waveform temporal real.

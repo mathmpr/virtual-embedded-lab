@@ -1,0 +1,59 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "environment.water-reservoir",
+    "name": "Water Reservoir",
+    "category": "environment",
+    "subCategory": "water"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "capacityLiters": { "type": "number", "default": 10, "minimum": 0, "maximum": 10000, "unit": "L", "simulationUpdate": "live" },
+    "currentLiters": { "type": "number", "default": 0, "minimum": 0, "maximum": 10000, "unit": "L", "simulationUpdate": "live" },
+    "overflowActive": { "type": "boolean", "default": false, "simulationUpdate": "live" }
+  },
+  "terminals": [
+    { "id": "water", "label": "WATER", "type": "environment-water-io" }
+  ],
+  "behavior": {
+    "type": "water-reservoir",
+    "channel": "water",
+    "waterTerminal": "water",
+    "capacityProperty": "capacityLiters",
+    "currentProperty": "currentLiters",
+    "overflowProperty": "overflowActive",
+    "outputTerminal": "water"
+  },
+  "visual": {
+    "type": "water-reservoir",
+    "title": "Water Tank",
+    "className": "water-reservoir",
+    "body": "0 L",
+    "width": 200,
+    "height": 138,
+    "controls": [
+      { "type": "readout", "className": "reservoir-readout", "label": "Tank", "property": "currentLiters", "unit": "L" },
+      { "type": "range", "className": "compact-slider-row", "label": "L", "property": "currentLiters" },
+      { "type": "number", "className": "compact-slider-row", "label": "Cap", "property": "capacityLiters" },
+      { "type": "element", "className": "reservoir-waterline", "dataAttribute": "data-waterline" }
+    ],
+    "stateBindings": [
+      { "type": "class", "className": "is-overflowing", "source": { "kind": "componentProperty", "property": "overflowActive" }, "when": true },
+      { "type": "text", "selector": "[data-waterline]", "source": { "kind": "componentProperty", "property": "currentLiters" }, "format": "fixed", "digits": 1, "unit": "L" }
+    ],
+    "palette": {
+      "group": "Environment",
+      "subgroup": "Water",
+      "icon": "water-reservoir-icon",
+      "order": 72
+    },
+    "terminals": [
+      { "id": "water", "label": "WATER", "side": "right", "x": 200, "y": 70, "kind": "environment" }
+    ]
+  }
+}

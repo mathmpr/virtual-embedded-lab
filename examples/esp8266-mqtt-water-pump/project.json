@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "ESP8266 MQTT Water Pump",
+  "board": {
+    "width": 1600,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "esp8266-1",
+      "componentId": "board.esp8266.nodemcu",
+      "position": { "x": 410, "y": 165 },
+      "properties": {
+        "logicVoltage": 3.3,
+        "wifiMode": "station"
+      }
+    },
+    {
+      "id": "wifi-1",
+      "componentId": "environment.wifi-signal",
+      "position": { "x": 780, "y": 220 },
+      "properties": {
+        "ssid": "VirtualLab",
+        "connected": true,
+        "strengthPercent": 88
+      }
+    }
+  ],
+  "connections": [],
+  "environmentConnections": [],
+  "network": {
+    "mqtt": {
+      "mode": "real",
+      "brokers": {
+        "192.168.200.70": {
+          "port": 1883,
+          "online": true,
+          "messages": [
+            {
+              "topic": "toggle/water",
+              "payload": "1"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "#include <ESP8266WiFi.h>\\n#include <AsyncMqttClient.h>\\n#include <SimpleTimer.h>\\n\\n#define LED_PIN 2\\n\\nAsyncMqttClient mqttClient;\\nSimpleTimer keepAliveTimer;\\nbool enabledWaterPump = false;\\nint keepAliveCount = 0;\\nconst char *toggleWaterTopic = \"toggle/water\";\\nconst char *onOffWaterTopic = \"on_off/water\";\\nconst char *keepAliveTopic = \"keep/alive\";\\nconst char *mqttServer = \"192.168.200.70\";\\nconst uint16_t mqttPort = 1883;\\n\\n// O water-control/server espera payloads no formato secretKey:iam[:type:value].\\n// Troque CHANGE_ME_SECRET_KEY pelo SECRET_KEY do servidor antes de usar com o broker real.\\nconst char *keepAlivePayload = \"CHANGE_ME_SECRET_KEY:asker\";\\nconst char *manualOnPayload = \"CHANGE_ME_SECRET_KEY:asker:manual:1\";\\nconst char *manualOffPayload = \"CHANGE_ME_SECRET_KEY:asker:manual:0\";\\n\\nvoid onLed()\\n{\\n    digitalWrite(LED_PIN, LOW);\\n}\\n\\nvoid offLed()\\n{\\n    digitalWrite(LED_PIN, HIGH);\\n}\\n\\nvoid publishStatus(const char *source)\\n{\\n    if (enabledWaterPump) {\\n        mqttClient.publish(onOffWaterTopic, 0, false, manualOnPayload);\\n        Serial.println(\"MQTT publish on_off/water manual:1\");\\n    } else {\\n        mqttClient.publish(onOffWaterTopic, 0, false, manualOffPayload);\\n        Serial.println(\"MQTT publish on_off/water manual:0\");\\n    }\\n}\\n\\nvoid publishKeepAlive()\\n{\\n    if (mqttClient.connected()) {\\n        keepAliveCount++;\\n        mqttClient.publish(keepAliveTopic, 0, false, keepAlivePayload);\\n        Serial.print(\"MQTT keepalive #\");\\n        Serial.println(keepAliveCount);\\n    }\\n}\\n\\nvoid onMqttConnect(bool sessionPresent)\\n{\\n    Serial.println(\"MQTT On!\");\\n    onLed();\\n    mqttClient.subscribe(toggleWaterTopic, 0);\\n    publishKeepAlive();\\n}\\n\\nvoid onMqttDisconnect(AsyncMqttClientDisconnectReason reason)\\n{\\n    Serial.println(\"MQTT Off!\");\\n    offLed();\\n}\\n\\nvoid onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)\\n{\\n    Serial.print(\"MQTT RX \");\\n    Serial.print(topic);\\n    Serial.print(\" \");\\n\\n    for (size_t i = 0; i < len; i++) {\\n        Serial.write(payload[i]);\\n    }\\n\\n    Serial.println();\\n\\n    if (topic[0] == 't' && payload[0] == '1') {\\n        enabledWaterPump = true;\\n        publishStatus(\"mqtt\");\\n    }\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(9600);\\n    pinMode(LED_PIN, OUTPUT);\\n    offLed();\\n\\n    WiFi.mode(WIFI_STA);\\n    WiFi.begin(\"VirtualLab\", \"secret\");\\n\\n    if (WiFi.status() == WL_CONNECTED && WiFi.internetAvailable()) {\\n        Serial.println(\"Wi-Fi connected with internet\");\\n    }\\n\\n    mqttClient.onConnect(onMqttConnect);\\n    mqttClient.onDisconnect(onMqttDisconnect);\\n    mqttClient.onMessage(onMqttMessage);\\n    mqttClient.setServer(mqttServer, mqttPort);\\n    keepAliveTimer.setInterval(8300, publishKeepAlive);\\n    mqttClient.connect();\\n}\\n\\nvoid loop()\\n{\\n    keepAliveTimer.run();\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

@@ -19,6 +19,7 @@ export function createInitialBoardState() {
     serialAutoScroll: true,
     firmwares: new Map(),
     activeFirmwareComponentId: null,
+    network: {},
     history: [],
     redoStack: [],
     isRestoring: false,

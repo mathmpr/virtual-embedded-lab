@@ -23,6 +23,7 @@ O servidor Node expõe:
 - `GET /api/examples/:id`: retorna o `project.json` completo de um exemplo.
 - `POST /api/firmware/analyze`: executa Clang quando disponível e retorna diagnósticos e IR.
 - `POST /api/firmware/compile-wasm`: endpoint experimental que compila firmware C/C++ freestanding para WebAssembly quando `clang++` e `lld/wasm-ld` estão disponíveis.
+- `POST /api/network/mqtt/*`: bridge Node para broker MQTT TCP real quando o projeto declara `network.mqtt.mode` como `"real"`.
 
 Essa decisão mantém o frontend simples e permite que novos componentes/exemplos sejam adicionados por arquivo, sem editar código da UI.
 
@@ -68,7 +69,9 @@ O shim C++ transforma APIs Arduino mínimas em imports controlados pelo simulado
 
 O frontend instancia o WASM e conecta esses imports ao `ArduinoRuntime`. A instância WASM é mantida viva durante o Run, preservando globais C/C++ entre frames de simulação. A UI usa WASM como caminho único de execução de firmware: quando a compilação WASM falha, a simulação é bloqueada e os diagnósticos do `clang-wasm` são exibidos, sem fallback para IR.
 
-O compilador WASM exporta constantes de firmware, como `TRIGGER_PIN`, `ECHO_PIN`, `LED_PIN`, `PIN` e `LED_BUILTIN`, para que o runtime consiga mapear sensores e LEDs sem depender da IR. Com isso, os exemplos HC-SR04, ESP32 counter blink, ESP32 Wi-Fi Signal e ESP32 Wi-Fi Failover rodam pelo caminho WASM.
+O compilador WASM exporta constantes de firmware, como `TRIGGER_PIN`, `ECHO_PIN`, `LED_PIN`, `PIN` e `LED_BUILTIN`, para que o runtime consiga mapear sensores e LEDs sem depender da IR. Com isso, os exemplos HC-SR04, blink/counter, Serial, ESP32/ESP8266 Wi-Fi/MQTT/HTTP, sensores I2C/SPI e bomba d'água rodam pelo caminho WASM.
+
+Projetos multi-board usam `project.firmwares` para mapear um firmware por microcontrolador. A UI mantém um seletor de firmware no editor, compila cada sketch separadamente e cria uma sessão WASM por placa. O runtime compartilha relógio virtual, scheduler, grafo de conexões, ambiente e rede declarada, mas mantém GPIO, Serial, Wi-Fi e MQTT isolados por componente.
 
 Para uso público, a compilação WASM deve rodar isolada em container. O compilador aceita `WASM_COMPILER_SANDBOX=docker` ou `WASM_COMPILER_SANDBOX=podman`, monta apenas o diretório temporário da build em `/workspace`, desabilita rede e aplica limites de CPU, memória e processos. Em desenvolvimento local, o padrão continua sendo executar `clang++` diretamente no host.
 
@@ -85,6 +88,9 @@ Escopo atual:
 - `VirtualClock` e `EventScheduler` determinísticos.
 - `ArduinoRuntime` com GPIO, tempo virtual, delays, `pulseIn` e Serial TX/RX.
 - Suporte inicial a `WiFi.mode`, `WiFi.begin`, `WiFi.status`, `WiFi.softAP`, `WiFi.scanNetworks`, `WiFi.RSSI`, `WiFi.RSSI(ssid)` e `WiFi.internetAvailable`, alimentado por componentes ambientais Wi-Fi standalone.
+- `WiFiClient` com TCP/HTTP virtual delegado para `virtual-http-server.js`, incluindo rotas padrão e rotas declaradas por projeto.
+- `AsyncMqttClient` com broker MQTT virtual delegado para `virtual-mqtt-broker.js` ou broker MQTT real delegado ao backend Node por `network/mqtt-bridge.mjs`.
+- Sistemas ambientais/hidráulicos simplificados por adapters, incluindo SSR, bomba d'água e reservatório.
 - `EnvironmentEngine` para canais ambientais.
 - `Hcsr04Behavior` integrado ao TRIG/ECHO.
 - Solver elétrico incremental para LED/resistor e curtos básicos.
@@ -98,8 +104,24 @@ O `Project JSON` contém:
 - componentes e posições;
 - conexões elétricas como nets;
 - conexões ambientais separadas;
+- rede virtual opcional em `network.http`, com hosts e rotas HTTP declarativas;
+- rede MQTT opcional em `network.mqtt`, virtual por padrão ou real quando `mode` é `"real"`;
 - cores de fios por conexão;
 - código Arduino em `code.files`;
+- firmwares por placa em `firmwares`, usado por projetos multi-board;
 - metadados básicos do board.
 
 A UI consegue salvar em `localStorage`, carregar, importar e exportar esse formato.
+
+## Exemplos com Serviços Externos
+
+A maior parte dos exemplos é autossuficiente e usa ambiente, HTTP ou MQTT virtuais. Exceções devem documentar explicitamente suas dependências no próprio firmware e na documentação.
+
+O exemplo `examples/esp-water-control-pump-reservoir/project.json` replica um cenário real de caixa d'água e depende do contrato MQTT/backend do projeto externo `https://github.com/mathmpr/water-control` quando executado em modo MQTT real. Nesse cenário:
+
+- o ESP32 sender publica sensores em tópicos como `detect/water` e `income/water`;
+- o ESP8266 asker assina `toggle/water` e aciona o SSR;
+- o SSR liga/desliga a bomba, e a bomba altera o reservatório;
+- o backend externo decide o estado da bomba a partir de tokens/payloads reais.
+
+Essa dependência é do exemplo, não do core do Virtual Embedded Lab.

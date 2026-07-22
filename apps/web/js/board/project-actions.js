@@ -108,6 +108,7 @@ export function createProjectActions({
       firmwares: state.firmwares instanceof Map
         ? new Map([...state.firmwares.entries()].map(([componentId, firmware]) => [componentId, cloneFirmware(firmware)]))
         : new Map(),
+      network: structuredClone(state.network ?? {}),
       nextComponentId: state.nextComponentId,
       nextWireId: state.nextWireId,
       selectedId: state.selectedId,
@@ -144,6 +145,7 @@ export function createProjectActions({
     }));
     state.firmwares = snapshot.firmwares ?? new Map();
     state.activeFirmwareComponentId = snapshot.activeFirmwareComponentId ?? null;
+    state.network = structuredClone(snapshot.network ?? {});
     state.nextComponentId = snapshot.nextComponentId;
     state.nextWireId = snapshot.nextWireId;
     state.selectedId = snapshot.selectedId;

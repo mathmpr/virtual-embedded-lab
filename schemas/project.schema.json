@@ -42,6 +42,14 @@
         }
       },
       "additionalProperties": false
+    },
+    "network": {
+      "type": "object",
+      "properties": {
+        "http": { "$ref": "#/$defs/httpNetwork" },
+        "mqtt": { "$ref": "#/$defs/mqttNetwork" }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false,
@@ -86,6 +94,76 @@
         "source": { "type": "string", "pattern": "^[^.]+\\.[^.]+$" },
         "target": { "type": "string", "pattern": "^[^.]+\\.[^.]+$" },
         "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+      },
+      "additionalProperties": false
+    },
+    "httpNetwork": {
+      "type": "object",
+      "properties": {
+        "hosts": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/httpHost" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "httpHost": {
+      "type": "object",
+      "properties": {
+        "routes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/httpRoute" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "httpRoute": {
+      "type": "object",
+      "required": ["method", "path"],
+      "properties": {
+        "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"] },
+        "path": { "type": "string", "pattern": "^/" },
+        "statusCode": { "type": "integer", "minimum": 100, "maximum": 599 },
+        "reason": { "type": "string" },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean"]
+          }
+        },
+        "body": {}
+      },
+      "additionalProperties": false
+    },
+    "mqttNetwork": {
+      "type": "object",
+      "properties": {
+        "mode": { "enum": ["virtual", "real"] },
+        "brokers": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/mqttBroker" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "mqttBroker": {
+      "type": "object",
+      "properties": {
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "online": { "type": "boolean" },
+        "messages": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/mqttMessage" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "mqttMessage": {
+      "type": "object",
+      "required": ["topic", "payload"],
+      "properties": {
+        "topic": { "type": "string", "minLength": 1 },
+        "payload": { "type": "string" }
       },
       "additionalProperties": false
     }

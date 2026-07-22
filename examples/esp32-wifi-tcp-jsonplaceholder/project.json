@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "ESP32 Wi-Fi TCP JSONPlaceholder",
+  "board": {
+    "width": 1600,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "esp32-1",
+      "componentId": "board.esp32.devkit",
+      "position": { "x": 420, "y": 160 },
+      "properties": {
+        "logicVoltage": 3.3,
+        "wifiMode": "station",
+        "bluetoothEnabled": true
+      }
+    },
+    {
+      "id": "wifi-1",
+      "componentId": "environment.wifi-signal",
+      "position": { "x": 875, "y": 265 },
+      "properties": {
+        "ssid": "VirtualLab",
+        "connected": true,
+        "strengthPercent": 86
+      }
+    }
+  ],
+  "connections": [],
+  "environmentConnections": [],
+  "network": {
+    "http": {
+      "hosts": {
+        "jsonplaceholder.typicode.com": {
+          "routes": [
+            {
+              "method": "GET",
+              "path": "/todos/1",
+              "statusCode": 200,
+              "reason": "OK",
+              "body": {
+                "userId": 1,
+                "id": 1,
+                "title": "delectus aut autem",
+                "completed": false
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "#include <WiFi.h>\\n\\nWiFiClient client;\\n\\nconst char *SSID = \"VirtualLab\";\\nconst char *PASSWORD = \"secret\";\\nconst char *HOST = \"jsonplaceholder.typicode.com\";\\nconst int HTTPS_PORT = 443;\\nint headerState = 0;\\n\\nvoid trackHeaderEnd(int value)\\n{\\n    if ((headerState == 0 || headerState == 2) && value == 13) {\\n        headerState++;\\n        return;\\n    }\\n\\n    if ((headerState == 1 || headerState == 3) && value == 10) {\\n        headerState++;\\n        return;\\n    }\\n\\n    headerState = value == 13 ? 1 : 0;\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    Serial.println(\"ESP32 TCP JSONPlaceholder example\");\\n\\n    WiFi.mode(WIFI_STA);\\n    WiFi.begin(SSID, PASSWORD);\\n\\n    if (WiFi.status() != WL_CONNECTED) {\\n        Serial.println(\"Wi-Fi disconnected\");\\n        return;\\n    }\\n\\n    if (!WiFi.internetAvailable()) {\\n        Serial.println(\"Wi-Fi connected without internet\");\\n        return;\\n    }\\n\\n    Serial.println(\"Wi-Fi connected with internet\");\\n\\n    if (!client.connect(HOST, HTTPS_PORT)) {\\n        Serial.println(\"TCP connection failed\");\\n        return;\\n    }\\n\\n    Serial.println(\"TCP connected\");\\n    client.println(\"GET /todos/1 HTTP/1.1\");\\n    client.println(\"Host: jsonplaceholder.typicode.com\");\\n    client.println(\"Connection: close\");\\n    client.println();\\n\\n    bool bodyStarted = false;\\n\\n    while (client.connected() || client.available()) {\\n        while (client.available()) {\\n            int value = client.read();\\n\\n            if (value < 0) {\\n                break;\\n            }\\n\\n            if (!bodyStarted) {\\n                trackHeaderEnd(value);\\n\\n                if (headerState >= 4) {\\n                    bodyStarted = true;\\n                }\\n\\n                continue;\\n            }\\n\\n            Serial.write(value);\\n        }\\n    }\\n\\n    client.stop();\\n    Serial.println();\\n}\\n\\nvoid loop()\\n{\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

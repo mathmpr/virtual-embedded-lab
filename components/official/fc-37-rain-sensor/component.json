@@ -31,16 +31,16 @@
     },
     "wetAnalogValue": {
       "type": "number",
-      "default": 300,
+      "default": 1600,
       "minimum": 0,
-      "maximum": 1023,
+      "maximum": 4095,
       "simulationUpdate": "rerun"
     },
     "dryAnalogValue": {
       "type": "number",
-      "default": 900,
+      "default": 120,
       "minimum": 0,
-      "maximum": 1023,
+      "maximum": 4095,
       "simulationUpdate": "rerun"
     },
     "activeLow": {
@@ -60,6 +60,8 @@
     "environmentChannel": "rain",
     "digitalOutputTerminal": "do",
     "analogOutputTerminal": "ao",
+    "environmentTerminal": "ao",
+    "analogMaxRaw": 4095,
     "activeLowProperty": "activeLow",
     "wetAnalogProperty": "wetAnalogValue",
     "dryAnalogProperty": "dryAnalogValue"

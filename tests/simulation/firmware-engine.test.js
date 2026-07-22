@@ -142,6 +142,119 @@ test('WiFi internet availability does not define signal strength or AP associati
   assert.equal(runtime.getWifiSnapshot().environment.internetAvailable, false);
 });
 
+test('virtual TCP HTTP supports common methods, query and request body', () => {
+  const clock = new VirtualClock();
+  const scheduler = new EventScheduler(clock);
+  const runtime = new ArduinoRuntime(clock, scheduler, { driveArduinoPin() {} });
+
+  runtime.configureWifiEnvironment({
+    ssid: 'VirtualLab',
+    internetAvailable: true,
+    strengthPercent: 80
+  });
+  runtime.wifiBegin('VirtualLab', 'secret');
+
+  const cases = [
+    {
+      request: 'GET /todos/1?title=virtual&completed=true HTTP/1.1\r\nHost: jsonplaceholder.typicode.com\r\nConnection: close\r\n\r\n',
+      expectedStatus: /HTTP\/1\.1 200 OK/,
+      expectedBody: /"query":\{"title":"virtual","completed":"true"\}/
+    },
+    {
+      request: 'POST /todos?source=esp32 HTTP/1.1\r\nHost: jsonplaceholder.typicode.com\r\nContent-Length: 15\r\nConnection: close\r\n\r\n{"title":"new"}',
+      expectedStatus: /HTTP\/1\.1 201 Created/,
+      expectedBody: /"received":"\{\\"title\\":\\"new\\"\}"/
+    },
+    {
+      request: 'PUT /todos/1 HTTP/1.1\r\nHost: jsonplaceholder.typicode.com\r\nContent-Length: 18\r\nConnection: close\r\n\r\n{"completed":true}',
+      expectedStatus: /HTTP\/1\.1 200 OK/,
+      expectedBody: /"method":"PUT"/
+    },
+    {
+      request: 'PATCH /todos/1 HTTP/1.1\r\nHost: jsonplaceholder.typicode.com\r\nContent-Length: 16\r\nConnection: close\r\n\r\n{"title":"edit"}',
+      expectedStatus: /HTTP\/1\.1 200 OK/,
+      expectedBody: /"method":"PATCH"/
+    },
+    {
+      request: 'DELETE /todos/1?force=true HTTP/1.1\r\nHost: jsonplaceholder.typicode.com\r\nConnection: close\r\n\r\n',
+      expectedStatus: /HTTP\/1\.1 200 OK/,
+      expectedBody: /"deleted":true/
+    },
+    {
+      request: 'OPTIONS /todos/1 HTTP/1.1\r\nHost: jsonplaceholder.typicode.com\r\nConnection: close\r\n\r\n',
+      expectedStatus: /HTTP\/1\.1 204 No Content/,
+      expectedBody: /Allow: GET, POST, PUT, PATCH, DELETE, OPTIONS/
+    }
+  ];
+
+  for (const item of cases) {
+    assert.equal(runtime.tcpConnect('jsonplaceholder.typicode.com', 443), 1);
+    runtime.tcpPrint(item.request);
+
+    const response = drainTcpResponse(runtime);
+
+    assert.match(response, item.expectedStatus);
+    assert.match(response, item.expectedBody);
+  }
+});
+
+test('virtual TCP HTTP supports project routes, HEAD and chunked body', () => {
+  const clock = new VirtualClock();
+  const scheduler = new EventScheduler(clock);
+  const runtime = new ArduinoRuntime(clock, scheduler, { driveArduinoPin() {} }, {
+    http: {
+      hosts: {
+        'api.local': {
+          routes: [
+            {
+              method: 'GET',
+              path: '/status',
+              statusCode: 200,
+              body: { ok: true }
+            },
+            {
+              method: 'POST',
+              path: '/events',
+              statusCode: 202,
+              reason: 'Accepted',
+              body: { stored: true }
+            }
+          ]
+        }
+      }
+    }
+  });
+
+  runtime.configureWifiEnvironment({
+    ssid: 'VirtualLab',
+    internetAvailable: true,
+    strengthPercent: 80
+  });
+  runtime.wifiBegin('VirtualLab', 'secret');
+
+  assert.equal(runtime.tcpConnect('api.local', 80), 1);
+  runtime.tcpPrint('HEAD /status HTTP/1.1\r\nHost: api.local\r\nConnection: close\r\n\r\n');
+  const head = drainTcpResponse(runtime);
+
+  assert.match(head, /HTTP\/1\.1 200 OK/);
+  assert.match(head, /Content-Length: 0/);
+  assert.doesNotMatch(head, /\{"ok":true\}/);
+
+  assert.equal(runtime.tcpConnect('api.local', 80), 1);
+  runtime.tcpPrint('POST /events HTTP/1.1\r\nHost: api.local\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n4\r\nping\r\n0\r\n\r\n');
+  const post = drainTcpResponse(runtime);
+
+  assert.match(post, /HTTP\/1\.1 202 Accepted/);
+  assert.match(post, /"stored":true/);
+
+  assert.equal(runtime.tcpConnect('api.local', 80), 1);
+  runtime.tcpPrint('OPTIONS /status HTTP/1.1\r\nHost: api.local\r\nConnection: close\r\n\r\n');
+  const options = drainTcpResponse(runtime);
+
+  assert.match(options, /HTTP\/1\.1 204 No Content/);
+  assert.match(options, /Allow: GET, HEAD, OPTIONS/);
+});
+
 test('project simulation does not require distance controls for ESP32 WiFi projects', () => {
   const esp32 = JSON.parse(readFileSync(join(root, 'components/official/esp32-devkit/component.json'), 'utf8'));
   const wifiSignal = JSON.parse(readFileSync(join(root, 'components/official/wifi-signal/component.json'), 'utf8'));
@@ -472,6 +585,197 @@ test('ESP32 WiFi example runs through WASM and reads signal environment', async 
   assert.equal(result.firmwareResult.wifi.rssi, -47);
   assert.match(serial, /Wi-Fi connected/);
   assert.match(serial, /RSSI dBm: -47/);
+});
+
+test('ESP32 WiFi TCP example fetches virtual JSONPlaceholder response through WASM', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const esp32 = JSON.parse(readFileSync(join(root, 'components/official/esp32-devkit/component.json'), 'utf8'));
+  const wifiSignal = JSON.parse(readFileSync(join(root, 'components/official/wifi-signal/component.json'), 'utf8'));
+  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-wifi-tcp-jsonplaceholder/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
+    constants: {
+      LED_BUILTIN: 2
+    }
+  });
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['esp32-1', {
+          id: 'esp32-1',
+          type: 'esp32-devkit',
+          behavior: esp32.behavior,
+          properties: {}
+        }],
+        ['wifi-1', {
+          id: 'wifi-1',
+          type: 'wifi-signal',
+          behavior: wifiSignal.behavior,
+          properties: {
+            ssid: 'VirtualLab',
+            connected: true,
+            strengthPercent: 86
+          }
+        }]
+      ])
+    },
+    nets: [],
+    terminalKind() {
+      return 'signal';
+    },
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const result = session.runFrame();
+  const serial = serialText(result);
+
+  assert.equal(wasm.ok, true);
+  assert.equal(result.source, 'wasm');
+  assert.match(serial, /Wi-Fi connected with internet/);
+  assert.match(serial, /TCP connected/);
+  assert.match(serial, /\{"userId":1,"id":1,"title":"delectus aut autem","completed":false\}/);
+});
+
+test('ESP8266 MQTT example connects to virtual broker through WASM', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const esp8266 = JSON.parse(readFileSync(join(root, 'components/official/esp8266-nodemcu/component.json'), 'utf8'));
+  const wifiSignal = JSON.parse(readFileSync(join(root, 'components/official/wifi-signal/component.json'), 'utf8'));
+  const project = JSON.parse(readFileSync(join(root, 'examples/esp8266-mqtt-water-pump/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
+    constants: {
+      LED_BUILTIN: 2
+    }
+  });
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['esp8266-1', {
+          id: 'esp8266-1',
+          type: 'esp8266-nodemcu',
+          behavior: esp8266.behavior,
+          properties: {}
+        }],
+        ['wifi-1', {
+          id: 'wifi-1',
+          type: 'wifi-signal',
+          behavior: wifiSignal.behavior,
+          properties: {
+            ssid: 'VirtualLab',
+            connected: true,
+            strengthPercent: 88
+          }
+        }]
+      ])
+    },
+    nets: [],
+    terminalKind() {
+      return 'signal';
+    },
+    wasmBase64: wasm.wasmBase64,
+    network: project.network
+  });
+
+  const first = session.runFrame();
+  const second = session.runFrame();
+  const third = session.runFrame();
+  const fourth = session.runFrame();
+  const serial = [first, second, third, fourth].map(serialText).join('');
+  const publishedTopics = fourth.firmwareResult.mqtt.published.map((message) => message.topic);
+
+  assert.equal(wasm.ok, true);
+  assert.match(serial, /Wi-Fi connected with internet/);
+  assert.match(serial, /MQTT On!/);
+  assert.match(serial, /MQTT RX toggle\/water 1/);
+  assert.match(serial, /MQTT publish on_off\/water manual:1/);
+  assert.match(serial, /MQTT keepalive #1/);
+  assert.match(serial, /MQTT keepalive #2/);
+  assert.ok(publishedTopics.filter((topic) => topic === 'keep/alive').length >= 2);
+  assert.ok(publishedTopics.includes('on_off/water'));
+  assert.equal(fourth.builtInLedStates.get('esp8266-1.led_builtin'), true);
+});
+
+test('WASM AsyncMqttClient drains queued MQTT messages on poll', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const esp8266 = JSON.parse(readFileSync(join(root, 'components/official/esp8266-nodemcu/component.json'), 'utf8'));
+  const wifiSignal = JSON.parse(readFileSync(join(root, 'components/official/wifi-signal/component.json'), 'utf8'));
+  const code = normalizeProjectCode(`
+    #include <ESP8266WiFi.h>
+    #include <AsyncMqttClient.h>
+
+    AsyncMqttClient mqtt;
+
+    void onMqttMessage(char *topic, char *data, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
+    {
+        digitalWrite(14, len > 0 && data[0] == '1' ? LOW : HIGH);
+    }
+
+    void setup()
+    {
+        WiFi.mode(WIFI_STA);
+        WiFi.begin("VirtualLab", "secret");
+        pinMode(14, OUTPUT);
+        digitalWrite(14, HIGH);
+        mqtt.setServer("mqtt.local", 1883);
+        mqtt.onMessage(onMqttMessage);
+        mqtt.connect();
+        mqtt.subscribe("toggle/water", 0);
+    }
+
+    void loop()
+    {
+        mqtt.connected();
+        delay(1000);
+    }
+  `);
+  const wasm = await compileFirmwareWasmWithClang(code, {
+    constants: {
+      LED_BUILTIN: 2
+    }
+  });
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['esp8266-1', {
+          id: 'esp8266-1',
+          type: 'esp8266-nodemcu',
+          behavior: esp8266.behavior,
+          properties: {}
+        }],
+        ['wifi-1', {
+          id: 'wifi-1',
+          type: 'wifi-signal',
+          behavior: wifiSignal.behavior,
+          properties: {
+            ssid: 'VirtualLab',
+            connected: true,
+            strengthPercent: 88
+          }
+        }]
+      ])
+    },
+    nets: [],
+    terminalKind() {
+      return 'signal';
+    },
+    wasmBase64: wasm.wasmBase64,
+    network: {
+      mqtt: {
+        brokers: {
+          'mqtt.local': {
+            online: true,
+            messages: [
+              { topic: 'toggle/water', payload: '1' },
+              { topic: 'toggle/water', payload: '0' }
+            ]
+          }
+        }
+      }
+    }
+  });
+
+  const result = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.equal(result.firmwareResult.pinStates['14'].value, 'HIGH');
 });
 
 test('ESP32 WiFi failover example chooses strongest network with internet through WASM', async () => {
@@ -970,6 +1274,16 @@ async function createHcsr04WasmSession(wasmBase64, valueCm) {
 
 function serialText(result) {
   return result.serial.events.map((event) => event.data).join('');
+}
+
+function drainTcpResponse(runtime) {
+  const bytes = [];
+
+  while (runtime.tcpAvailable() > 0) {
+    bytes.push(runtime.tcpRead());
+  }
+
+  return String.fromCharCode(...bytes);
 }
 
 function testNet(id, references) {

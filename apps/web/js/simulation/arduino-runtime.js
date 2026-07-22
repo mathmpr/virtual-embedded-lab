@@ -1,3 +1,6 @@
+import { createVirtualHttpServer } from './virtual-http-server.js';
+import { createVirtualMqttBroker } from './virtual-mqtt-broker.js';
+
 export class ArduinoRuntime {
   #pins = new Map();
   #analogPins = new Map();
@@ -30,12 +33,18 @@ export class ArduinoRuntime {
     ssid: null,
     accessPoint: null
   };
+  #tcp = createTcpState();
+  #mqtt = createMqttState();
 
   constructor(clock, scheduler, graph, options = {}) {
     this.clock = clock;
     this.scheduler = scheduler;
     this.graph = graph;
     this.componentId = options.componentId ?? null;
+    this.httpServer = options.httpServer ?? createVirtualHttpServer(options.http ?? {});
+    this.mqttClientId = options.componentId ?? 'default';
+    this.mqttBroker = options.mqttBroker ?? createMqttBroker(options.mqtt ?? {}, this.mqttClientId);
+    this.#mqtt = createMqttState();
   }
 
   pinMode(pin, mode) {
@@ -67,7 +76,8 @@ export class ArduinoRuntime {
   }
 
   driveAnalogInput(pin, value, metadata = {}) {
-    const normalizedValue = Math.max(0, Math.min(1023, Math.round(Number(value) || 0)));
+    const maxRaw = Number.isFinite(Number(metadata.maxRaw)) ? Number(metadata.maxRaw) : 1023;
+    const normalizedValue = Math.max(0, Math.min(maxRaw, Math.round(Number(value) || 0)));
     this.#analogPins.set(pin, {
       value: normalizedValue,
       voltageVolts: Number.isFinite(metadata.voltageVolts) ? metadata.voltageVolts : null,
@@ -379,6 +389,93 @@ export class ArduinoRuntime {
     return Boolean(this.#connectedWifiNetwork()?.internetAvailable);
   }
 
+  tcpConnect(host, port) {
+    const normalizedHost = String(host ?? '').trim();
+    const normalizedPort = Number(port);
+
+    this.#tcp = createTcpState({
+      connected: this.#wifi.connected && this.wifiInternetAvailable() && normalizedHost.length > 0,
+      host: normalizedHost,
+      port: Number.isFinite(normalizedPort) ? normalizedPort : 0
+    });
+
+    return this.#tcp.connected ? 1 : 0;
+  }
+
+  tcpPrint(data) {
+    if (!this.#tcp.connected) {
+      return 0;
+    }
+
+    const text = String(data ?? '');
+    this.#tcp.txBuffer += text;
+    this.#prepareTcpResponseIfReady();
+    return text.length;
+  }
+
+  tcpPrintln(data = '') {
+    return this.tcpPrint(`${data}\r\n`);
+  }
+
+  tcpAvailable() {
+    return this.#tcp.rxBuffer.length;
+  }
+
+  tcpRead() {
+    return this.#tcp.rxBuffer.shift() ?? -1;
+  }
+
+  tcpStop() {
+    this.#tcp.connected = false;
+  }
+
+  tcpConnected() {
+    return this.#tcp.connected ? 1 : 0;
+  }
+
+  mqttSetServer(host, port) {
+    this.#mqtt.host = String(host ?? '');
+    this.#mqtt.port = Number(port) || 1883;
+  }
+
+  mqttConnect() {
+    this.#mqtt.connected = this.mqttBroker.connect({
+      clientId: this.mqttClientId,
+      host: this.#mqtt.host,
+      port: this.#mqtt.port
+    });
+
+    return this.#mqtt.connected ? 1 : 0;
+  }
+
+  mqttDisconnect() {
+    this.mqttBroker.disconnect(this.mqttClientId);
+    this.#mqtt.connected = false;
+  }
+
+  mqttConnected() {
+    this.#mqtt.connected = this.mqttBroker.connected(this.mqttClientId);
+    return this.#mqtt.connected ? 1 : 0;
+  }
+
+  mqttSubscribe(topic) {
+    return this.mqttBroker.subscribe(this.mqttClientId, String(topic ?? ''));
+  }
+
+  mqttPublish(topic, qos, retain, payload) {
+    return this.mqttBroker.publish({
+      clientId: this.mqttClientId,
+      topic,
+      qos,
+      retain,
+      payload
+    });
+  }
+
+  mqttReadSubscribedMessage(topic) {
+    return this.mqttBroker.readSubscribedMessage(this.mqttClientId, String(topic ?? ''));
+  }
+
   getWifiSnapshot() {
     return {
       environment: { ...this.#wifi.environment },
@@ -389,6 +486,10 @@ export class ArduinoRuntime {
       status: this.wifiStatus(),
       rssi: this.wifiRssi()
     };
+  }
+
+  getMqttSnapshot() {
+    return this.mqttBroker.snapshot();
   }
 
   getI2cSnapshot() {
@@ -447,6 +548,21 @@ export class ArduinoRuntime {
   #connectedWifiNetwork() {
     return this.#wifiNetworkForSsid(this.#wifi.ssid);
   }
+
+  #prepareTcpResponseIfReady() {
+    if (this.#tcp.responded || !this.httpServer.canRespond(this.#tcp.txBuffer)) {
+      return;
+    }
+
+    const response = this.httpServer.respond({
+      host: this.#tcp.host,
+      port: this.#tcp.port,
+      request: this.#tcp.txBuffer
+    });
+    this.#tcp.rxBuffer = [...response].map((char) => char.charCodeAt(0));
+    this.#tcp.responded = true;
+    this.#tcp.connected = false;
+  }
 }
 
 export function supportedSerialBaudRates() {
@@ -485,4 +601,131 @@ function signalStrengthToRssi(strengthPercent) {
 
 function normalizeStrength(strengthPercent) {
   return Math.max(0, Math.min(100, Number(strengthPercent ?? 0)));
+}
+
+function createTcpState(overrides = {}) {
+  return {
+    connected: false,
+    host: null,
+    port: 0,
+    txBuffer: '',
+    rxBuffer: [],
+    responded: false,
+    ...overrides
+  };
+}
+
+function createMqttState(overrides = {}) {
+  return {
+    host: 'mqtt.local',
+    port: 1883,
+    connected: false,
+    ...overrides
+  };
+}
+
+function createMqttBroker(config, clientId) {
+  if (config.mode === 'real' && typeof XMLHttpRequest === 'function') {
+    return createRealMqttBridge(clientId);
+  }
+
+  return createVirtualMqttBroker(config);
+}
+
+function createRealMqttBridge(clientId) {
+  const published = [];
+  const subscriptions = new Set();
+  const errors = [];
+  let connected = false;
+  let host = '';
+  let port = 1883;
+
+  return {
+    connect(request) {
+      host = String(request.host ?? '');
+      port = Number(request.port ?? 1883);
+      const result = postMqttBridge('connect', { clientId, host, port });
+
+      connected = result.ok === true && result.connected === true;
+      recordBridgeError(errors, 'connect', result);
+      return connected;
+    },
+    disconnect() {
+      const result = postMqttBridge('disconnect', { clientId });
+      recordBridgeError(errors, 'disconnect', result);
+      connected = false;
+    },
+    connected() {
+      const result = postMqttBridge('connected', { clientId });
+      connected = result.ok === true && result.connected === true;
+      recordBridgeError(errors, 'connected', result);
+      return connected;
+    },
+    subscribe(_clientId, topic) {
+      const result = postMqttBridge('subscribe', { clientId, topic });
+
+      if (result.ok === true) {
+        subscriptions.add(String(topic ?? ''));
+      }
+
+      recordBridgeError(errors, 'subscribe', result);
+      return result.packetId ?? 0;
+    },
+    publish({ topic, qos = 0, retain = false, payload = '' }) {
+      const result = postMqttBridge('publish', { clientId, topic, qos, retain, payload });
+
+      if (result.ok === true) {
+        published.push({ clientId, topic, qos, retain, payload, direction: 'TX' });
+      }
+
+      recordBridgeError(errors, 'publish', result);
+      return result.packetId ?? 0;
+    },
+    readSubscribedMessage(_clientId, topic) {
+      const result = postMqttBridge('drain', { clientId, topic });
+
+      recordBridgeError(errors, 'drain', result);
+      return result.ok === true ? result.messages?.[0] ?? null : null;
+    },
+    snapshot() {
+      return {
+        mode: 'real',
+        brokers: [{ host, port, online: connected, messages: [] }],
+        sessions: [{ clientId, host, port, connected, subscriptions: [...subscriptions] }],
+        published: published.map((message) => ({ ...message })),
+        errors: errors.map((error) => ({ ...error }))
+      };
+    }
+  };
+}
+
+function recordBridgeError(errors, action, result) {
+  if (result.ok === true) {
+    return;
+  }
+
+  const error = String(result.error ?? `MQTT bridge action failed: ${action}`);
+  const key = `${action}:${error}`;
+
+  if (!errors.some((item) => item.key === key)) {
+    errors.push({ key, action, error });
+  }
+}
+
+function postMqttBridge(action, payload) {
+  const request = new XMLHttpRequest();
+
+  try {
+    request.open('POST', `/api/network/mqtt/${action}`, false);
+    request.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+    request.send(JSON.stringify(payload));
+
+    if (request.status < 200 || request.status >= 300) {
+      return { ok: false, error: request.statusText };
+    }
+
+    return JSON.parse(request.responseText || '{"ok":false}');
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
 }

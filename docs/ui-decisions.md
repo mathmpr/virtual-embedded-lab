@@ -221,7 +221,7 @@ O runtime interpreta chamadas ESP32/Arduino Core iniciais:
 
 No modo station, `WiFi.begin` conecta quando algum Wi-Fi Signal possui força maior que zero e o SSID corresponde ao ambiente. `WiFi.RSSI(ssid)` permite comparar redes antes de conectar. O checkbox de internet ativa não altera RSSI nem associação ao access point; ele representa se a rede conectada teria saída para internet e é lido por `WiFi.internetAvailable()`. No modo access point, `WiFi.softAP` registra o AP virtual no snapshot do runtime.
 
-Limite atual: ainda não há pilha TCP/IP, sockets, HTTP, DNS, autenticação real ou múltiplas redes simultâneas.
+Rede atual: `WiFiClient` expõe um modelo TCP/HTTP virtual suficiente para requests textuais e rotas declaradas no projeto; `AsyncMqttClient` pode usar broker virtual ou broker MQTT real via bridge backend Node. Ainda não há pilha TCP/IP completa, DNS real, TLS/HTTPS criptográfico, autenticação MQTT, QoS completo ou sockets arbitrários no browser/WASM.
 
 ## Monitor de Sinais
 

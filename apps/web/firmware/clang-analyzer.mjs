@@ -371,11 +371,15 @@ function shimSource() {
 using uint16_t = unsigned short;
 using uint32_t = unsigned int;
 using int32_t = int;
+using size_t = unsigned long;
+#define IRAM_ATTR
 
 const int LOW = 0;
 const int HIGH = 1;
 const int INPUT = 0;
 const int OUTPUT = 1;
+const int INPUT_PULLUP = 2;
+const int FALLING = 2;
 const int LED_BUILTIN = 13;
 const int A0 = 14;
 const int A1 = 15;
@@ -403,6 +407,23 @@ unsigned long millis();
 unsigned long micros();
 void delay(unsigned long);
 void delayMicroseconds(unsigned int);
+void yield();
+int digitalPinToInterrupt(int);
+void attachInterrupt(int, void (*)(), int);
+using size_t = unsigned long;
+int snprintf(char *, size_t, const char *, const char *, const char *);
+int snprintf(char *, size_t, const char *, const char *, const char *, int);
+int snprintf(char *, size_t, const char *, const char *, const char *, const char *, const char *);
+
+class String {
+public:
+  String();
+  String(const char *);
+  void operator+=(char);
+  bool operator==(const char *) const;
+  const char *c_str() const;
+  int toInt() const;
+};
 
 class HardwareSerial {
 public:
@@ -489,9 +510,70 @@ public:
   int RSSI();
   int RSSI(const char *);
   bool internetAvailable();
+  void disconnect();
+  void setAutoReconnect(bool);
+  void persistent(bool);
+  void scanDelete();
+  String SSID(int);
 };
 
 extern WiFiClass WiFi;
+
+class WiFiClient {
+public:
+  int connect(const char *, int);
+  int print(const char *);
+  int println();
+  int println(const char *);
+  int available();
+  int read();
+  void stop();
+  int connected();
+};
+
+class WiFiEventHandler {};
+class WiFiEventStationModeGotIP {};
+class WiFiEventStationModeDisconnected {};
+
+class ESPClass {
+public:
+  void restart();
+  void wdtDisable();
+  void wdtEnable(int);
+  void wdtFeed();
+};
+
+extern ESPClass ESP;
+const int WDTO_8S = 8000;
+
+enum AsyncMqttClientDisconnectReason {
+  TCP_DISCONNECTED = 0
+};
+
+struct AsyncMqttClientMessageProperties {
+  bool dup;
+  unsigned char qos;
+  bool retain;
+};
+
+class AsyncMqttClient {
+public:
+  void setServer(const char *, unsigned short);
+  void onConnect(void (*)(bool));
+  void onDisconnect(void (*)(AsyncMqttClientDisconnectReason));
+  void onMessage(void (*)(char *, char *, AsyncMqttClientMessageProperties, size_t, size_t, size_t));
+  void connect();
+  void disconnect();
+  bool connected();
+  unsigned short subscribe(const char *, unsigned char);
+  unsigned short publish(const char *, unsigned char, bool, const char *);
+};
+
+class SimpleTimer {
+public:
+  int setInterval(unsigned long, void (*)());
+  void run();
+};
 `;
 }
 
@@ -500,7 +582,7 @@ function shimLineOffset() {
 }
 
 function stripArduinoIncludes(code) {
-  return code.replace(/^\s*#include\s+[<"](?:Arduino|WiFi|Wire|SPI)\.h[>"].*$/gm, '');
+  return code.replace(/^\s*#include\s+[<"](?:Arduino|WiFi|ESP8266WiFi|WiFiClient|AsyncMqttClient|SimpleTimer|Wire|SPI)\.h[>"].*$/gm, '');
 }
 
 function normalizeFirmwareSource(code) {
