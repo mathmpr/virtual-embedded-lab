@@ -1,0 +1,50 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "environment.light-level",
+    "name": "Light Environment",
+    "category": "environment",
+    "subCategory": "light"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment"],
+    "implemented": true
+  },
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "intensityPercent": {
+      "type": "number",
+      "default": 50,
+      "minimum": 0,
+      "maximum": 100,
+      "unit": "%"
+    }
+  },
+  "terminals": [],
+  "behavior": {
+    "type": "environment-source",
+    "channel": "light",
+    "activeProperty": "enabled",
+    "intensityProperty": "intensityPercent"
+  },
+  "visual": {
+    "type": "light-level",
+    "title": "Luz",
+    "className": "light-level",
+    "body": "50%",
+    "width": 180,
+    "height": 104,
+    "palette": {
+      "group": "Inputs",
+      "subgroup": "Light",
+      "icon": "light-icon",
+      "order": 37
+    },
+    "terminals": []
+  }
+}

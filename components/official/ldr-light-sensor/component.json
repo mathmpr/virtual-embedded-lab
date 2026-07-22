@@ -1,0 +1,87 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "sensor.light.ldr",
+    "name": "LDR Light Sensor",
+    "category": "sensor",
+    "subCategory": "light"
+  },
+  "simulation": {
+    "kind": "behavioral-sensor",
+    "effects": ["firmware", "environment", "electrical", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "darkResistanceOhms": {
+      "type": "number",
+      "default": 100000,
+      "minimum": 1000,
+      "maximum": 1000000,
+      "unit": "Ω"
+    },
+    "brightResistanceOhms": {
+      "type": "number",
+      "default": 1000,
+      "minimum": 100,
+      "maximum": 10000,
+      "unit": "Ω"
+    },
+    "gamma": {
+      "type": "number",
+      "default": 0.7,
+      "minimum": 0.1,
+      "maximum": 2
+    },
+    "responseMs": {
+      "type": "number",
+      "default": 50,
+      "minimum": 0,
+      "maximum": 2000,
+      "unit": "ms"
+    }
+  },
+  "variants": {
+    "sensitivity": [
+      { "label": "Standard 5 mm", "darkResistanceOhms": 100000, "brightResistanceOhms": 1000 },
+      { "label": "High sensitivity", "darkResistanceOhms": 500000, "brightResistanceOhms": 500 },
+      { "label": "Low sensitivity", "darkResistanceOhms": 50000, "brightResistanceOhms": 2000 }
+    ]
+  },
+  "terminals": [
+    { "id": "a", "label": "A", "type": "passive" },
+    { "id": "b", "label": "B", "type": "passive" }
+  ],
+  "electricalModel": {
+    "type": "variable-resistor",
+    "primitive": "ldr",
+    "darkResistanceProperty": "darkResistanceOhms",
+    "brightResistanceProperty": "brightResistanceOhms",
+    "gammaProperty": "gamma",
+    "environmentChannel": "light"
+  },
+  "behavior": {
+    "type": "light-sensor",
+    "environmentChannel": "light",
+    "inputTerminals": ["a", "b"],
+    "analogReadSource": "voltage-divider"
+  },
+  "visual": {
+    "type": "ldr-light-sensor",
+    "title": "LDR Light",
+    "className": "ldr-light-sensor",
+    "body": "DIM",
+    "width": 134,
+    "height": 104,
+    "palette": {
+      "group": "Sensors",
+      "subgroup": "Light",
+      "icon": "ldr-icon",
+      "order": 25
+    },
+    "terminals": [
+      { "id": "a", "side": "left", "x": 0, "y": 52, "kind": "signal" },
+      { "id": "b", "side": "right", "x": 134, "y": 52, "kind": "signal" }
+    ]
+  }
+}

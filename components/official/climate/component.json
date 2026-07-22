@@ -1,0 +1,58 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "environment.climate",
+    "name": "Clima",
+    "category": "environment",
+    "subCategory": "weather"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment"],
+    "implemented": true
+  },
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "temperatureC": {
+      "type": "number",
+      "default": 25,
+      "minimum": -40,
+      "maximum": 85,
+      "unit": "°C"
+    },
+    "pressureHpa": {
+      "type": "number",
+      "default": 1013.25,
+      "minimum": 300,
+      "maximum": 1100,
+      "unit": "hPa"
+    }
+  },
+  "terminals": [],
+  "behavior": {
+    "type": "environment-source",
+    "channel": "climate",
+    "activeProperty": "enabled",
+    "temperatureProperty": "temperatureC",
+    "pressureProperty": "pressureHpa"
+  },
+  "visual": {
+    "type": "climate-environment",
+    "title": "Clima",
+    "className": "climate-environment",
+    "body": "25 °C / 1013 hPa",
+    "width": 210,
+    "height": 124,
+    "palette": {
+      "group": "Inputs",
+      "subgroup": "Weather",
+      "icon": "climate-icon",
+      "order": 38
+    },
+    "terminals": []
+  }
+}

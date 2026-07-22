@@ -1,0 +1,52 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "environment.analog-voltage-source",
+    "name": "Fonte analógica",
+    "category": "environment",
+    "subCategory": "analog"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment", "electrical"],
+    "implemented": true
+  },
+  "properties": {
+    "enabled": { "type": "boolean", "default": true },
+    "voltageVolts": { "type": "number", "default": 1.024, "minimum": 0, "maximum": 5, "unit": "V" }
+  },
+  "terminals": [
+    { "id": "out", "label": "OUT", "type": "analog-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" }
+  ],
+  "behavior": {
+    "type": "analog-voltage-source",
+    "channel": "analog-voltage",
+    "voltageProperty": "voltageVolts",
+    "activeProperty": "enabled",
+    "outputTerminal": "out"
+  },
+  "electricalModel": {
+    "type": "voltage-source",
+    "outputVoltageProperty": "voltageVolts"
+  },
+  "visual": {
+    "type": "analog-voltage-source",
+    "title": "Fonte analógica",
+    "className": "analog-voltage-source",
+    "body": "1.024 V",
+    "width": 180,
+    "height": 104,
+    "palette": {
+      "group": "Inputs",
+      "subgroup": "Analog",
+      "icon": "analog-source-icon",
+      "order": 39
+    },
+    "terminals": [
+      { "id": "out", "side": "right", "x": 180, "y": 58, "kind": "signal" },
+      { "id": "gnd", "side": "bottom", "x": 90, "y": 104, "kind": "ground" }
+    ]
+  }
+}

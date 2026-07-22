@@ -1,0 +1,59 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": { "id": "converter.adc.mcp3008", "name": "MCP3008 ADC", "category": "converter", "subCategory": "adc" },
+  "simulation": { "kind": "behavioral-sensor", "effects": ["firmware", "electrical", "environment", "visual-state"], "implemented": true },
+  "properties": {
+    "resolutionBits": { "type": "number", "default": 10, "minimum": 10, "maximum": 10 },
+    "referenceVoltageVolts": { "type": "number", "default": 5, "minimum": 1, "maximum": 5.5, "unit": "V" },
+    "spiMode": { "type": "number", "default": 0, "minimum": 0, "maximum": 3 },
+    "maxClockHz": { "type": "number", "default": 1350000, "minimum": 100000, "maximum": 3600000, "unit": "Hz" }
+  },
+  "terminals": [
+    { "id": "vdd", "label": "VDD", "type": "power-input" },
+    { "id": "vref", "label": "VREF", "type": "power-input" },
+    { "id": "agnd", "label": "AGND", "type": "ground" },
+    { "id": "dgnd", "label": "DGND", "type": "ground" },
+    { "id": "clk", "label": "CLK", "type": "spi-sck" },
+    { "id": "dout", "label": "DOUT", "type": "spi-miso" },
+    { "id": "din", "label": "DIN", "type": "spi-mosi" },
+    { "id": "cs", "label": "CS", "type": "spi-cs" },
+    { "id": "ch0", "label": "CH0", "type": "analog-input" },
+    { "id": "ch1", "label": "CH1", "type": "analog-input" },
+    { "id": "ch2", "label": "CH2", "type": "analog-input" },
+    { "id": "ch3", "label": "CH3", "type": "analog-input" },
+    { "id": "ch4", "label": "CH4", "type": "analog-input" },
+    { "id": "ch5", "label": "CH5", "type": "analog-input" },
+    { "id": "ch6", "label": "CH6", "type": "analog-input" },
+    { "id": "ch7", "label": "CH7", "type": "analog-input" }
+  ],
+  "electricalModel": { "type": "adc", "resolutionBits": 10, "bus": "spi", "inputChannels": 8, "differential": true, "referenceVoltageProperty": "referenceVoltageVolts" },
+  "behavior": { "type": "adc-spi", "model": "mcp3008", "chipSelectTerminal": "cs", "resolutionBits": 10, "maxRaw": 1023, "referenceVoltageProperty": "referenceVoltageVolts", "inputTerminals": ["ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7"] },
+  "visual": {
+    "type": "mcp3008-adc",
+    "title": "MCP3008",
+    "className": "mcp3008-adc adc-module",
+    "body": "10-bit SPI ADC",
+    "width": 220,
+    "height": 156,
+    "palette": { "group": "Electronic", "subgroup": "ADCs", "icon": "mcp3008-icon", "order": 63 },
+    "terminals": [
+      { "id": "vdd", "side": "left", "x": 0, "y": 24, "kind": "power" },
+      { "id": "vref", "side": "left", "x": 0, "y": 48, "kind": "power" },
+      { "id": "agnd", "side": "bottom", "x": 70, "y": 156, "kind": "ground" },
+      { "id": "dgnd", "side": "bottom", "x": 118, "y": 156, "kind": "ground" },
+      { "id": "clk", "side": "right", "x": 220, "y": 36, "kind": "signal" },
+      { "id": "dout", "side": "right", "x": 220, "y": 64, "kind": "signal" },
+      { "id": "din", "side": "right", "x": 220, "y": 92, "kind": "signal" },
+      { "id": "cs", "side": "right", "x": 220, "y": 120, "kind": "signal" },
+      { "id": "ch0", "side": "left", "x": 0, "y": 78, "kind": "signal" },
+      { "id": "ch1", "side": "left", "x": 0, "y": 96, "kind": "signal" },
+      { "id": "ch2", "side": "left", "x": 0, "y": 114, "kind": "signal" },
+      { "id": "ch3", "side": "left", "x": 0, "y": 132, "kind": "signal" },
+      { "id": "ch4", "side": "top", "x": 36, "y": 0, "kind": "signal" },
+      { "id": "ch5", "side": "top", "x": 72, "y": 0, "kind": "signal" },
+      { "id": "ch6", "side": "top", "x": 108, "y": 0, "kind": "signal" },
+      { "id": "ch7", "side": "top", "x": 144, "y": 0, "kind": "signal" }
+    ]
+  }
+}

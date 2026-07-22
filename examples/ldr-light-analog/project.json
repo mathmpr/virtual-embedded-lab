@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "LDR Light Analog",
+  "board": {
+    "width": 1600,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "arduino-1",
+      "componentId": "board.arduino.uno",
+      "position": { "x": 260, "y": 220 },
+      "properties": {}
+    },
+    {
+      "id": "ldr-1",
+      "componentId": "sensor.light.ldr",
+      "position": { "x": 720, "y": 250 },
+      "properties": {
+        "darkResistanceOhms": 100000,
+        "brightResistanceOhms": 1000,
+        "gamma": 0.7,
+        "responseMs": 50
+      }
+    },
+    {
+      "id": "resistor-1",
+      "componentId": "electronic.resistor",
+      "position": { "x": 720, "y": 420 },
+      "properties": {
+        "resistanceOhms": 10000
+      }
+    },
+    {
+      "id": "light-1",
+      "componentId": "environment.light-level",
+      "position": { "x": 980, "y": 250 },
+      "properties": {
+        "enabled": true,
+        "intensityPercent": 50
+      }
+    }
+  ],
+  "connections": [
+    { "id": "net-1", "color": "#f05252", "terminals": ["arduino-1.5v", "ldr-1.a"] },
+    { "id": "net-2", "color": "#ffb454", "terminals": ["ldr-1.b", "arduino-1.a0", "resistor-1.a"] },
+    { "id": "net-3", "color": "#f5f7fa", "terminals": ["resistor-1.b", "arduino-1.gnd"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "const int LIGHT_PIN = A0;\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    pinMode(LIGHT_PIN, INPUT);\\n    Serial.println(\"LDR light sensor ready\");\\n}\\n\\nvoid loop()\\n{\\n    const int lightValue = analogRead(LIGHT_PIN);\\n\\n    Serial.print(\"LIGHT RAW: \");\\n    Serial.println(lightValue);\\n\\n    if (lightValue < 300) {\\n        Serial.println(\"DARK\");\\n    } else if (lightValue < 700) {\\n        Serial.println(\"DIM\");\\n    } else {\\n        Serial.println(\"BRIGHT\");\\n    }\\n\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "BMP280 Weather I2C",
+  "board": {
+    "width": 1600,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "arduino-1",
+      "componentId": "board.arduino.uno",
+      "position": { "x": 260, "y": 220 },
+      "properties": {}
+    },
+    {
+      "id": "bmp280-1",
+      "componentId": "sensor.environment.bmp280",
+      "position": { "x": 730, "y": 250 },
+      "properties": {
+        "i2cAddress": 118,
+        "temperatureOffsetC": 0,
+        "pressureOffsetHpa": 0,
+        "oversampling": "x1"
+      }
+    },
+    {
+      "id": "climate-1",
+      "componentId": "environment.climate",
+      "position": { "x": 980, "y": 250 },
+      "properties": {
+        "enabled": true,
+        "temperatureC": 25,
+        "pressureHpa": 1013.25
+      }
+    }
+  ],
+  "connections": [
+    { "id": "net-1", "color": "#f05252", "terminals": ["arduino-1.3v3", "bmp280-1.vcc"] },
+    { "id": "net-2", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "bmp280-1.gnd"] },
+    { "id": "net-3", "color": "#45d6c4", "terminals": ["arduino-1.a4", "bmp280-1.sda"] },
+    { "id": "net-4", "color": "#4c8dff", "terminals": ["arduino-1.a5", "bmp280-1.scl"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "#include <Wire.h>\\n\\nBMP280 bmp;\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    Wire.begin();\\n\\n    if (!bmp.begin(0x76)) {\\n        Serial.println(\"BMP280 not found\");\\n        return;\\n    }\\n\\n    Serial.println(\"BMP280 ready\");\\n}\\n\\nvoid loop()\\n{\\n    Serial.print(\"Temperature C: \");\\n    Serial.println(bmp.readTemperature());\\n\\n    Serial.print(\"Pressure hPa: \");\\n    Serial.println(bmp.readPressure() / 100.0);\\n\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

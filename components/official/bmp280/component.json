@@ -1,0 +1,94 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "sensor.environment.bmp280",
+    "name": "BMP280 Pressure/Temperature",
+    "category": "sensor",
+    "subCategory": "pressure-temperature"
+  },
+  "simulation": {
+    "kind": "behavioral-sensor",
+    "effects": ["firmware", "environment", "electrical", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "i2cAddress": {
+      "type": "number",
+      "default": 118,
+      "minimum": 118,
+      "maximum": 119
+    },
+    "temperatureOffsetC": {
+      "type": "number",
+      "default": 0,
+      "minimum": -20,
+      "maximum": 20,
+      "unit": "°C"
+    },
+    "pressureOffsetHpa": {
+      "type": "number",
+      "default": 0,
+      "minimum": -100,
+      "maximum": 100,
+      "unit": "hPa"
+    },
+    "oversampling": {
+      "type": "string",
+      "default": "x1"
+    }
+  },
+  "variants": {
+    "i2cAddress": [
+      { "label": "I2C 0x76", "value": 118 },
+      { "label": "I2C 0x77", "value": 119 }
+    ]
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "scl", "label": "SCL", "type": "i2c-scl" },
+    { "id": "sda", "label": "SDA", "type": "i2c-sda" },
+    { "id": "csb", "label": "CSB", "type": "spi-cs" },
+    { "id": "sdo", "label": "SDO", "type": "spi-miso" }
+  ],
+  "electricalModel": {
+    "type": "sensor-module",
+    "logicVoltage": 3.3,
+    "toleratesFiveVoltPower": false,
+    "bus": "i2c",
+    "inputCurrentAmps": 0.001
+  },
+  "behavior": {
+    "type": "bmp280-sensor",
+    "environmentChannel": "climate",
+    "bus": "i2c",
+    "addressProperty": "i2cAddress",
+    "temperatureOffsetProperty": "temperatureOffsetC",
+    "pressureOffsetProperty": "pressureOffsetHpa",
+    "sdaTerminal": "sda",
+    "sclTerminal": "scl"
+  },
+  "visual": {
+    "type": "bmp280-sensor",
+    "title": "BMP280",
+    "className": "bmp280-sensor",
+    "body": "25 °C / 1013 hPa",
+    "width": 170,
+    "height": 118,
+    "palette": {
+      "group": "Sensors",
+      "subgroup": "Environment",
+      "icon": "bmp280-icon",
+      "order": 26
+    },
+    "terminals": [
+      { "id": "vcc", "side": "left", "x": 0, "y": 26, "kind": "power" },
+      { "id": "gnd", "side": "bottom", "x": 82, "y": 118, "kind": "ground" },
+      { "id": "scl", "side": "right", "x": 170, "y": 44, "kind": "signal" },
+      { "id": "sda", "side": "right", "x": 170, "y": 72, "kind": "signal" },
+      { "id": "csb", "side": "top", "x": 70, "y": 0, "kind": "signal" },
+      { "id": "sdo", "side": "top", "x": 112, "y": 0, "kind": "signal" }
+    ]
+  }
+}

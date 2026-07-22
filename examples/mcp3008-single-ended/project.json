@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "MCP3008 Single Ended",
+  "board": { "width": 1600, "height": 900, "gridSize": 10 },
+  "components": [
+    { "id": "arduino-1", "componentId": "board.arduino.uno", "position": { "x": 240, "y": 220 }, "properties": {} },
+    { "id": "mcp3008-1", "componentId": "converter.adc.mcp3008", "position": { "x": 700, "y": 230 }, "properties": { "resolutionBits": 10, "referenceVoltageVolts": 5, "spiMode": 0, "maxClockHz": 1350000 } },
+    { "id": "analog-1", "componentId": "environment.analog-voltage-source", "position": { "x": 1030, "y": 290 }, "properties": { "enabled": true, "voltageVolts": 2.5 } }
+  ],
+  "connections": [
+    { "id": "net-1", "color": "#f05252", "terminals": ["arduino-1.5v", "mcp3008-1.vdd", "mcp3008-1.vref"] },
+    { "id": "net-2", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "mcp3008-1.agnd", "mcp3008-1.dgnd", "analog-1.gnd"] },
+    { "id": "net-3", "color": "#4c8dff", "terminals": ["arduino-1.d13", "mcp3008-1.clk"] },
+    { "id": "net-4", "color": "#45d6c4", "terminals": ["arduino-1.d12", "mcp3008-1.dout"] },
+    { "id": "net-5", "color": "#ffb454", "terminals": ["arduino-1.d11", "mcp3008-1.din"] },
+    { "id": "net-6", "color": "#c586c0", "terminals": ["arduino-1.d10", "mcp3008-1.cs"] },
+    { "id": "net-7", "color": "#ffb454", "terminals": ["analog-1.out", "mcp3008-1.ch0"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "#include <SPI.h>\\n\\nMCP3008 adc;\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    SPI.begin();\\n\\n    if (!adc.begin(10)) {\\n        Serial.println(\"MCP3008 not found\");\\n        return;\\n    }\\n\\n    Serial.println(\"MCP3008 ready\");\\n}\\n\\nvoid loop()\\n{\\n    const int raw = adc.read(0);\\n\\n    Serial.print(\"MCP3008 CH0 raw: \");\\n    Serial.println(raw);\\n\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

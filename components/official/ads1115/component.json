@@ -1,0 +1,60 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": { "id": "converter.adc.ads1115", "name": "ADS1115 ADC", "category": "converter", "subCategory": "adc" },
+  "simulation": { "kind": "behavioral-sensor", "effects": ["firmware", "electrical", "environment", "visual-state"], "implemented": true },
+  "properties": {
+    "i2cAddress": { "type": "number", "default": 72, "minimum": 72, "maximum": 75 },
+    "gain": { "type": "string", "default": "2.048V" },
+    "sampleRateSps": { "type": "number", "default": 128, "minimum": 8, "maximum": 860, "unit": "SPS" },
+    "mode": { "type": "string", "default": "single-shot" }
+  },
+  "variants": {
+    "i2cAddress": [
+      { "label": "ADDR GND / 0x48", "value": 72 },
+      { "label": "ADDR VDD / 0x49", "value": 73 },
+      { "label": "ADDR SDA / 0x4A", "value": 74 },
+      { "label": "ADDR SCL / 0x4B", "value": 75 }
+    ],
+    "gain": [
+      { "label": "2.048V", "value": "2.048V" },
+      { "label": "4.096V", "value": "4.096V" },
+      { "label": "6.144V", "value": "6.144V" }
+    ]
+  },
+  "terminals": [
+    { "id": "vdd", "label": "VDD", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "scl", "label": "SCL", "type": "i2c-scl" },
+    { "id": "sda", "label": "SDA", "type": "i2c-sda" },
+    { "id": "addr", "label": "ADDR", "type": "digital-input" },
+    { "id": "alrt", "label": "ALRT", "type": "digital-output" },
+    { "id": "a0", "label": "A0", "type": "analog-input" },
+    { "id": "a1", "label": "A1", "type": "analog-input" },
+    { "id": "a2", "label": "A2", "type": "analog-input" },
+    { "id": "a3", "label": "A3", "type": "analog-input" }
+  ],
+  "electricalModel": { "type": "adc", "resolutionBits": 16, "bus": "i2c", "inputChannels": 4, "differential": true },
+  "behavior": { "type": "adc-i2c", "model": "ads1115", "addressProperty": "i2cAddress", "gainProperty": "gain", "resolutionBits": 16, "maxRaw": 32767, "inputTerminals": ["a0", "a1", "a2", "a3"] },
+  "visual": {
+    "type": "ads1115-adc",
+    "title": "ADS1115",
+    "className": "ads1115-adc adc-module",
+    "body": "16-bit ADC",
+    "width": 184,
+    "height": 132,
+    "palette": { "group": "Electronic", "subgroup": "ADCs", "icon": "ads1115-icon", "order": 62 },
+    "terminals": [
+      { "id": "vdd", "side": "left", "x": 0, "y": 24, "kind": "power" },
+      { "id": "gnd", "side": "bottom", "x": 92, "y": 132, "kind": "ground" },
+      { "id": "scl", "side": "right", "x": 184, "y": 34, "kind": "signal" },
+      { "id": "sda", "side": "right", "x": 184, "y": 62, "kind": "signal" },
+      { "id": "addr", "side": "top", "x": 92, "y": 0, "kind": "signal" },
+      { "id": "alrt", "side": "top", "x": 132, "y": 0, "kind": "signal" },
+      { "id": "a0", "side": "left", "x": 0, "y": 56, "kind": "signal" },
+      { "id": "a1", "side": "left", "x": 0, "y": 78, "kind": "signal" },
+      { "id": "a2", "side": "left", "x": 0, "y": 100, "kind": "signal" },
+      { "id": "a3", "side": "left", "x": 0, "y": 122, "kind": "signal" }
+    ]
+  }
+}
