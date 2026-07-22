@@ -91,6 +91,13 @@
         ]
       }
     ],
+    "stateBindings": [
+      { "type": "class", "className": "online", "source": { "kind": "relatedComponent", "componentType": "climate-environment", "property": "enabled" }, "when": true },
+      { "type": "class", "className": "offline", "source": { "kind": "relatedComponent", "componentType": "climate-environment", "property": "enabled" }, "when": false },
+      { "type": "text", "selector": "[data-bmp280-state]", "source": { "kind": "relatedComponent", "componentType": "climate-environment", "property": "enabled" }, "format": "addressWhenEnabled", "addressProperty": "i2cAddress", "disabledText": "OFF" },
+      { "type": "text", "selector": "[data-bmp280-temp]", "source": { "kind": "relatedComponent", "componentType": "climate-environment", "property": "temperatureC", "enabledProperty": "enabled", "disabledValue": 0, "offsetProperty": "temperatureOffsetC" }, "format": "fixed", "digits": 1, "unit": "°C" },
+      { "type": "text", "selector": "[data-bmp280-pressure]", "source": { "kind": "relatedComponent", "componentType": "climate-environment", "property": "pressureHpa", "enabledProperty": "enabled", "disabledValue": 0, "offsetProperty": "pressureOffsetHpa" }, "format": "fixed", "digits": 0, "unit": "hPa" }
+    ],
     "palette": {
       "group": "Sensors",
       "subgroup": "Environment",

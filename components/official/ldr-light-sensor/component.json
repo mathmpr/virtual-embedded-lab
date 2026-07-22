@@ -81,6 +81,18 @@
       { "type": "readout", "className": "light-sensor-readout", "label": "LDR", "text": "DIM", "dataAttribute": "data-ldr-state" },
       { "type": "element", "className": "ldr-photoresistor" }
     ],
+    "stateBindings": [
+      {
+        "type": "classMap",
+        "source": { "kind": "environment", "channel": "lightAnalog" },
+        "classes": [
+          { "className": "dark", "lt": 0.293 },
+          { "className": "dim", "gte": 0.293, "lt": 0.684 },
+          { "className": "bright", "gte": 0.684 }
+        ]
+      },
+      { "type": "text", "selector": "[data-ldr-state]", "source": { "kind": "environment", "channel": "lightAnalog" }, "format": "lightLevel" }
+    ],
     "palette": {
       "group": "Sensors",
       "subgroup": "Light",

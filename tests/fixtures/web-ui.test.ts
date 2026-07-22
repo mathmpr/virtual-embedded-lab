@@ -261,7 +261,9 @@ test('web UI exposes FC-37 rain controls and runtime bindings', () => {
   assert.doesNotMatch(rainToggle, /data-rain-intensity/);
   assert.match(rainToggle, /"simulationUpdate": "live"/);
   assert.match(rainSensor, /data-rain-sensor-state/);
-  assert.match(componentState, /data-rain-sensor-state/);
+  assert.match(rainSensor, /stateBindings/);
+  assert.match(componentState, /applyVisualStateBindings/);
+  assert.doesNotMatch(componentState, /function applyRainSensorStates/);
   assert.match(inspector, /data-property/);
   assert.doesNotMatch(inspector, /data-inspector-rain-active/);
   assert.doesNotMatch(inspector, /data-inspector-rain-sensor-active-low/);
@@ -294,7 +296,8 @@ test('web UI exposes LDR light controls and analog runtime bindings', () => {
   assert.doesNotMatch(lightLevel, /data-light-intensity/);
   assert.match(lightLevel, /"simulationUpdate": "live"/);
   assert.match(ldrSensor, /data-ldr-state/);
-  assert.match(componentState, /data-ldr-state/);
+  assert.match(ldrSensor, /stateBindings/);
+  assert.doesNotMatch(componentState, /function applyLdrSensorStates/);
   assert.match(inspector, /data-property/);
   assert.doesNotMatch(inspector, /data-inspector-light-enabled/);
   assert.doesNotMatch(inspector, /data-inspector-ldr-dark/);
@@ -331,7 +334,8 @@ test('web UI exposes BMP280 climate controls and I2C runtime bindings', () => {
   assert.doesNotMatch(climate, /data-climate-pressure/);
   assert.match(climate, /"simulationUpdate": "live"/);
   assert.match(bmp280, /data-bmp280-state/);
-  assert.match(componentState, /data-bmp280-state/);
+  assert.match(bmp280, /stateBindings/);
+  assert.doesNotMatch(componentState, /function applyBmp280SensorStates/);
   assert.match(inspector, /data-property/);
   assert.doesNotMatch(inspector, /data-inspector-bmp280-address/);
   assert.doesNotMatch(componentState, /function updateClimateTemperature/);
@@ -362,7 +366,8 @@ test('web UI exposes external ADC controls and runtime bindings', () => {
   assert.doesNotMatch(analogSource, /data-analog-voltage/);
   assert.match(analogSource, /"simulationUpdate": "live"/);
   assert.match(ads1015, /data-adc-raw/);
-  assert.match(componentState, /data-adc-raw/);
+  assert.match(ads1015, /stateBindings/);
+  assert.doesNotMatch(componentState, /function applyAdcStates/);
   assert.match(inspector, /data-property/);
   assert.doesNotMatch(inspector, /data-inspector-adc-address/);
   assert.doesNotMatch(componentState, /function updateAnalogVoltage/);

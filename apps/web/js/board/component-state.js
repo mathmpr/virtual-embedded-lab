@@ -6,105 +6,39 @@ export function createComponentState({
   recordHistory,
   syncInspectorPropertyControls
 }) {
-  function applyRainSensorStates() {
-    const isWet = Boolean(state.signals.rain);
-
+  function applyVisualStateBindings() {
     for (const component of state.components.values()) {
-      if (component.type !== 'fc37-rain-sensor') {
-        continue;
-      }
-
-      component.element.classList.toggle('wet', isWet);
-      const stateOutput = component.element.querySelector('[data-rain-sensor-state]');
-
-      if (stateOutput) {
-        stateOutput.textContent = isWet ? 'WET' : 'DRY';
-      }
+      applyComponentStateBindings(component);
     }
   }
 
-  function applyLdrSensorStates() {
-    const raw = Math.round((state.signals.lightAnalog ?? 0) * 1023);
-    const label = raw < 300 ? 'DARK' : raw < 700 ? 'DIM' : 'BRIGHT';
+  function applyComponentStateBindings(component) {
+    const definition = componentDefinitions[component.type];
 
-    for (const component of state.components.values()) {
-      if (component.type !== 'ldr-light-sensor') {
-        continue;
-      }
-
-      component.element.classList.toggle('dark', label === 'DARK');
-      component.element.classList.toggle('dim', label === 'DIM');
-      component.element.classList.toggle('bright', label === 'BRIGHT');
-      const stateOutput = component.element.querySelector('[data-ldr-state]');
-
-      if (stateOutput) {
-        stateOutput.textContent = label;
-      }
+    for (const binding of definition?.stateBindings ?? []) {
+      applyStateBinding(component, binding);
     }
   }
 
-  function applyBmp280SensorStates() {
-    const climate = firstClimateComponent();
+  function applyStateBinding(component, binding) {
+    const value = derivedBindingValue(component, binding.source);
 
-    for (const component of state.components.values()) {
-      if (component.type !== 'bmp280-sensor') {
-        continue;
-      }
-
-      const enabled = Boolean(climate?.properties.enabled ?? false);
-      const temperature = enabled
-        ? Number(climate.properties.temperatureC ?? 25) + Number(component.properties.temperatureOffsetC ?? 0)
-        : 0;
-      const pressure = enabled
-        ? Number(climate.properties.pressureHpa ?? 1013.25) + Number(component.properties.pressureOffsetHpa ?? 0)
-        : 0;
-
-      component.element.classList.toggle('online', enabled);
-      component.element.classList.toggle('offline', !enabled);
-      const stateOutput = component.element.querySelector('[data-bmp280-state]');
-      const temperatureOutput = component.element.querySelector('[data-bmp280-temp]');
-      const pressureOutput = component.element.querySelector('[data-bmp280-pressure]');
-
-      if (stateOutput) {
-        stateOutput.textContent = enabled ? `0x${Number(component.properties.i2cAddress).toString(16).toUpperCase()}` : 'OFF';
-      }
-
-      if (temperatureOutput) {
-        temperatureOutput.textContent = `${temperature.toFixed(1)} °C`;
-      }
-
-      if (pressureOutput) {
-        pressureOutput.textContent = `${pressure.toFixed(0)} hPa`;
-      }
+    if (binding.type === 'class') {
+      component.element.classList.toggle(binding.className, matchesBindingWhen(value, binding.when));
+      return;
     }
-  }
 
-  function applyAdcStates() {
-    for (const component of state.components.values()) {
-      if (!isAdcComponent(component)) {
-        continue;
+    if (binding.type === 'classMap') {
+      for (const stateClass of binding.classes ?? []) {
+        component.element.classList.toggle(stateClass.className, matchesRange(value, stateClass));
       }
+      return;
+    }
 
-      const source = firstAnalogSourceComponent();
-      const voltage = source?.properties.enabled ? Number(source.properties.voltageVolts ?? 0) : 0;
-      const raw = adcRawForComponent(component, voltage);
-
-      component.element.classList.toggle('online', Boolean(source?.properties.enabled));
-      const stateOutput = component.element.querySelector('[data-adc-state]');
-      const rawOutput = component.element.querySelector('[data-adc-raw]');
-      const voltageOutput = component.element.querySelector('[data-adc-voltage]');
-
-      if (stateOutput) {
-        stateOutput.textContent = 'CH0';
-      }
-
-      if (rawOutput) {
-        rawOutput.textContent = `${raw} raw`;
-      }
-
-      if (voltageOutput) {
-        voltageOutput.textContent = `${voltage.toFixed(3)} V`;
-      }
+    if (binding.type === 'text') {
+      component.element.querySelectorAll(binding.selector).forEach((target) => {
+        target.textContent = formatBindingValue(value, binding, component);
+      });
     }
   }
 
@@ -116,7 +50,7 @@ export function createComponentState({
     syncComponentControls(component);
     syncInspectorPropertyControls(component);
     renderSignals();
-    applyDependentVisualStates(component);
+    applyVisualStateBindings();
 
     if (state.running) {
       applySimulationUpdate(component, propertyName);
@@ -249,21 +183,7 @@ export function createComponentState({
   function applyDependentVisualStates(component) {
     const definition = componentDefinitions[component.type];
 
-    if (definition?.behavior?.channel === 'climate') {
-      applyBmp280SensorStates();
-    }
-
-    if (definition?.behavior?.type === 'analog-voltage-source') {
-      applyAdcStates();
-    }
-
-    if (definition?.behavior?.type === 'bmp280-sensor') {
-      applyBmp280SensorStates();
-    }
-
-    if (definition?.behavior?.type === 'adc-i2c' || definition?.behavior?.type === 'adc-spi') {
-      applyAdcStates();
-    }
+    applyVisualStateBindings();
   }
 
   function flattenVisualControls(controls) {
@@ -295,6 +215,123 @@ export function createComponentState({
     return String(value);
   }
 
+  function derivedBindingValue(component, source = {}) {
+    if (source.kind === 'environment') {
+      return state.signals[source.channel];
+    }
+
+    if (source.kind === 'componentProperty') {
+      return component.properties[source.property];
+    }
+
+    if (source.kind === 'relatedComponent') {
+      const related = firstComponentByType(source.componentType);
+
+      if (!related) {
+        return source.fallback ?? null;
+      }
+
+      if (source.enabledProperty && !related.properties[source.enabledProperty]) {
+        return source.disabledValue ?? false;
+      }
+
+      const value = related.properties[source.property];
+      const offset = source.offsetProperty ? Number(component.properties[source.offsetProperty] ?? 0) : 0;
+      return Number.isFinite(Number(value)) ? Number(value) + offset : value;
+    }
+
+    if (source.kind === 'adcRaw') {
+      return adcRawForComponent(component, relatedAnalogVoltage());
+    }
+
+    if (source.kind === 'analogVoltage') {
+      return relatedAnalogVoltage();
+    }
+
+    if (source.kind === 'electricalReading') {
+      return state.electrical.componentReadings.get(component.id)?.[source.property] ?? source.fallback ?? null;
+    }
+
+    if (source.kind === 'netReading') {
+      return state.electrical.netReadings.get(source.netId)?.[source.property] ?? source.fallback ?? null;
+    }
+
+    if (source.kind === 'terminalNetReading') {
+      const net = terminalNet(component.id, source.terminalId);
+      return net ? state.electrical.netReadings.get(net.id)?.[source.property] ?? source.fallback ?? null : source.fallback ?? null;
+    }
+
+    return source.value ?? null;
+  }
+
+  function formatBindingValue(value, binding, component) {
+    if (binding.format === 'wetDry') {
+      return value ? 'WET' : 'DRY';
+    }
+
+    if (binding.format === 'lightLevel') {
+      const raw = Math.round(Number(value ?? 0) * 1023);
+      return raw < 300 ? 'DARK' : raw < 700 ? 'DIM' : 'BRIGHT';
+    }
+
+    if (binding.format === 'addressWhenEnabled') {
+      const address = component.properties[binding.addressProperty] ?? binding.address ?? 0;
+      return value ? `0x${Number(address).toString(16).toUpperCase()}` : binding.disabledText ?? 'OFF';
+    }
+
+    if (binding.format === 'fixed') {
+      return `${Number(value ?? 0).toFixed(binding.digits ?? 0)}${binding.unit ? ` ${binding.unit}` : ''}`;
+    }
+
+    if (binding.format === 'raw') {
+      return `${Math.round(Number(value ?? 0))} raw`;
+    }
+
+    if (binding.text !== undefined) {
+      return binding.text;
+    }
+
+    return String(value ?? '');
+  }
+
+  function matchesBindingWhen(value, expected) {
+    if (expected === undefined) {
+      return Boolean(value);
+    }
+
+    if (typeof expected === 'boolean') {
+      return Boolean(value) === expected;
+    }
+
+    return value === expected;
+  }
+
+  function matchesRange(value, range) {
+    const numericValue = Number(value);
+
+    if (Number.isFinite(Number(range.lt)) && !(numericValue < Number(range.lt))) {
+      return false;
+    }
+
+    if (Number.isFinite(Number(range.lte)) && !(numericValue <= Number(range.lte))) {
+      return false;
+    }
+
+    if (Number.isFinite(Number(range.gt)) && !(numericValue > Number(range.gt))) {
+      return false;
+    }
+
+    if (Number.isFinite(Number(range.gte)) && !(numericValue >= Number(range.gte))) {
+      return false;
+    }
+
+    if (range.equals !== undefined && value !== range.equals) {
+      return false;
+    }
+
+    return true;
+  }
+
   function climatePayload(component) {
     return {
       enabled: component.properties.enabled,
@@ -311,11 +348,26 @@ export function createComponentState({
   }
 
   function firstClimateComponent() {
-    return [...state.components.values()].find((component) => component.type === 'climate-environment') ?? null;
+    return firstComponentByType('climate-environment');
   }
 
   function firstAnalogSourceComponent() {
-    return [...state.components.values()].find((component) => component.type === 'analog-voltage-source') ?? null;
+    return firstComponentByType('analog-voltage-source');
+  }
+
+  function firstComponentByType(type) {
+    return [...state.components.values()].find((component) => component.type === type) ?? null;
+  }
+
+  function relatedAnalogVoltage() {
+    const source = firstAnalogSourceComponent();
+    return source?.properties.enabled ? Number(source.properties.voltageVolts ?? 0) : 0;
+  }
+
+  function terminalNet(componentId, terminalId) {
+    return (state.nets ?? []).find((net) => {
+      return net.terminals?.some((terminal) => terminal.componentId === componentId && terminal.terminalId === terminalId);
+    }) ?? null;
   }
 
   function isAdcComponent(component) {
@@ -341,10 +393,7 @@ export function createComponentState({
   }
 
   return {
-    applyRainSensorStates,
-    applyLdrSensorStates,
-    applyBmp280SensorStates,
-    applyAdcStates,
+    applyVisualStateBindings,
     updateComponentProperty,
     syncComponentControls,
     climatePayload,

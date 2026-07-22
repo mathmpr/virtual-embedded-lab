@@ -73,6 +73,7 @@ export function componentDefinitionFromManifest(manifest) {
     electricalPrimitive: manifest.electricalModel?.primitive ?? null,
     behavior: manifest.behavior ?? {},
     palette: visual.palette ?? null,
+    stateBindings: visual.stateBindings ?? [],
     terminals: (visual.terminals ?? []).map((terminal) => {
       const manifestTerminal = terminalById.get(terminal.id);
 

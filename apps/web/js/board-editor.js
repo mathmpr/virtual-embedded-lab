@@ -96,10 +96,7 @@ export function createBoardEditor(document) {
     syncInspectorPropertyControls: (...args) => syncInspectorPropertyControls(...args)
   });
   const {
-    applyRainSensorStates,
-    applyLdrSensorStates,
-    applyBmp280SensorStates,
-    applyAdcStates,
+    applyVisualStateBindings,
     syncComponentControls,
     adcInspectorLabel
   } = componentState;
@@ -536,10 +533,7 @@ export function createBoardEditor(document) {
       pinStates: result.firmwareResult?.pinStates ?? {},
       analogPinStates: result.firmwareResult?.analogPinStates ?? {}
     };
-    applyRainSensorStates();
-    applyLdrSensorStates();
-    applyBmp280SensorStates();
-    applyAdcStates();
+    applyVisualStateBindings();
     renderInspector();
   }
 

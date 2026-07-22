@@ -75,6 +75,10 @@
       { "type": "readout", "className": "rain-sensor-readout", "label": "FC-37", "text": "DRY", "dataAttribute": "data-rain-sensor-state" },
       { "type": "element", "className": "rain-sensor-plate" }
     ],
+    "stateBindings": [
+      { "type": "class", "className": "wet", "source": { "kind": "environment", "channel": "rain" }, "when": true },
+      { "type": "text", "selector": "[data-rain-sensor-state]", "source": { "kind": "environment", "channel": "rain" }, "format": "wetDry" }
+    ],
     "palette": {
       "group": "Sensors",
       "subgroup": "Rain",

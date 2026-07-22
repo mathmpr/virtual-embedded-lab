@@ -47,6 +47,12 @@
         ]
       }
     ],
+    "stateBindings": [
+      { "type": "class", "className": "online", "source": { "kind": "relatedComponent", "componentType": "analog-voltage-source", "property": "enabled" }, "when": true },
+      { "type": "text", "selector": "[data-adc-state]", "source": { "kind": "static", "value": "CH0" }, "text": "CH0" },
+      { "type": "text", "selector": "[data-adc-raw]", "source": { "kind": "adcRaw" }, "format": "raw" },
+      { "type": "text", "selector": "[data-adc-voltage]", "source": { "kind": "analogVoltage" }, "format": "fixed", "digits": 3, "unit": "V" }
+    ],
     "palette": { "group": "Electronic", "subgroup": "ADCs", "icon": "mcp3008-icon", "order": 63 },
     "terminals": [
       { "id": "vdd", "side": "left", "x": 0, "y": 24, "kind": "power" },
