@@ -68,6 +68,17 @@
       "a4": { "number": 18, "analogNumber": 18, "name": "A4/SDA", "capabilities": ["analog", "digital", "i2c-sda"] },
       "a5": { "number": 19, "analogNumber": 19, "name": "A5/SCL", "capabilities": ["analog", "digital", "i2c-scl"] }
     },
+    "buses": {
+      "i2c": [
+        { "id": "wire", "sda": "a4", "scl": "a5" }
+      ],
+      "spi": [
+        { "id": "spi", "sck": "d13", "miso": "d12", "mosi": "d11", "defaultCs": "d10" }
+      ],
+      "uart": [
+        { "id": "serial", "rx": "d0", "tx": "d1" }
+      ]
+    },
     "builtInLeds": [
       {
         "id": "led_builtin",

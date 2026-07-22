@@ -732,13 +732,36 @@ function adcTestNets(item) {
   ];
 
   if (item.adcType === 'mcp3008-adc') {
-    nets.push({
-      id: 'net-cs',
-      terminals: [
-        { componentId: 'arduino-1', terminalId: 'd10' },
-        { componentId: item.adcId, terminalId: 'cs' }
-      ]
-    });
+    nets.push(
+      {
+        id: 'net-sck',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: 'd13' },
+          { componentId: item.adcId, terminalId: 'clk' }
+        ]
+      },
+      {
+        id: 'net-miso',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: 'd12' },
+          { componentId: item.adcId, terminalId: 'dout' }
+        ]
+      },
+      {
+        id: 'net-mosi',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: 'd11' },
+          { componentId: item.adcId, terminalId: 'din' }
+        ]
+      },
+      {
+        id: 'net-cs',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: 'd10' },
+          { componentId: item.adcId, terminalId: 'cs' }
+        ]
+      }
+    );
     return nets;
   }
 

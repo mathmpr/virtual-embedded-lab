@@ -174,6 +174,8 @@ test('Arduino UNO manifest exposes common digital, analog and power pins', () =>
   assert.equal(arduino.behavior.pinMap.d13.number, 13);
   assert.equal(arduino.behavior.pinMap.a0.analogNumber, 14);
   assert.ok(arduino.behavior.pinMap.a4.capabilities.includes('i2c-sda'));
+  assert.equal(arduino.behavior.buses.i2c[0].sda, 'a4');
+  assert.equal(arduino.behavior.buses.spi[0].sck, 'd13');
 });
 
 test('ESP32 DevKit manifest exposes documented header pins and wireless capability', () => {
@@ -193,6 +195,13 @@ test('ESP32 DevKit manifest exposes documented header pins and wireless capabili
   assert.equal(esp32.behavior.pinMap.io2.number, 2);
   assert.equal(esp32.behavior.pinMap.vp.analogNumber, 36);
   assert.ok(esp32.behavior.pinMap.io22.capabilities.includes('i2c-scl'));
+  assert.ok(esp32.behavior.pinMap.io2.capabilities.includes('interrupt'));
+  assert.ok(esp32.behavior.pinMap.io2.capabilities.includes('pwm'));
+  assert.ok(esp32.behavior.pinMap.io2.capabilities.includes('adc2'));
+  assert.equal(esp32.behavior.buses.i2c[0].sda, 'io21');
+  assert.equal(esp32.behavior.buses.spi[0].id, 'vspi');
+  assert.equal(esp32.behavior.buses.pwm[0].channels, 16);
+  assert.equal(esp32.behavior.buses.timers.length, 2);
   assert.equal(esp32.behavior.builtInLeds[0].id, 'power');
   assert.equal(esp32.behavior.builtInLeds[0].pin, null);
   assert.equal(esp32.behavior.builtInLeds[1].id, 'led_builtin');

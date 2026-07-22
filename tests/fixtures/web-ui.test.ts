@@ -259,6 +259,7 @@ test('web UI exposes FC-37 rain controls and runtime bindings', () => {
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
   const behaviorRegistry = readFileSync(join(root, 'apps/web/js/simulation/behavior-registry.js'), 'utf8');
   const sensorAdapters = readFileSync(join(root, 'apps/web/js/simulation/sensor-behavior-adapters.js'), 'utf8');
+  const simulationPinResolver = readFileSync(join(root, 'apps/web/js/simulation/pin-capability-resolver.js'), 'utf8');
   const environmentPayload = readFileSync(join(root, 'apps/web/js/simulation/environment-payload.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
 
@@ -280,7 +281,8 @@ test('web UI exposes FC-37 rain controls and runtime bindings', () => {
   assert.match(engine, /createSimulationBehaviorRegistry/);
   assert.match(behaviorRegistry, /bindAll\(context\)/);
   assert.match(sensorAdapters, /registry\.register\('rain-sensor'/);
-  assert.match(sensorAdapters, /digitalPinConnectedToTerminal/);
+  assert.match(sensorAdapters, /resolveDigitalPinConnectedToTerminal/);
+  assert.match(simulationPinResolver, /capability: 'digital'/);
   assert.match(sensorAdapters, /runtime\.driveInput\(binding\.pin, value\)/);
   assert.match(environmentPayload, /normalizeEnvironmentValue\(channel, value\)/);
   assert.match(componentState, /environmentPayloadForComponent\(component\)/);
@@ -298,6 +300,7 @@ test('web UI exposes LDR light controls and analog runtime bindings', () => {
   const pinResolver = readFileSync(join(root, 'apps/web/js/board/pin-resolver.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
   const sensorAdapters = readFileSync(join(root, 'apps/web/js/simulation/sensor-behavior-adapters.js'), 'utf8');
+  const simulationPinResolver = readFileSync(join(root, 'apps/web/js/simulation/pin-capability-resolver.js'), 'utf8');
   const environmentPayload = readFileSync(join(root, 'apps/web/js/simulation/environment-payload.js'), 'utf8');
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
@@ -321,7 +324,8 @@ test('web UI exposes LDR light controls and analog runtime bindings', () => {
   assert.match(pinResolver, /runtime\.analogPinStates/);
   assert.match(engine, /registerSensorBehaviorAdapters/);
   assert.match(sensorAdapters, /registry\.register\('light-sensor'/);
-  assert.match(sensorAdapters, /analogPinConnectedToTerminal/);
+  assert.match(sensorAdapters, /resolveAnalogPinConnectedToTerminal/);
+  assert.match(simulationPinResolver, /capability: 'analog'/);
   assert.match(sensorAdapters, /runtime\.driveAnalogInput/);
   assert.match(environmentPayload, /channel === 'light'/);
   assert.match(runtime, /analogRead\(pin\)/);
@@ -394,6 +398,8 @@ test('web UI exposes external ADC controls and runtime bindings', () => {
   assert.match(engine, /registerSensorBehaviorAdapters/);
   assert.match(sensorAdapters, /registry\.register\('adc-i2c'/);
   assert.match(sensorAdapters, /registry\.register\('adc-spi'/);
+  assert.match(sensorAdapters, /resolveI2cBusConnected/);
+  assert.match(sensorAdapters, /resolveSpiBusConnected/);
   assert.match(sensorAdapters, /runtime\.registerSpiDevice/);
   assert.match(sensorAdapters, /externalAdcRaw/);
   assert.match(environmentPayload, /channel === 'analog-voltage'/);

@@ -14,6 +14,10 @@ import {
   applyRainSensorInputs,
   registerSensorBehaviorAdapters
 } from './sensor-behavior-adapters.js';
+import {
+  resolveAnalogPinConnectedToTerminal,
+  resolveDigitalPinConnectedToTerminal
+} from './pin-capability-resolver.js';
 import { EventScheduler, VirtualClock } from './virtual-time.js';
 import { createWasmFirmwareSession } from './wasm-firmware-runner.js';
 
@@ -283,88 +287,6 @@ function bindWifiEnvironment({ graph, runtime }) {
   runtime.configureWifiEnvironment(wifiEnvironmentPayload(wifiSignals));
 }
 
-function analogPinConnectedToTerminal(graph, terminal) {
-  const microcontrollers = graph.findComponentsByBehaviorType('microcontroller');
-  const net = graph.findTerminalNet(terminal.componentId, terminal.terminalId);
-
-  if (!net) {
-    return null;
-  }
-
-  for (const board of microcontrollers) {
-    for (const netTerminal of net.terminals) {
-      if (netTerminal.componentId !== board.id) {
-        continue;
-      }
-
-      const unoMatch = netTerminal.terminalId.match(/^a([0-5])$/);
-
-      if (board.electricalModel?.logicVoltage === 5 && unoMatch) {
-        return 14 + Number(unoMatch[1]);
-      }
-
-      const espMatch = netTerminal.terminalId.match(/^io(\d+)$/);
-
-      if (board.electricalModel?.logicVoltage === 3.3 && espMatch) {
-        return Number(espMatch[1]);
-      }
-    }
-  }
-
-  return null;
-}
-
-function ldrResistanceOhms(sensor, light) {
-  const dark = clamp(Number(sensor.properties.darkResistanceOhms ?? 100000), 1, 10_000_000);
-  const bright = clamp(Number(sensor.properties.brightResistanceOhms ?? 1000), 1, dark);
-  const gamma = clamp(Number(sensor.properties.gamma ?? 0.7), 0.1, 2);
-  const intensity = light.enabled ? clamp(Number(light.intensityPercent ?? 0) / 100, 0, 1) : 0;
-  const curved = Math.pow(intensity, gamma);
-
-  return dark * Math.pow(bright / dark, curved);
-}
-
-function voltageDividerReading({ ldrResistanceOhms, fixedResistanceOhms, ldrSide }) {
-  const fixedResistance = Math.max(1, Number(fixedResistanceOhms) || 10000);
-  const totalResistance = Math.max(1, ldrResistanceOhms + fixedResistance);
-  const voltageVolts = ldrSide === 'power'
-    ? 5 * fixedResistance / totalResistance
-    : 5 * ldrResistanceOhms / totalResistance;
-
-  return {
-    voltageVolts,
-    raw: Math.round(clamp(voltageVolts / 5, 0, 1) * 1023)
-  };
-}
-
-function digitalPinConnectedToTerminal(graph, terminal) {
-  const arduino = graph.findComponentsByBehaviorType('microcontroller')[0];
-
-  if (!arduino) {
-    return null;
-  }
-
-  const net = graph.findTerminalNet(terminal.componentId, terminal.terminalId);
-
-  if (!net) {
-    return null;
-  }
-
-  for (const netTerminal of net.terminals) {
-    if (netTerminal.componentId !== arduino.id) {
-      continue;
-    }
-
-    const match = netTerminal.terminalId.match(/^d(\d+)$/);
-
-    if (match) {
-      return Number(match[1]);
-    }
-  }
-
-  return null;
-}
-
 function rainSignal(environment) {
   return environment.snapshot().some((channel) => channel.type === 'rain' && channel.value?.active) ? 1 : 0;
 }
@@ -378,7 +300,7 @@ function lightSignal(environment) {
 function lightAnalogSignal(graph, runtime) {
   for (const sensor of graph.findComponentsByEnvironmentChannel('light')) {
     for (const terminalId of ['a', 'b']) {
-      const pin = analogPinConnectedToTerminal(graph, { componentId: sensor.id, terminalId });
+      const pin = resolveAnalogPinConnectedToTerminal(graph, { componentId: sensor.id, terminalId });
 
       if (Number.isInteger(pin)) {
         return runtime.analogRead(pin) / 1023;
@@ -391,7 +313,7 @@ function lightAnalogSignal(graph, runtime) {
 
 function rainDigitalSignal(graph, runtime) {
   for (const sensor of graph.findComponentsByEnvironmentChannel('rain')) {
-    const pin = digitalPinConnectedToTerminal(graph, { componentId: sensor.id, terminalId: sensor.behavior?.digitalOutputTerminal ?? 'do' });
+    const pin = resolveDigitalPinConnectedToTerminal(graph, { componentId: sensor.id, terminalId: sensor.behavior?.digitalOutputTerminal ?? 'do' });
 
     if (Number.isInteger(pin)) {
       return runtime.digitalRead(pin) === 'HIGH' ? 1 : 0;
