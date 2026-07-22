@@ -60,6 +60,13 @@ function officialComponentManifests() {
   }));
 }
 
+function flattenControls(controls: Array<Record<string, unknown>>): Array<Record<string, string>> {
+  return controls.flatMap((control) => [
+    control as Record<string, string>,
+    ...flattenControls((control.children ?? []) as Array<Record<string, unknown>>)
+  ]);
+}
+
 for (const relativePath of jsonFiles) {
   test(`${relativePath} is valid JSON`, () => {
     const content = readFileSync(join(root, relativePath), 'utf8');
@@ -110,6 +117,56 @@ test('official component visual terminals match logical manifest terminals', () 
       [...logicalTerminals].sort(),
       `${path} visual.terminals must match terminals`
     );
+  }
+});
+
+test('official component manifests keep references internally consistent', () => {
+  for (const { path, manifest } of officialComponentManifests()) {
+    const properties = new Set(Object.keys(manifest.properties ?? {}));
+    const terminals = new Set((manifest.terminals ?? []).map((terminal: { id: string }) => terminal.id));
+
+    for (const [propertyName, propertySchema] of Object.entries(manifest.properties ?? {}) as Array<[string, { type: string; simulationUpdate?: string }]>) {
+      assert.ok(['number', 'string', 'boolean'].includes(propertySchema.type), `${path}.${propertyName} has invalid property type`);
+      assert.ok(propertySchema.simulationUpdate, `${path}.${propertyName} must declare simulationUpdate`);
+    }
+
+    for (const control of flattenControls(manifest.visual?.controls ?? [])) {
+      if (control.property) {
+        assert.ok(properties.has(control.property), `${path} visual control references missing property ${control.property}`);
+      }
+
+      if (control.activeProperty) {
+        assert.ok(properties.has(control.activeProperty), `${path} visual control references missing activeProperty ${control.activeProperty}`);
+      }
+    }
+
+    for (const binding of manifest.visual?.stateBindings ?? []) {
+      if (binding.source?.property && binding.source.kind === 'component') {
+        assert.ok(properties.has(binding.source.property), `${path} state binding references missing property ${binding.source.property}`);
+      }
+
+      if (binding.selector) {
+        assert.equal(typeof binding.selector, 'string', `${path} state binding selector must be string`);
+      }
+    }
+
+    for (const [terminalId, pin] of Object.entries(manifest.behavior?.pinMap ?? {}) as Array<[string, { capabilities?: string[]; number?: number; analogNumber?: number }]>) {
+      assert.ok(terminals.has(terminalId), `${path} pinMap references missing terminal ${terminalId}`);
+      assert.ok(Array.isArray(pin.capabilities), `${path} pin ${terminalId} must declare capabilities`);
+      assert.ok(Number.isInteger(pin.number) || Number.isInteger(pin.analogNumber), `${path} pin ${terminalId} must expose a runtime number`);
+    }
+
+    for (const busList of Object.values(manifest.behavior?.buses ?? {}) as Array<Array<Record<string, string | number>>>) {
+      for (const bus of busList) {
+        for (const [key, value] of Object.entries(bus)) {
+          if (!['sda', 'scl', 'sck', 'miso', 'mosi', 'defaultCs', 'rx', 'tx'].includes(key) || typeof value !== 'string') {
+            continue;
+          }
+
+          assert.ok(terminals.has(value), `${path} bus references missing terminal ${value}`);
+        }
+      }
+    }
   }
 });
 
