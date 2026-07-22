@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Pull-up Button Toggle Blue LED",
+  "board": {
+    "width": 1600,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "arduino-1",
+      "componentId": "board.arduino.uno",
+      "position": { "x": 300, "y": 220 },
+      "properties": {}
+    },
+    {
+      "id": "button-1",
+      "componentId": "input.button.pull-up",
+      "position": { "x": 760, "y": 210 },
+      "properties": {
+        "pressed": false,
+        "activeHigh": true
+      }
+    },
+    {
+      "id": "resistor-1",
+      "componentId": "electronic.resistor",
+      "position": { "x": 840, "y": 435 },
+      "properties": {
+        "resistanceOhms": 220
+      }
+    },
+    {
+      "id": "led-1",
+      "componentId": "electronic.led.blue",
+      "position": { "x": 1050, "y": 470 },
+      "properties": {}
+    }
+  ],
+  "connections": [
+    { "id": "net-1", "color": "#f05252", "terminals": ["arduino-1.5v", "button-1.vcc"] },
+    { "id": "net-2", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "button-1.gnd", "led-1.cathode"] },
+    { "id": "net-3", "color": "#45d6c4", "terminals": ["arduino-1.d2", "button-1.out"] },
+    { "id": "net-4", "color": "#4c8dff", "terminals": ["arduino-1.d13", "resistor-1.a"] },
+    { "id": "net-5", "color": "#4c8dff", "terminals": ["resistor-1.b", "led-1.anode"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "const int BUTTON_PIN = 2;\\nconst int LED_PIN = 13;\\nbool ledOn = false;\\nbool lastButtonState = false;\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    pinMode(BUTTON_PIN, INPUT);\\n    pinMode(LED_PIN, OUTPUT);\\n    digitalWrite(LED_PIN, LOW);\\n    Serial.println(\"Pull-up button toggle ready\");\\n}\\n\\nvoid loop()\\n{\\n    const bool buttonPressed = digitalRead(BUTTON_PIN) == HIGH;\\n\\n    if (buttonPressed && !lastButtonState) {\\n        ledOn = !ledOn;\\n        digitalWrite(LED_PIN, ledOn ? HIGH : LOW);\\n\\n        if (ledOn) {\\n            Serial.println(\"Blue LED ON\");\\n        } else {\\n            Serial.println(\"Blue LED OFF\");\\n        }\\n    }\\n\\n    lastButtonState = buttonPressed;\\n    delay(20);\\n}\\n"
+    }
+  }
+}

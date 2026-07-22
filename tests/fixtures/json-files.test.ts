@@ -26,6 +26,7 @@ const jsonFiles = [
   'components/official/led-blue/component.json',
   'components/official/light-level/component.json',
   'components/official/mcp3008/component.json',
+  'components/official/pull-up-button/component.json',
   'components/official/rain-toggle/component.json',
   'components/official/hc-sr04/component.json',
   'components/official/distance-range/component.json',
@@ -41,7 +42,8 @@ const jsonFiles = [
   'examples/fc-37-rain-digital/project.json',
   'examples/hc-sr04-led-distance/project.json',
   'examples/ldr-light-analog/project.json',
-  'examples/mcp3008-single-ended/project.json'
+  'examples/mcp3008-single-ended/project.json',
+  'examples/arduino-pull-up-button-toggle-blue-led/project.json'
 ];
 
 function officialComponentPaths() {

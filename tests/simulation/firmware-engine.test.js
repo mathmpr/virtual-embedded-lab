@@ -807,6 +807,59 @@ test('external ADC WASM sessions update analog source without resetting virtual 
   }
 });
 
+test('pull-up button example toggles blue LED through WASM pulses', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-pull-up-button-toggle-blue-led/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
+    constants: {
+      LED_BUILTIN: 13
+    }
+  });
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
+        ['button-1', officialComponent('button-1', 'pull-up-button', { pressed: false, activeHigh: true })],
+        ['resistor-1', officialComponent('resistor-1', 'resistor', { resistanceOhms: 220 })],
+        ['led-1', officialComponent('led-1', 'led-blue', {})]
+      ])
+    },
+    nets: [
+      testNet('net-vcc', ['arduino-1.5v', 'button-1.vcc']),
+      testNet('net-gnd', ['arduino-1.gnd', 'button-1.gnd', 'led-1.cathode']),
+      testNet('net-button', ['arduino-1.d2', 'button-1.out']),
+      testNet('net-led-drive', ['arduino-1.d13', 'resistor-1.a']),
+      testNet('net-led-anode', ['resistor-1.b', 'led-1.anode'])
+    ],
+    terminalKind(terminal) {
+      if (/gnd/.test(terminal.terminalId)) {
+        return 'ground';
+      }
+
+      if (/5v|3v3|vcc/.test(terminal.terminalId)) {
+        return 'power';
+      }
+
+      return 'signal';
+    },
+    wasmBase64: wasm.wasmBase64
+  });
+
+  session.runFrame();
+  session.updateDigitalInputValue('button-1', true);
+  const firstPress = session.runFrame();
+  session.updateDigitalInputValue('button-1', false);
+  session.runFrame();
+  session.updateDigitalInputValue('button-1', true);
+  const secondPress = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.equal(firstPress.ledStates.get('led-1'), true);
+  assert.match(serialText(firstPress), /Blue LED ON/);
+  assert.equal(secondPress.ledStates.get('led-1'), false);
+  assert.match(serialText(secondPress), /Blue LED OFF/);
+});
+
 async function runHcsr04WasmDistance(wasmBase64, valueCm) {
   const session = await createHcsr04WasmSession(wasmBase64, valueCm);
 
@@ -919,6 +972,16 @@ function serialText(result) {
   return result.serial.events.map((event) => event.data).join('');
 }
 
+function testNet(id, references) {
+  return {
+    id,
+    terminals: references.map((reference) => {
+      const [componentId, terminalId] = reference.split('.');
+      return { componentId, terminalId };
+    })
+  };
+}
+
 function officialComponent(id, type, properties) {
   const manifest = officialManifestByVisualType(type);
 
@@ -947,8 +1010,10 @@ function officialManifestByVisualType(type) {
     'hcsr04': 'components/official/hc-sr04/component.json',
     'ldr-light-sensor': 'components/official/ldr-light-sensor/component.json',
     'led': 'components/official/led-red/component.json',
+    'led-blue': 'components/official/led-blue/component.json',
     'light-level': 'components/official/light-level/component.json',
     'mcp3008-adc': 'components/official/mcp3008/component.json',
+    'pull-up-button': 'components/official/pull-up-button/component.json',
     'rain-toggle': 'components/official/rain-toggle/component.json',
     'resistor': 'components/official/resistor/component.json'
   }[type];

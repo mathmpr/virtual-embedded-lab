@@ -10,6 +10,7 @@ import {
 import { solveElectricalState } from './electrical-solver.js';
 import { createSimulationBehaviorRegistry } from './behavior-registry.js';
 import {
+  applyButtonInputs,
   applyLightSensorInputs,
   applyRainSensorInputs,
   registerSensorBehaviorAdapters
@@ -28,7 +29,7 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
   const wasmSession = await createWasmFirmwareSession(runtime, wasmBase64);
   const program = programFromWasmConstants(wasmSession.constants);
   const diagnostics = formatFirmwareDiagnostics(wasmDiagnostics);
-  let inputBindings = { rainBindings: [], lightBindings: [] };
+  let inputBindings = { rainBindings: [], lightBindings: [], buttonBindings: [] };
 
   inputBindings = bindSimulationInputs({ graph, environment, runtime, clock, scheduler, program, diagnostics });
   wasmSession.setup();
@@ -51,6 +52,14 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
     updateAnalogVoltageValue(componentId, value) {
       environment.write(`${componentId}.analog-voltage`, normalizeEnvironmentValue('analog-voltage', value));
     },
+    updateDigitalInputValue(componentId, value) {
+      const binding = inputBindings.buttonBindings.find((item) => item.button.id === componentId);
+
+      if (binding) {
+        binding.button.properties[binding.activeProperty] = Boolean(value);
+        applyButtonInputs({ runtime, buttonBindings: [binding] });
+      }
+    },
     runFrame({ serialRx: frameSerialRx = [] } = {}) {
       for (const data of frameSerialRx) {
         runtime.serialReceive(data);
@@ -58,6 +67,7 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
 
       applyRainSensorInputs({ runtime, environment, rainBindings: inputBindings.rainBindings });
       applyLightSensorInputs({ runtime, environment, lightBindings: inputBindings.lightBindings });
+      applyButtonInputs({ runtime, buttonBindings: inputBindings.buttonBindings });
 
       const firmwareResult = wasmSession.runLoop({ loopIterations: 3, drainEvents: true });
 

@@ -15,6 +15,7 @@ export function registerSensorBehaviorAdapters(registry) {
   registry.register('bmp280-sensor', bindBmp280Sensors);
   registry.register('adc-i2c', bindI2cAdcConverters);
   registry.register('adc-spi', bindSpiAdcConverters);
+  registry.register('momentary-button', bindMomentaryButtons);
 }
 
 export function applyRainSensorInputs({ runtime, environment, rainBindings }) {
@@ -45,6 +46,18 @@ export function applyLightSensorInputs({ runtime, environment, lightBindings }) 
       resistanceOhms: ldrResistance,
       sourceComponentId: binding.sensor.id
     });
+  }
+}
+
+export function applyButtonInputs({ runtime, buttonBindings }) {
+  for (const binding of buttonBindings) {
+    const activeHigh = binding.button.properties[binding.activeHighProperty] !== false;
+    const pressed = Boolean(binding.button.properties[binding.activeProperty]);
+    const value = pressed
+      ? activeHigh ? 'HIGH' : 'LOW'
+      : activeHigh ? 'LOW' : 'HIGH';
+
+    runtime.driveInput(binding.pin, value);
   }
 }
 
@@ -262,6 +275,30 @@ function bindLightSensorAdapter({ graph, environment, runtime, diagnostics, comp
 
   applyLightSensorInputs({ runtime, environment, lightBindings });
   return { lightBindings };
+}
+
+function bindMomentaryButtons({ graph, runtime, diagnostics, components }) {
+  const buttonBindings = [];
+
+  for (const button of components) {
+    const outputTerminal = button.behavior?.outputTerminal ?? 'out';
+    const pin = resolveDigitalPinConnectedToTerminal(graph, { componentId: button.id, terminalId: outputTerminal });
+
+    if (!Number.isInteger(pin)) {
+      diagnostics.push(`${button.id}: OUT não está ligado a um pino digital do Arduino.`);
+      continue;
+    }
+
+    buttonBindings.push({
+      button,
+      pin,
+      activeProperty: button.behavior?.activeProperty ?? 'pressed',
+      activeHighProperty: button.behavior?.activeHighProperty ?? 'activeHigh'
+    });
+  }
+
+  applyButtonInputs({ runtime, buttonBindings });
+  return { buttonBindings };
 }
 
 function rainSourceForSensor({ graph, rainSources, sensor }) {

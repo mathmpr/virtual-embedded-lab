@@ -41,6 +41,8 @@ function renderVisualControl(control, definition, variantsForProperty) {
     case 'checkbox':
     case 'boolean':
       return renderCheckbox(control, definition);
+    case 'pulse':
+      return renderPulseButton(control);
     case 'string':
       return renderTextInput(control, definition);
     case 'variant':
@@ -52,6 +54,16 @@ function renderVisualControl(control, definition, variantsForProperty) {
     default:
       return '';
   }
+}
+
+function renderPulseButton(control) {
+  return `
+    <button class="${escapeHtml(control.className ?? 'component-pulse-button')}" type="button"
+      ${renderPropertyAttribute(control.property)}
+      data-pulse-duration-ms="${escapeHtml(control.durationMs ?? 160)}">
+      ${escapeHtml(control.label ?? 'Press')}
+    </button>
+  `;
 }
 
 function renderReadout(control, definition) {
@@ -201,7 +213,7 @@ function renderClassAttribute(className) {
 }
 
 function validVisualTag(tag) {
-  return ['div', 'span', 'strong'].includes(tag) ? tag : 'div';
+  return ['button', 'div', 'span', 'strong'].includes(tag) ? tag : 'div';
 }
 
 function escapeHtml(value) {

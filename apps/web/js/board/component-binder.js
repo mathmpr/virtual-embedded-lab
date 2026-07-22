@@ -20,7 +20,7 @@ export function createComponentBinder({
         return;
       }
 
-      if (event.target.closest('.terminal, input, textarea, select, [data-delete-component]')) {
+      if (event.target.closest('.terminal, input, textarea, select, button, [data-delete-component]')) {
         return;
       }
 
@@ -95,6 +95,14 @@ export function createComponentBinder({
     element.querySelectorAll('[data-property]').forEach((input) => {
       input.addEventListener('pointerdown', stopPropagation);
 
+      if (input.matches('button[data-pulse-duration-ms]')) {
+        input.addEventListener('click', (event) => {
+          event.preventDefault();
+          pulseProperty(input, model);
+        });
+        return;
+      }
+
       if (input.matches('input[type="range"]')) {
         input.addEventListener('input', () => {
           componentState.updateComponentProperty(model, input.dataset.property, inputValue(input));
@@ -109,6 +117,15 @@ export function createComponentBinder({
         componentState.updateComponentProperty(model, input.dataset.property, inputValue(input), true);
       });
     });
+  }
+
+  function pulseProperty(input, model) {
+    const durationMs = Math.max(20, Number(input.dataset.pulseDurationMs) || 160);
+
+    componentState.updateComponentProperty(model, input.dataset.property, true, true);
+    window.setTimeout(() => {
+      componentState.updateComponentProperty(model, input.dataset.property, false, true);
+    }, durationMs);
   }
 
   function inputValue(input) {

@@ -1,0 +1,76 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "input.button.pull-up",
+    "name": "Pull-up Button",
+    "category": "input",
+    "subCategory": "buttons"
+  },
+  "simulation": {
+    "kind": "behavioral-sensor",
+    "effects": ["firmware", "electrical", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "pressed": {
+      "type": "boolean",
+      "default": false,
+      "simulationUpdate": "live"
+    },
+    "activeHigh": {
+      "type": "boolean",
+      "default": true,
+      "simulationUpdate": "rerun"
+    }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "out", "label": "OUT", "type": "digital-output" }
+  ],
+  "behavior": {
+    "type": "momentary-button",
+    "outputTerminal": "out",
+    "activeProperty": "pressed",
+    "activeHighProperty": "activeHigh"
+  },
+  "electricalModel": {
+    "type": "sensor-module",
+    "logicVoltage": 5,
+    "recommendedVoltageVolts": 5,
+    "inputCurrentAmps": 0.001,
+    "maximumCurrentAmps": 0.02
+  },
+  "visual": {
+    "type": "pull-up-button",
+    "title": "Pull-up Button",
+    "className": "pull-up-button",
+    "body": "OFF",
+    "width": 170,
+    "height": 112,
+    "controls": [
+      { "type": "readout", "className": "button-readout", "label": "BTN", "property": "pressed", "format": "onOff" },
+      { "type": "pulse", "className": "button-pulse-control", "label": "Press", "property": "pressed", "durationMs": 180 }
+    ],
+    "stateBindings": [
+      {
+        "type": "class",
+        "className": "is-pressed",
+        "source": { "kind": "component", "property": "pressed" },
+        "when": true
+      }
+    ],
+    "palette": {
+      "group": "Inputs",
+      "subgroup": "Buttons",
+      "icon": "button-icon",
+      "order": 30
+    },
+    "terminals": [
+      { "id": "vcc", "label": "VCC", "side": "left", "x": 0, "y": 30, "kind": "power" },
+      { "id": "out", "label": "OUT", "side": "right", "x": 170, "y": 54, "kind": "signal" },
+      { "id": "gnd", "label": "GND", "side": "bottom", "x": 85, "y": 112, "kind": "ground" }
+    ]
+  }
+}

@@ -843,12 +843,30 @@ button:disabled {
 .climate-readout,
 .bmp280-readout,
 .analog-readout,
-.adc-readout {
+.adc-readout,
+.button-readout {
   display: flex;
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 8px;
   font: 12px var(--mono);
+}
+
+.button-pulse-control {
+  width: 100%;
+  height: 34px;
+  border-color: #3d566f;
+  border-radius: 9px;
+  background: linear-gradient(#26394c, #172331);
+  color: #dceaff;
+  font: 700 12px var(--mono);
+}
+
+.button-pulse-control:active,
+.pull-up-button.is-pressed .button-pulse-control {
+  border-color: #65a9ff;
+  background: linear-gradient(#2f5f95, #1b3c65);
+  box-shadow: 0 0 18px rgb(92 157 255 / 0.35);
 }
 
 .wifi-checkbox-row {

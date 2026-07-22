@@ -173,6 +173,11 @@ export function createComponentState({
 
     if (definition?.behavior?.type === 'analog-voltage-source') {
       simulation.updateAnalogVoltageValue(component.id, environmentPayloadForComponent(component));
+      return;
+    }
+
+    if (definition?.behavior?.type === 'momentary-button') {
+      simulation.updateDigitalInputValue(component.id, component.properties[definition.behavior.activeProperty ?? 'pressed']);
     }
   }
 

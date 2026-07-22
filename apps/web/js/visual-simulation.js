@@ -150,6 +150,10 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     wasmSimulationSession?.updateAnalogVoltageValue?.(componentId, value);
   }
 
+  function updateDigitalInputValue(componentId, value) {
+    wasmSimulationSession?.updateDigitalInputValue?.(componentId, value);
+  }
+
   function applyLedStates(ledStates) {
     for (const component of state.components.values()) {
       if (component.electricalPrimitive === 'led' || component.type === 'led') {
@@ -357,6 +361,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     updateRainValue,
     updateLightValue,
     updateClimateValue,
-    updateAnalogVoltageValue
+    updateAnalogVoltageValue,
+    updateDigitalInputValue
   };
 }

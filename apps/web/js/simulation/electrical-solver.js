@@ -722,6 +722,7 @@ function netHasRuntimeDriverOrPassivePath({ graph, net, ownerComponentId }) {
     }
 
     return isRuntimeDrivenTerminal(component, terminal.terminalId)
+      || isBehaviorOutputTerminal(component, terminal.terminalId)
       || isBusTerminal(component, terminal.terminalId)
       || isPassiveElectricalTerminal(component);
   });
@@ -736,6 +737,11 @@ function isRuntimeDrivenTerminal(component, terminalId) {
     behavior.digitalOutputTerminal,
     behavior.analogOutputTerminal
   ].includes(terminalId);
+}
+
+function isBehaviorOutputTerminal(component, terminalId) {
+  return component.behavior?.outputTerminal === terminalId
+    && ['momentary-button', 'analog-voltage-source'].includes(component.behavior?.type);
 }
 
 function isBusTerminal(component, terminalId) {
