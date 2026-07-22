@@ -1,6 +1,12 @@
 import { ArduinoRuntime } from './arduino-runtime.js';
 import { createCircuitGraph } from './circuit-graph.js';
 import { EnvironmentEngine } from './environment-engine.js';
+import {
+  environmentPayloadForComponent,
+  environmentUnitForComponent,
+  normalizeEnvironmentValue,
+  wifiEnvironmentPayload
+} from './environment-payload.js';
 import { solveElectricalState } from './electrical-solver.js';
 import { Hcsr04Behavior } from './hcsr04-behavior.js';
 import { EventScheduler, VirtualClock } from './virtual-time.js';
@@ -19,21 +25,21 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
 
   return {
     updateDistanceValue(componentId, valueCm) {
-      environment.write(`${componentId}.distance`, Number(valueCm));
+      environment.write(`${componentId}.distance`, normalizeEnvironmentValue('distance', valueCm));
     },
     updateRainValue(componentId, value) {
-      environment.write(`${componentId}.rain`, normalizeRainValue(value));
+      environment.write(`${componentId}.rain`, normalizeEnvironmentValue('rain', value));
       applyRainSensorInputs({ runtime, environment, rainBindings: inputBindings.rainBindings });
     },
     updateLightValue(componentId, value) {
-      environment.write(`${componentId}.light`, normalizeLightValue(value));
+      environment.write(`${componentId}.light`, normalizeEnvironmentValue('light', value));
       applyLightSensorInputs({ runtime, environment, lightBindings: inputBindings.lightBindings });
     },
     updateClimateValue(componentId, value) {
-      environment.write(`${componentId}.climate`, normalizeClimateValue(value));
+      environment.write(`${componentId}.climate`, normalizeEnvironmentValue('climate', value));
     },
     updateAnalogVoltageValue(componentId, value) {
-      environment.write(`${componentId}.analog-voltage`, normalizeAnalogVoltageValue(value));
+      environment.write(`${componentId}.analog-voltage`, normalizeEnvironmentValue('analog-voltage', value));
     },
     runFrame({ serialRx: frameSerialRx = [] } = {}) {
       for (const data of frameSerialRx) {
@@ -251,8 +257,8 @@ function bindEnvironmentChannels({ graph, environment, diagnostics }) {
     environment.createChannel({
       id: `${component.id}.${channel}`,
       type: channel,
-      value: environmentChannelValue(component),
-      unit: environmentChannelUnit(component),
+      value: environmentPayloadForComponent(component),
+      unit: environmentUnitForComponent(component),
       sourceComponentId: component.id
     });
     channels.add(channel);
@@ -267,62 +273,11 @@ function bindEnvironmentChannels({ graph, environment, diagnostics }) {
   }
 }
 
-function environmentChannelValue(component) {
-  const behavior = component.behavior ?? {};
-
-  if (behavior.channel === 'distance') {
-    return Number(component.properties[behavior.valueProperty] ?? 150);
-  }
-
-  if (behavior.channel === 'rain') {
-    return normalizeRainValue({
-      active: component.properties[behavior.activeProperty] ?? false,
-      intensityPercent: component.properties[behavior.intensityProperty] ?? 100
-    });
-  }
-
-  if (behavior.channel === 'light') {
-    return normalizeLightValue({
-      enabled: component.properties[behavior.activeProperty] ?? true,
-      intensityPercent: component.properties[behavior.intensityProperty] ?? 50
-    });
-  }
-
-  if (behavior.channel === 'climate') {
-    return normalizeClimateValue({
-      enabled: component.properties[behavior.activeProperty] ?? true,
-      temperatureC: component.properties[behavior.temperatureProperty] ?? 25,
-      pressureHpa: component.properties[behavior.pressureProperty] ?? 1013.25
-    });
-  }
-
-  if (behavior.channel === 'analog-voltage') {
-    return normalizeAnalogVoltageValue({
-      enabled: component.properties[behavior.activeProperty] ?? true,
-      voltageVolts: component.properties[behavior.voltageProperty] ?? 0
-    });
-  }
-
-  return component.properties[behavior.valueProperty] ?? null;
-}
-
-function environmentChannelUnit(component) {
-  const behavior = component.behavior ?? {};
-  const propertyName = behavior.valueProperty ?? behavior.voltageProperty ?? behavior.temperatureProperty;
-  return component.propertySchema?.[propertyName]?.unit ?? null;
-}
-
 function bindWifiEnvironment({ graph, runtime }) {
   const wifiSignals = graph.findComponentsByBehaviorType('wireless-environment')
     .filter((component) => component.behavior?.capability === 'wifi');
 
-  runtime.configureWifiEnvironment({
-    networks: wifiSignals.map((wifiSignal) => ({
-      ssid: wifiSignal.properties.ssid ?? 'VirtualLab',
-      internetAvailable: wifiSignal.properties.connected ?? false,
-      strengthPercent: wifiSignal.properties.strengthPercent ?? 0
-    }))
-  });
+  runtime.configureWifiEnvironment(wifiEnvironmentPayload(wifiSignals));
 }
 
 function bindHcsr04Sensors({ graph, environment, runtime, clock, scheduler, program, diagnostics }) {
@@ -395,11 +350,11 @@ function bindBmp280Sensors({ graph, environment, runtime, diagnostics }) {
       type: 'bmp280',
       componentId: sensor.id,
       readTemperature() {
-        const climate = normalizeClimateValue(environment.read(`${source.id}.climate`));
+        const climate = normalizeEnvironmentValue('climate', environment.read(`${source.id}.climate`));
         return climate.enabled ? climate.temperatureC + Number(sensor.properties[sensor.behavior?.temperatureOffsetProperty] ?? 0) : 0;
       },
       readPressure() {
-        const climate = normalizeClimateValue(environment.read(`${source.id}.climate`));
+        const climate = normalizeEnvironmentValue('climate', environment.read(`${source.id}.climate`));
         return climate.enabled ? (climate.pressureHpa + Number(sensor.properties[sensor.behavior?.pressureOffsetProperty] ?? 0)) * 100 : 0;
       },
       readBytes(count) {
@@ -494,7 +449,7 @@ function analogSourceForTerminal(graph, terminal) {
 }
 
 function analogVoltage(environment, sourceId) {
-  const value = normalizeAnalogVoltageValue(environment.read(`${sourceId}.analog-voltage`));
+  const value = normalizeEnvironmentValue('analog-voltage', environment.read(`${sourceId}.analog-voltage`));
   return value.enabled ? value.voltageVolts : 0;
 }
 
@@ -600,7 +555,7 @@ function bindLightSensors({ graph, environment, runtime, diagnostics }) {
 
 function applyLightSensorInputs({ runtime, environment, lightBindings }) {
   for (const binding of lightBindings) {
-    const light = normalizeLightValue(environment.read(binding.channelId));
+    const light = normalizeEnvironmentValue('light', environment.read(binding.channelId));
     const ldrResistance = ldrResistanceOhms(binding.sensor, light);
     const reading = voltageDividerReading({
       ldrResistanceOhms: ldrResistance,
@@ -764,42 +719,13 @@ function digitalPinConnectedToTerminal(graph, terminal) {
   return null;
 }
 
-function normalizeRainValue(value) {
-  return {
-    active: Boolean(value?.active),
-    intensityPercent: Math.max(0, Math.min(100, Number(value?.intensityPercent ?? 100)))
-  };
-}
-
-function normalizeLightValue(value) {
-  return {
-    enabled: Boolean(value?.enabled ?? true),
-    intensityPercent: clamp(Number(value?.intensityPercent ?? 50), 0, 100)
-  };
-}
-
-function normalizeClimateValue(value) {
-  return {
-    enabled: Boolean(value?.enabled ?? true),
-    temperatureC: clamp(Number(value?.temperatureC ?? 25), -40, 85),
-    pressureHpa: clamp(Number(value?.pressureHpa ?? 1013.25), 300, 1100)
-  };
-}
-
-function normalizeAnalogVoltageValue(value) {
-  return {
-    enabled: Boolean(value?.enabled ?? true),
-    voltageVolts: clamp(Number(value?.voltageVolts ?? 0), 0, 5)
-  };
-}
-
 function rainSignal(environment) {
   return environment.snapshot().some((channel) => channel.type === 'rain' && channel.value?.active) ? 1 : 0;
 }
 
 function lightSignal(environment) {
   const light = environment.snapshot().find((channel) => channel.type === 'light')?.value;
-  const normalized = normalizeLightValue(light);
+  const normalized = normalizeEnvironmentValue('light', light);
   return normalized.enabled ? normalized.intensityPercent / 100 : 0;
 }
 

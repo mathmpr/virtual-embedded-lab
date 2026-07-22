@@ -1,3 +1,5 @@
+import { environmentPayloadForComponent } from '../simulation/environment-payload.js';
+
 export function createComponentState({
   state,
   componentDefinitions,
@@ -155,28 +157,22 @@ export function createComponentState({
     }
 
     if (definition?.behavior?.channel === 'rain') {
-      simulation.updateRainValue(component.id, {
-        active: component.properties[definition.behavior.activeProperty],
-        intensityPercent: component.properties[definition.behavior.intensityProperty]
-      });
+      simulation.updateRainValue(component.id, environmentPayloadForComponent(component));
       return;
     }
 
     if (definition?.behavior?.channel === 'light') {
-      simulation.updateLightValue(component.id, {
-        enabled: component.properties[definition.behavior.activeProperty],
-        intensityPercent: component.properties[definition.behavior.intensityProperty]
-      });
+      simulation.updateLightValue(component.id, environmentPayloadForComponent(component));
       return;
     }
 
     if (definition?.behavior?.channel === 'climate') {
-      simulation.updateClimateValue(component.id, climatePayload(component));
+      simulation.updateClimateValue(component.id, environmentPayloadForComponent(component));
       return;
     }
 
     if (definition?.behavior?.type === 'analog-voltage-source') {
-      simulation.updateAnalogVoltageValue(component.id, analogPayload(component));
+      simulation.updateAnalogVoltageValue(component.id, environmentPayloadForComponent(component));
     }
   }
 
@@ -332,21 +328,6 @@ export function createComponentState({
     return true;
   }
 
-  function climatePayload(component) {
-    return {
-      enabled: component.properties.enabled,
-      temperatureC: component.properties.temperatureC,
-      pressureHpa: component.properties.pressureHpa
-    };
-  }
-
-  function analogPayload(component) {
-    return {
-      enabled: component.properties.enabled,
-      voltageVolts: component.properties.voltageVolts
-    };
-  }
-
   function firstClimateComponent() {
     return firstComponentByType('climate-environment');
   }
@@ -396,8 +377,6 @@ export function createComponentState({
     applyVisualStateBindings,
     updateComponentProperty,
     syncComponentControls,
-    climatePayload,
-    analogPayload,
     adcInspectorLabel
   };
 }

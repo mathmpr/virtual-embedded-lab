@@ -213,6 +213,7 @@ test('web UI exposes editable Wi-Fi signal controls', () => {
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
+  const environmentPayload = readFileSync(join(root, 'apps/web/js/simulation/environment-payload.js'), 'utf8');
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const firmware = readFileSync(join(root, 'apps/web/js/simulation/firmware-engine.js'), 'utf8');
   const analyzer = readFileSync(join(root, 'apps/web/firmware/clang-analyzer.mjs'), 'utf8');
@@ -230,7 +231,8 @@ test('web UI exposes editable Wi-Fi signal controls', () => {
   assert.doesNotMatch(componentState, /function updateWifiStrength/);
   assert.doesNotMatch(componentState, /function updateWifiInternetAvailable/);
   assert.match(engine, /bindWifiEnvironment\(/);
-  assert.match(engine, /environmentChannelValue\(component\)/);
+  assert.match(engine, /environmentPayloadForComponent\(component\)/);
+  assert.match(environmentPayload, /wifiEnvironmentPayload/);
   assert.match(runtime, /configureWifiEnvironment\(environment\)/);
   assert.match(runtime, /wifiBegin\(ssid, password/);
   assert.match(runtime, /wifiSoftAp\(ssid, password/);
@@ -255,6 +257,7 @@ test('web UI exposes FC-37 rain controls and runtime bindings', () => {
   const signals = readFileSync(join(root, 'apps/web/js/board/signals-panel.js'), 'utf8');
   const pinResolver = readFileSync(join(root, 'apps/web/js/board/pin-resolver.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
+  const environmentPayload = readFileSync(join(root, 'apps/web/js/simulation/environment-payload.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
 
   assert.match(componentTemplate, /renderVisualControl/);
@@ -275,7 +278,8 @@ test('web UI exposes FC-37 rain controls and runtime bindings', () => {
   assert.match(engine, /bindRainSensors\(/);
   assert.match(engine, /digitalPinConnectedToTerminal/);
   assert.match(engine, /runtime\.driveInput\(binding\.pin, value\)/);
-  assert.match(engine, /normalizeRainValue/);
+  assert.match(environmentPayload, /normalizeEnvironmentValue\(channel, value\)/);
+  assert.match(componentState, /environmentPayloadForComponent\(component\)/);
   assert.match(adapter, /updateRainValue\(componentId, value\)/);
 });
 
@@ -289,6 +293,7 @@ test('web UI exposes LDR light controls and analog runtime bindings', () => {
   const signals = readFileSync(join(root, 'apps/web/js/board/signals-panel.js'), 'utf8');
   const pinResolver = readFileSync(join(root, 'apps/web/js/board/pin-resolver.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
+  const environmentPayload = readFileSync(join(root, 'apps/web/js/simulation/environment-payload.js'), 'utf8');
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
@@ -312,7 +317,7 @@ test('web UI exposes LDR light controls and analog runtime bindings', () => {
   assert.match(engine, /bindLightSensors\(/);
   assert.match(engine, /analogPinConnectedToTerminal/);
   assert.match(engine, /runtime\.driveAnalogInput/);
-  assert.match(engine, /normalizeLightValue/);
+  assert.match(environmentPayload, /channel === 'light'/);
   assert.match(runtime, /analogRead\(pin\)/);
   assert.match(adapter, /updateLightValue\(componentId, value\)/);
   assert.match(wasmCompiler, /const int A0 = 14/);
@@ -327,6 +332,7 @@ test('web UI exposes BMP280 climate controls and I2C runtime bindings', () => {
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
+  const environmentPayload = readFileSync(join(root, 'apps/web/js/simulation/environment-payload.js'), 'utf8');
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
@@ -345,7 +351,7 @@ test('web UI exposes BMP280 climate controls and I2C runtime bindings', () => {
   assert.doesNotMatch(componentState, /function updateBmp280Property/);
   assert.match(engine, /bindBmp280Sensors\(/);
   assert.match(engine, /runtime\.registerI2cDevice/);
-  assert.match(engine, /normalizeClimateValue/);
+  assert.match(environmentPayload, /channel === 'climate'/);
   assert.match(runtime, /wireBegin\(\)/);
   assert.match(runtime, /bmp280ReadTemperature\(address\)/);
   assert.match(adapter, /updateClimateValue\(componentId, value\)/);
@@ -361,6 +367,7 @@ test('web UI exposes external ADC controls and runtime bindings', () => {
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
+  const environmentPayload = readFileSync(join(root, 'apps/web/js/simulation/environment-payload.js'), 'utf8');
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
@@ -378,6 +385,7 @@ test('web UI exposes external ADC controls and runtime bindings', () => {
   assert.match(engine, /bindAdcConverters\(/);
   assert.match(engine, /runtime\.registerSpiDevice/);
   assert.match(engine, /externalAdcRaw/);
+  assert.match(environmentPayload, /channel === 'analog-voltage'/);
   assert.match(runtime, /adcReadSingleEnded\(address, channel\)/);
   assert.match(runtime, /mcp3008Read\(chipSelectPin, channel\)/);
   assert.match(adapter, /updateAnalogVoltageValue\(componentId, value\)/);
