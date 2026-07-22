@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "FC-37 Rain Digital",
+  "board": {
+    "width": 1600,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "arduino-1",
+      "componentId": "board.arduino.uno",
+      "position": { "x": 260, "y": 220 },
+      "properties": {}
+    },
+    {
+      "id": "rain-sensor-1",
+      "componentId": "sensor.rain.fc-37",
+      "position": { "x": 720, "y": 250 },
+      "properties": {
+        "thresholdPercent": 50,
+        "wetAnalogValue": 300,
+        "dryAnalogValue": 900,
+        "activeLow": true
+      }
+    },
+    {
+      "id": "rain-1",
+      "componentId": "environment.rain-toggle",
+      "position": { "x": 970, "y": 250 },
+      "properties": {
+        "active": false,
+        "intensityPercent": 100
+      }
+    }
+  ],
+  "connections": [
+    { "id": "net-1", "color": "#f05252", "terminals": ["arduino-1.5v", "rain-sensor-1.vcc"] },
+    { "id": "net-2", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "rain-sensor-1.gnd"] },
+    { "id": "net-3", "color": "#4c8dff", "terminals": ["arduino-1.d7", "rain-sensor-1.do"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "const int RAIN_PIN = 7;\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    pinMode(RAIN_PIN, INPUT);\\n    Serial.println(\"FC-37 rain sensor ready\");\\n}\\n\\nvoid loop()\\n{\\n    const int rainState = digitalRead(RAIN_PIN);\\n\\n    if (rainState == LOW) {\\n        Serial.println(\"RAIN DETECTED\");\\n    } else {\\n        Serial.println(\"NO RAIN\");\\n    }\\n\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

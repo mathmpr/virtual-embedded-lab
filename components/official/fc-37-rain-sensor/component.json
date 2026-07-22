@@ -1,0 +1,83 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "sensor.rain.fc-37",
+    "name": "FC-37 Rain Sensor",
+    "category": "sensor",
+    "subCategory": "rain"
+  },
+  "simulation": {
+    "kind": "behavioral-sensor",
+    "effects": ["firmware", "environment", "visual-state"],
+    "implemented": true
+  },
+  "power": {
+    "recommendedVoltage": {
+      "min": 3.3,
+      "typical": 5,
+      "max": 5,
+      "unit": "V"
+    }
+  },
+  "properties": {
+    "thresholdPercent": {
+      "type": "number",
+      "default": 50,
+      "minimum": 0,
+      "maximum": 100,
+      "unit": "%"
+    },
+    "wetAnalogValue": {
+      "type": "number",
+      "default": 300,
+      "minimum": 0,
+      "maximum": 1023
+    },
+    "dryAnalogValue": {
+      "type": "number",
+      "default": 900,
+      "minimum": 0,
+      "maximum": 1023
+    },
+    "activeLow": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "do", "label": "DO", "type": "digital-output" },
+    { "id": "ao", "label": "AO", "type": "analog-output" }
+  ],
+  "behavior": {
+    "type": "rain-sensor",
+    "environmentChannel": "rain",
+    "digitalOutputTerminal": "do",
+    "analogOutputTerminal": "ao",
+    "activeLowProperty": "activeLow",
+    "wetAnalogProperty": "wetAnalogValue",
+    "dryAnalogProperty": "dryAnalogValue"
+  },
+  "visual": {
+    "type": "fc37-rain-sensor",
+    "title": "FC-37 Rain",
+    "className": "fc37-rain-sensor",
+    "body": "DRY",
+    "width": 170,
+    "height": 118,
+    "palette": {
+      "group": "Sensors",
+      "subgroup": "Rain",
+      "icon": "rain-sensor-icon",
+      "order": 24
+    },
+    "terminals": [
+      { "id": "vcc", "side": "left", "x": 0, "y": 28, "kind": "power" },
+      { "id": "gnd", "side": "bottom", "x": 80, "y": 118, "kind": "ground" },
+      { "id": "do", "side": "right", "x": 170, "y": 44, "kind": "signal" },
+      { "id": "ao", "side": "right", "x": 170, "y": 78, "kind": "signal" }
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "ESP32 Wi-Fi Failover",
+  "board": {
+    "width": 1600,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "esp32-1",
+      "componentId": "board.esp32.devkit",
+      "position": { "x": 360, "y": 170 },
+      "properties": {
+        "logicVoltage": 3.3,
+        "wifiMode": "station",
+        "bluetoothEnabled": true
+      }
+    },
+    {
+      "id": "wifi-fiber",
+      "componentId": "environment.wifi-signal",
+      "position": { "x": 800, "y": 130 },
+      "properties": {
+        "ssid": "Lab-Fiber",
+        "connected": false,
+        "strengthPercent": 95
+      }
+    },
+    {
+      "id": "wifi-mesh",
+      "componentId": "environment.wifi-signal",
+      "position": { "x": 800, "y": 300 },
+      "properties": {
+        "ssid": "Lab-Mesh",
+        "connected": true,
+        "strengthPercent": 74
+      }
+    },
+    {
+      "id": "wifi-guest",
+      "componentId": "environment.wifi-signal",
+      "position": { "x": 800, "y": 470 },
+      "properties": {
+        "ssid": "Guest-IoT",
+        "connected": true,
+        "strengthPercent": 42
+      }
+    }
+  ],
+  "connections": [],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "#include <WiFi.h>\\n\\nstruct NetworkCandidate\\n{\\n    const char *ssid;\\n    const char *password;\\n};\\n\\nNetworkCandidate networks[] = {\\n    {\"Lab-Fiber\", \"secret\"},\\n    {\"Lab-Mesh\", \"secret\"},\\n    {\"Guest-IoT\", \"guest\"}\\n};\\n\\nconst int NETWORK_COUNT = 3;\\nbool attempted[NETWORK_COUNT] = { false, false, false };\\nint selectedNetwork = -1;\\n\\nint strongestPendingNetwork()\\n{\\n    int bestIndex = -1;\\n    int bestRssi = -1000;\\n\\n    for (int index = 0; index < NETWORK_COUNT; index++) {\\n        if (attempted[index]) {\\n            continue;\\n        }\\n\\n        int rssi = WiFi.RSSI(networks[index].ssid);\\n\\n        if (rssi > bestRssi) {\\n            bestRssi = rssi;\\n            bestIndex = index;\\n        }\\n    }\\n\\n    return bestIndex;\\n}\\n\\nvoid connectBestNetworkWithInternet()\\n{\\n    WiFi.mode(WIFI_STA);\\n    Serial.print(\"Redes encontradas: \");\\n    Serial.println(WiFi.scanNetworks());\\n\\n    for (int attempt = 0; attempt < NETWORK_COUNT; attempt++) {\\n        int candidate = strongestPendingNetwork();\\n\\n        if (candidate < 0) {\\n            break;\\n        }\\n\\n        attempted[candidate] = true;\\n        Serial.print(\"Tentando SSID: \");\\n        Serial.print(networks[candidate].ssid);\\n        Serial.print(\" RSSI: \");\\n        Serial.println(WiFi.RSSI(networks[candidate].ssid));\\n\\n        WiFi.begin(networks[candidate].ssid, networks[candidate].password);\\n\\n        if (WiFi.status() == WL_CONNECTED && WiFi.internetAvailable()) {\\n            selectedNetwork = candidate;\\n            Serial.print(\"Internet ativa em: \");\\n            Serial.print(networks[candidate].ssid);\\n            Serial.print(\" RSSI: \");\\n            Serial.println(WiFi.RSSI());\\n            return;\\n        }\\n\\n        Serial.print(\"Sem internet em: \");\\n        Serial.println(networks[candidate].ssid);\\n    }\\n\\n    Serial.println(\"Nenhuma rede com internet ativa.\");\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    Serial.println(\"ESP32 Wi-Fi failover example\");\\n    connectBestNetworkWithInternet();\\n}\\n\\nvoid loop()\\n{\\n    if (selectedNetwork >= 0) {\\n        Serial.print(\"Conectado em: \");\\n        Serial.print(networks[selectedNetwork].ssid);\\n        Serial.print(\" RSSI: \");\\n        Serial.println(WiFi.RSSI());\\n    } else {\\n        Serial.println(\"Offline\");\\n    }\\n\\n    delay(2000);\\n}\\n"
+    }
+  }
+}

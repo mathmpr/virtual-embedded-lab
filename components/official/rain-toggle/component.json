@@ -1,0 +1,50 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "environment.rain-toggle",
+    "name": "Chuva",
+    "category": "environment",
+    "subCategory": "weather"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment"],
+    "implemented": true
+  },
+  "properties": {
+    "active": {
+      "type": "boolean",
+      "default": false
+    },
+    "intensityPercent": {
+      "type": "number",
+      "default": 100,
+      "minimum": 0,
+      "maximum": 100,
+      "unit": "%"
+    }
+  },
+  "terminals": [],
+  "behavior": {
+    "type": "environment-source",
+    "channel": "rain",
+    "activeProperty": "active",
+    "intensityProperty": "intensityPercent"
+  },
+  "visual": {
+    "type": "rain-toggle",
+    "title": "Chuva",
+    "className": "rain-toggle",
+    "body": "OFF",
+    "width": 180,
+    "height": 104,
+    "palette": {
+      "group": "Inputs",
+      "subgroup": "Weather",
+      "icon": "rain-icon",
+      "order": 36
+    },
+    "terminals": []
+  }
+}
