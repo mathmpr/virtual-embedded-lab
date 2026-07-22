@@ -3,7 +3,7 @@ export function solveElectricalState({ graph, runtime }) {
   const ledStates = new Map();
   const componentReadings = new Map();
   const netReadings = new Map();
-  const arduino = graph.findComponentsByType('arduino')[0] ?? null;
+  const arduino = graph.findComponentsByBehaviorType('microcontroller')[0] ?? null;
   const drivenHighPins = findDrivenHighPins({ runtime, arduino });
 
   detectShorts({ graph, arduino, drivenHighPins, diagnostics, netReadings });
@@ -131,9 +131,9 @@ function isLedAnodeDirectlyDriven({ graph, led, drivenHighPins }) {
   });
 }
 
-function findElectricalComponents(graph, primitive, legacyType) {
+function findElectricalComponents(graph, primitive) {
   return [...graph.components.values()].filter((component) => {
-    return component.electricalPrimitive === primitive || component.type === legacyType;
+    return component.electricalPrimitive === primitive || component.electricalModel?.primitive === primitive;
   });
 }
 

@@ -9,8 +9,28 @@ export function createCircuitGraph({ components, nets, terminalKind }) {
     }
   }
 
-  function findComponentsByType(type) {
-    return [...components.values()].filter((component) => component.type === type);
+  function findComponentsByBehaviorType(type) {
+    return [...components.values()].filter((component) => component.behavior?.type === type);
+  }
+
+  function findComponentsByBehaviorChannel(channel) {
+    return [...components.values()].filter((component) => component.behavior?.channel === channel);
+  }
+
+  function findComponentsByEnvironmentChannel(channel) {
+    return [...components.values()].filter((component) => component.behavior?.environmentChannel === channel);
+  }
+
+  function findComponentsBySimulationKind(kind) {
+    return [...components.values()].filter((component) => component.simulation?.kind === kind);
+  }
+
+  function findComponentsByElectricalModelType(type) {
+    return [...components.values()].filter((component) => component.electricalModel?.type === type);
+  }
+
+  function findComponentsByElectricalPrimitive(primitive) {
+    return [...components.values()].filter((component) => component.electricalPrimitive === primitive || component.electricalModel?.primitive === primitive);
   }
 
   function findTerminalNet(componentId, terminalId) {
@@ -24,7 +44,7 @@ export function createCircuitGraph({ components, nets, terminalKind }) {
   }
 
   function driveArduinoPin(pin, value) {
-    const arduino = findComponentsByType('arduino')[0];
+    const arduino = findComponentsByBehaviorType('microcontroller')[0];
 
     if (!arduino) {
       return;
@@ -50,7 +70,12 @@ export function createCircuitGraph({ components, nets, terminalKind }) {
     components,
     nets,
     terminalKind,
-    findComponentsByType,
+    findComponentsByBehaviorType,
+    findComponentsByBehaviorChannel,
+    findComponentsByEnvironmentChannel,
+    findComponentsBySimulationKind,
+    findComponentsByElectricalModelType,
+    findComponentsByElectricalPrimitive,
     findTerminalNet,
     areConnected,
     driveArduinoPin,

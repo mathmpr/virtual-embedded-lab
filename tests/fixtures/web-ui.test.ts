@@ -196,14 +196,15 @@ test('web UI renders editable properties from component schemas', () => {
 
 test('web UI exposes editable Wi-Fi signal controls', () => {
   const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const componentTemplate = readFileSync(join(root, 'apps/web/js/board/component-template.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const firmware = readFileSync(join(root, 'apps/web/js/simulation/firmware-engine.js'), 'utf8');
   const analyzer = readFileSync(join(root, 'apps/web/firmware/clang-analyzer.mjs'), 'utf8');
 
-  assert.match(script, /data-wifi-slider/);
-  assert.match(script, /data-wifi-connected/);
-  assert.match(script, /Internet ativa/);
+  assert.match(componentTemplate, /data-wifi-slider/);
+  assert.match(componentTemplate, /data-wifi-connected/);
+  assert.match(componentTemplate, /Internet ativa/);
   assert.match(script, /data-inspector-property/);
   assert.match(script, /updateWirelessEnvironmentProperty/);
   assert.doesNotMatch(script, /data-inspector-wifi-strength/);
@@ -377,6 +378,7 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   assert.match(engine, /createCircuitGraph/);
   assert.match(engine, /EnvironmentEngine/);
   assert.match(engine, /Hcsr04Behavior/);
+  assert.doesNotMatch(engine, /findComponentsByType/);
   assert.match(engine, /ArduinoRuntime/);
   assert.match(engine, /applyBoardConstants/);
   assert.match(engine, /firstProgrammableBuiltInLed/);
@@ -416,10 +418,13 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
 
 test('web UI exposes electrical solver readings to simulation and inspector', () => {
   const editor = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const graph = readFileSync(join(root, 'apps/web/js/simulation/circuit-graph.js'), 'utf8');
   const engine = readFileSync(join(root, 'apps/web/js/simulation/simulation-engine.js'), 'utf8');
   const solver = readFileSync(join(root, 'apps/web/js/simulation/electrical-solver.js'), 'utf8');
 
   assert.match(engine, /solveElectricalState/);
+  assert.match(graph, /findComponentsByBehaviorType\(type\)/);
+  assert.doesNotMatch(graph, /findComponentsByType\(type\)/);
   assert.match(solver, /solveLedPath/);
   assert.match(solver, /LED ligado a saída HIGH sem resistor em série/);
   assert.match(solver, /curto direto entre 5V e GND/);
@@ -430,11 +435,12 @@ test('web UI exposes electrical solver readings to simulation and inspector', ()
 
 test('web UI keeps Serial history append-only during runs and RX input', () => {
   const editor = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const state = readFileSync(join(root, 'apps/web/js/board/state.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const css = readFileSync(join(root, 'apps/web/styles.css'), 'utf8');
 
-  assert.match(editor, /serialHistory: \[\]/);
-  assert.match(editor, /serialAutoScroll: true/);
+  assert.match(state, /serialHistory: \[\]/);
+  assert.match(state, /serialAutoScroll: true/);
   assert.match(editor, /syncSerialAutoScrollButton\(autoScrollButton\)/);
   assert.match(editor, /state\.serialAutoScroll = !state\.serialAutoScroll/);
   assert.match(editor, /const serialScrollContainer = serialMonitor;/);
@@ -492,6 +498,7 @@ test('web UI serializes board state to project JSON with separated connection ki
 
 test('web UI derives nets, selects them and validates incompatible connections', () => {
   const editor = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const wireRouting = readFileSync(join(root, 'apps/web/js/board/wire-routing.js'), 'utf8');
   const nets = readFileSync(join(root, 'apps/web/js/nets.js'), 'utf8');
   const css = readFileSync(join(root, 'apps/web/styles.css'), 'utf8');
 
@@ -504,15 +511,15 @@ test('web UI derives nets, selects them and validates incompatible connections',
   assert.match(nets, /validateConnection\(wires, terminalKind, from, to\)/);
   assert.match(nets, /curto direto entre power e ground/);
   assert.match(nets, /ENV deve ligar apenas a terminais de sinal/);
-  assert.match(editor, /routeWire\(wire\.from, wire\.to, from, to\)/);
-  assert.match(editor, /terminalExitPoint\(from, terminalDefinition\(fromTerminal\)\?\.side, to\)/);
-  assert.match(editor, /horizontalEscapePoint/);
-  assert.match(editor, /verticalEscapePoint/);
-  assert.match(editor, /scoreRoute\(left, fromTerminal, toTerminal\)/);
-  assert.match(editor, /routeComponentCrossings/);
-  assert.match(editor, /routeEndpointComponentNearEdges/);
-  assert.doesNotMatch(editor, /\[from, \{ x: to\.x, y: from\.y \}, to\]/);
-  assert.match(editor, /segmentIntersectsBounds/);
+  assert.match(editor, /routeWire\(\{\s*fromTerminal: wire\.from,/);
+  assert.match(wireRouting, /terminalExitPoint\(from, terminalDefinition\(fromTerminal\)\?\.side, to\)/);
+  assert.match(wireRouting, /horizontalEscapePoint/);
+  assert.match(wireRouting, /verticalEscapePoint/);
+  assert.match(wireRouting, /scoreRoute\(left, fromTerminal, toTerminal, routeContext\)/);
+  assert.match(wireRouting, /routeComponentCrossings/);
+  assert.match(wireRouting, /routeEndpointComponentNearEdges/);
+  assert.doesNotMatch(wireRouting, /\[from, \{ x: to\.x, y: from\.y \}, to\]/);
+  assert.match(wireRouting, /segmentIntersectsBounds/);
   assert.match(editor, /inferWireColor\(state\.pendingTerminal, terminal\)/);
   assert.match(css, /stroke: var\(--wire-color, #8ab4ff\)/);
   assert.match(css, /\.wire-group\.selected \.wire/);
@@ -522,6 +529,10 @@ test('web UI bootstrap stays thin and responsibilities are split by module', () 
   const bootstrap = readFileSync(join(root, 'apps/web/js/app.js'), 'utf8');
   const files = [
     'apps/web/js/board-editor.js',
+    'apps/web/js/board/component-template.js',
+    'apps/web/js/board/formatters.js',
+    'apps/web/js/board/state.js',
+    'apps/web/js/board/wire-routing.js',
     'apps/web/js/components.js',
     'apps/web/js/nets.js',
     'apps/web/js/code-editor.js',

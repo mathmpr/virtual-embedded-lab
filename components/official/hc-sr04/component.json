@@ -37,8 +37,12 @@
     }
   ],
   "behavior": {
+    "type": "hcsr04-sensor",
     "engine": "state-machine",
     "entry": "behavior.ts",
+    "environmentChannel": "distance",
+    "triggerTerminal": "trigger",
+    "echoTerminal": "echo",
     "parameters": {
       "minimumTriggerPulseUs": 10,
       "echoMicrosecondsPerCentimeter": 58,

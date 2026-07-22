@@ -12,13 +12,23 @@ import {
 import { boardToProject, projectCodeOrReference, projectToSnapshot } from './project-serializer.js';
 import { createBottomPanelResizer } from './panel-resizer.js';
 import { createVisualSimulation } from './visual-simulation.js';
-
-const boardWorld = {
-  width: 4000,
-  height: 2400,
-  minScale: 0.35,
-  maxScale: 2.2
-};
+import { renderComponentTemplate } from './board/component-template.js';
+import {
+  clamp,
+  escapeHtml,
+  formatCurrent,
+  formatPower,
+  formatPropertySignal,
+  formatVoltage,
+  labelFromPropertyName,
+  normalizeAnalog,
+  normalizeCurrent,
+  normalizePower,
+  normalizePropertySignal,
+  normalizeVoltage
+} from './board/formatters.js';
+import { boardWorld, createInitialBoardState } from './board/state.js';
+import { routeWire } from './board/wire-routing.js';
 
 export function createBoardEditor(document) {
   const board = document.querySelector('#board');
@@ -33,42 +43,7 @@ export function createBoardEditor(document) {
   const serialScrollContainer = serialMonitor;
   const problemList = document.querySelector('#problemList');
 
-  const state = {
-    components: new Map(),
-    wires: [],
-    nextComponentId: 1,
-    nextWireId: 1,
-    selectedId: null,
-    selectedNetId: null,
-    pendingTerminal: null,
-    serialRxQueue: [],
-    serialHistory: [],
-    serialAutoScroll: true,
-    history: [],
-    redoStack: [],
-    isRestoring: false,
-    viewport: {
-      x: 0,
-      y: 0,
-      scale: 1,
-      isSpacePanning: false,
-      isPanning: false
-    },
-    electrical: {
-      componentReadings: new Map(),
-      netReadings: new Map()
-    },
-    runtime: {
-      pinStates: {},
-      analogPinStates: {}
-    },
-    running: false,
-    signals: {
-      trig: 0,
-      echo: 0,
-      led: 0
-    }
-  };
+  const state = createInitialBoardState();
 
   const simulation = createVisualSimulation({
     state,
@@ -318,7 +293,7 @@ export function createBoardEditor(document) {
     element.style.width = `${definition.width}px`;
     element.style.left = `${x}px`;
     element.style.top = `${y}px`;
-    element.innerHTML = renderComponentTemplate(definition, componentId);
+    element.innerHTML = renderComponentTemplate(definition, componentId, variantsForProperty);
 
     componentLayer.append(element);
 
@@ -346,83 +321,8 @@ export function createBoardEditor(document) {
     return model;
   }
 
-  function renderComponentTemplate(definition, componentId) {
-    const body = definition.electricalPrimitive === 'led'
-      ? '<div class="led-glow"></div>'
-      : definition.className === 'distance'
-        ? '<div class="distance-readout"><span>Distância</span><strong data-distance-output>150 cm</strong></div><input data-distance-slider type="range" min="2" max="400" value="150">'
-        : definition.className === 'resistor'
-          ? `<label class="component-select-row"><span>R</span>${renderVariantSelect('resistor', 'resistanceOhms', definition.properties.resistanceOhms, 'data-resistor-select')}</label>`
-          : definition.className === 'capacitor'
-            ? `<label class="component-select-row"><span>C</span>${renderVariantSelect('capacitor', 'capacitanceMicrofarads', definition.properties.capacitanceMicrofarads, 'data-capacitor-select')}</label>`
-            : definition.className === 'wifi-signal'
-              ? `<div class="wifi-readout"><span>Wi-Fi</span><strong data-wifi-output>${definition.properties.strengthPercent}%</strong></div><label class="wifi-checkbox-row"><input data-wifi-connected type="checkbox" ${definition.properties.connected ? 'checked' : ''}> Internet ativa</label><input data-wifi-slider type="range" min="0" max="100" value="${definition.properties.strengthPercent}">`
-              : definition.className === 'rain-toggle'
-                ? `<div class="rain-readout"><span>Chuva</span><strong data-rain-output>${definition.properties.active ? 'ON' : 'OFF'}</strong></div><label class="wifi-checkbox-row"><input data-rain-active type="checkbox" ${definition.properties.active ? 'checked' : ''}> Chuva ativa</label><input data-rain-intensity type="range" min="0" max="100" value="${definition.properties.intensityPercent}">`
-                : definition.className === 'fc37-rain-sensor'
-                  ? `<div class="rain-sensor-readout"><span>FC-37</span><strong data-rain-sensor-state>DRY</strong></div><div class="rain-sensor-plate"></div>`
-                  : definition.className === 'light-level'
-                    ? `<div class="light-readout"><span>Luz</span><strong data-light-output>${definition.properties.enabled ? `${definition.properties.intensityPercent}%` : 'OFF'}</strong></div><label class="wifi-checkbox-row"><input data-light-enabled type="checkbox" ${definition.properties.enabled ? 'checked' : ''}> Luz ativa</label><input data-light-intensity type="range" min="0" max="100" value="${definition.properties.intensityPercent}">`
-                    : definition.className === 'ldr-light-sensor'
-                      ? `<div class="light-sensor-readout"><span>LDR</span><strong data-ldr-state>DIM</strong></div><div class="ldr-photoresistor"></div>`
-                      : definition.className === 'climate-environment'
-                        ? `<div class="climate-readout"><span>Clima</span><strong data-climate-output>${definition.properties.enabled ? `${definition.properties.temperatureC} °C` : 'OFF'}</strong></div><label class="wifi-checkbox-row"><input data-climate-enabled type="checkbox" ${definition.properties.enabled ? 'checked' : ''}> Clima ativo</label><label class="compact-slider-row"><span>°C</span><input data-climate-temperature type="range" min="-40" max="85" step="1" value="${definition.properties.temperatureC}"></label><label class="compact-slider-row"><span>hPa</span><input data-climate-pressure type="range" min="300" max="1100" step="1" value="${definition.properties.pressureHpa}"></label>`
-                        : definition.className === 'bmp280-sensor'
-                          ? `<div class="bmp280-readout"><span>BMP280</span><strong data-bmp280-state>--</strong></div><div class="bmp280-chip"><span data-bmp280-temp>-- °C</span><span data-bmp280-pressure>-- hPa</span></div>`
-                          : definition.className === 'analog-voltage-source'
-                            ? `<div class="analog-readout"><span>Fonte</span><strong data-analog-output>${definition.properties.enabled ? `${definition.properties.voltageVolts} V` : 'OFF'}</strong></div><label class="wifi-checkbox-row"><input data-analog-enabled type="checkbox" ${definition.properties.enabled ? 'checked' : ''}> Saída ativa</label><input data-analog-voltage type="range" min="0" max="5" step="0.001" value="${definition.properties.voltageVolts}">`
-                            : definition.className?.includes('adc-module')
-                              ? `<div class="adc-readout"><span>${definition.title}</span><strong data-adc-state>CH0</strong></div><div class="adc-chip"><span data-adc-raw>-- raw</span><span data-adc-voltage>-- V</span></div>`
-                          : `<div class="component-visual">${definition.body}${renderBuiltInLeds(definition)}</div>`;
-
-    const terminals = definition.terminals.map((terminal) => {
-      const style = terminal.side === 'left' || terminal.side === 'right'
-        ? `top:${terminal.y}px`
-        : `left:${terminal.x}px`;
-      const labelStyle = terminal.side === 'left'
-        ? `left:12px;top:${terminal.y - 4}px`
-        : terminal.side === 'right'
-          ? `right:12px;top:${terminal.y - 4}px`
-          : `left:${terminal.x + 9}px;top:${terminal.y <= 0 ? 6 : terminal.y - 18}px`;
-
-      return `<button class="terminal ${terminal.side} ${terminal.kind}" style="${style}" data-terminal="${terminal.id}" title="${componentId}.${terminal.id}"></button><span class="terminal-label" style="${labelStyle}">${terminal.label}</span>`;
-    }).join('');
-
-    return `
-      <button class="delete-component" title="Remover componente" data-delete-component>×</button>
-      <div class="component-header">${definition.title}</div>
-      <div class="component-body" style="min-height:${definition.height ?? 104}px">${body}${terminals}</div>
-    `;
-  }
-
-  function renderBuiltInLeds(definition) {
-    const leds = definition.behavior?.builtInLeds ?? [];
-
-    if (leds.length === 0) {
-      return '';
-    }
-
-    return `
-      <div class="built-in-leds">
-        ${leds.map((led) => `
-          <span class="built-in-led ${led.color ?? 'amber'} ${led.active ? 'on' : ''}" data-built-in-led="${led.id}" title="${led.description ?? `${led.label} / GPIO ${led.pin}`}">
-            <span class="built-in-led-dot"></span>${led.label}
-          </span>
-        `).join('')}
-      </div>
-    `;
-  }
-
-  function renderVariantSelect(componentType, propertyName, value, dataAttribute) {
-    const variants = componentDefinitions[componentType]?.variants?.[propertyName] ?? [];
-
-    return `
-      <select ${dataAttribute}>
-        ${variants.map((variant) => `
-          <option value="${variant.value}" ${Number(value) === variant.value ? 'selected' : ''}>${variant.label}</option>
-        `).join('')}
-      </select>
-    `;
+  function variantsForProperty(componentType, propertyName) {
+    return componentDefinitions[componentType]?.variants?.[propertyName] ?? [];
   }
 
   function bindComponent(element, model) {
@@ -723,7 +623,15 @@ export function createBoardEditor(document) {
       const deleteButton = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       const deleteCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       const deleteText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      const route = routeWire(wire.from, wire.to, from, to);
+      const route = routeWire({
+        fromTerminal: wire.from,
+        toTerminal: wire.to,
+        from,
+        to,
+        terminalDefinition,
+        componentById: (componentId) => state.components.get(componentId),
+        components: () => state.components.values()
+      });
 
       group.setAttribute('class', 'wire-group');
       group.dataset.wireId = wire.id;
@@ -1706,15 +1614,6 @@ export function createBoardEditor(document) {
     renderSerial();
   }
 
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
   function onSimulationResult(result) {
     state.electrical = {
       componentReadings: result.electrical?.componentReadings ?? new Map(),
@@ -1846,64 +1745,6 @@ export function createBoardEditor(document) {
         voltageOutput.textContent = `${voltage.toFixed(3)} V`;
       }
     }
-  }
-
-  function formatVoltage(value) {
-    return value === null ? 'flutuante' : `${value.toFixed(2)} V`;
-  }
-
-  function normalizeVoltage(value) {
-    return Number.isFinite(value) ? Math.max(0, Math.min(1, value / 5)) : 0;
-  }
-
-  function normalizeCurrent(value) {
-    return Number.isFinite(value) ? Math.max(0, Math.min(1, value / 0.04)) : 1;
-  }
-
-  function normalizePower(value) {
-    return Number.isFinite(value) ? Math.max(0, Math.min(1, value / 0.25)) : 1;
-  }
-
-  function normalizeAnalog(value) {
-    return Math.max(0, Math.min(1, Number(value) / 1023));
-  }
-
-  function normalizePropertySignal(key, value) {
-    if (key.toLowerCase().includes('percent')) {
-      return Math.max(0, Math.min(1, value / 100));
-    }
-
-    if (key.toLowerCase().includes('ohms')) {
-      return Math.max(0, Math.min(1, Math.log10(Math.max(1, value)) / 6));
-    }
-
-    return Number.isFinite(value) ? Math.max(0, Math.min(1, value / 1023)) : 0;
-  }
-
-  function formatPropertySignal(key, value) {
-    if (key.toLowerCase().includes('percent')) {
-      return `${value}%`;
-    }
-
-    if (key.toLowerCase().includes('ohms')) {
-      return `${value} Ω`;
-    }
-
-    return String(value);
-  }
-
-  function labelFromPropertyName(key) {
-    return key
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .replace(/^./, (char) => char.toUpperCase());
-  }
-
-  function formatCurrent(value) {
-    return Number.isFinite(value) ? `${(value * 1000).toFixed(2)} mA` : 'infinita';
-  }
-
-  function formatPower(value) {
-    return Number.isFinite(value) ? `${(value * 1000).toFixed(2)} mW` : 'infinita';
   }
 
   function getNets() {
@@ -2486,187 +2327,6 @@ export function createBoardEditor(document) {
     state.nextComponentId = Math.max(state.nextComponentId, Number(match[1]) + 1);
   }
 
-  function routeWire(fromTerminal, toTerminal, from, to) {
-    const fromExit = terminalExitPoint(from, terminalDefinition(fromTerminal)?.side, to);
-    const toExit = terminalExitPoint(to, terminalDefinition(toTerminal)?.side, from);
-    const candidates = [
-      [from, fromExit, { x: toExit.x, y: fromExit.y }, toExit, to],
-      [from, fromExit, { x: fromExit.x, y: toExit.y }, toExit, to],
-      [
-        from,
-        fromExit,
-        { x: (fromExit.x + toExit.x) / 2, y: fromExit.y },
-        { x: (fromExit.x + toExit.x) / 2, y: toExit.y },
-        toExit,
-        to
-      ],
-      [
-        from,
-        fromExit,
-        { x: fromExit.x, y: (fromExit.y + toExit.y) / 2 },
-        { x: toExit.x, y: (fromExit.y + toExit.y) / 2 },
-        toExit,
-        to
-      ]
-    ];
-    const compactPoints = candidates
-      .map(compactRoutePoints)
-      .sort((left, right) => scoreRoute(left, fromTerminal, toTerminal) - scoreRoute(right, fromTerminal, toTerminal))[0];
-
-    return {
-      d: compactPoints.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' '),
-      midpoint: compactPoints[Math.floor(compactPoints.length / 2)]
-    };
-  }
-
-  function terminalExitPoint(point, side, target) {
-    const offset = 48;
-    const dx = target.x - point.x;
-    const dy = target.y - point.y;
-    const horizontalDominant = Math.abs(dx) > Math.abs(dy) * 1.2;
-    const verticalDominant = Math.abs(dy) > Math.abs(dx) * 1.2;
-
-    if (side === 'top' && (dy > 0 || horizontalDominant)) {
-      return horizontalEscapePoint(point, dx, offset);
-    }
-
-    if (side === 'bottom' && (dy < 0 || horizontalDominant)) {
-      return horizontalEscapePoint(point, dx, offset);
-    }
-
-    if (side === 'left' && (dx > 0 || verticalDominant)) {
-      return verticalEscapePoint(point, dy, offset);
-    }
-
-    if (side === 'right' && (dx < 0 || verticalDominant)) {
-      return verticalEscapePoint(point, dy, offset);
-    }
-
-    if (side === 'left') {
-      return { x: point.x - offset, y: point.y };
-    }
-
-    if (side === 'right') {
-      return { x: point.x + offset, y: point.y };
-    }
-
-    if (side === 'top') {
-      return { x: point.x, y: point.y - offset };
-    }
-
-    if (side === 'bottom') {
-      return { x: point.x, y: point.y + offset };
-    }
-
-    return { ...point };
-  }
-
-  function horizontalEscapePoint(point, dx, offset) {
-    return {
-      x: point.x + (dx < 0 ? -offset : offset),
-      y: point.y
-    };
-  }
-
-  function verticalEscapePoint(point, dy, offset) {
-    return {
-      x: point.x,
-      y: point.y + (dy < 0 ? -offset : offset)
-    };
-  }
-
-  function compactRoutePoints(points) {
-    return points.filter((point, index) => {
-      const previous = points[index - 1];
-      const next = points[index + 1];
-      const duplicate = previous && previous.x === point.x && previous.y === point.y;
-      const collinear = previous && next
-        && (previous.x === point.x && point.x === next.x || previous.y === point.y && point.y === next.y);
-
-      return !duplicate && !collinear;
-    });
-  }
-
-  function scoreRoute(points, fromTerminal, toTerminal) {
-    const length = routeLength(points);
-    const bends = Math.max(points.length - 2, 0);
-    const crossings = routeComponentCrossings(points, fromTerminal.componentId, toTerminal.componentId);
-    const nearEdges = routeEndpointComponentNearEdges(points, fromTerminal.componentId, toTerminal.componentId);
-
-    return length + bends * 18 + nearEdges * 160 + crossings * 10000;
-  }
-
-  function routeLength(points) {
-    return points.slice(1).reduce((total, point, index) => {
-      const previous = points[index];
-      return total + Math.abs(point.x - previous.x) + Math.abs(point.y - previous.y);
-    }, 0);
-  }
-
-  function routeComponentCrossings(points, fromComponentId, toComponentId) {
-    let crossings = 0;
-
-    for (const component of state.components.values()) {
-      if (component.id === fromComponentId || component.id === toComponentId) {
-        continue;
-      }
-
-      const bounds = componentBounds(component, 8);
-
-      for (let index = 1; index < points.length; index += 1) {
-        if (segmentIntersectsBounds(points[index - 1], points[index], bounds)) {
-          crossings += 1;
-        }
-      }
-    }
-
-    return crossings;
-  }
-
-  function routeEndpointComponentNearEdges(points, fromComponentId, toComponentId) {
-    return [fromComponentId, toComponentId].reduce((total, componentId) => {
-      const component = state.components.get(componentId);
-
-      if (!component) {
-        return total;
-      }
-
-      const bounds = componentBounds(component, 16);
-      const innerBounds = componentBounds(component, -2);
-
-      return total + points.slice(1, -1).filter((point) => {
-        return point.x >= bounds.left && point.x <= bounds.right
-          && point.y >= bounds.top && point.y <= bounds.bottom
-          && !(point.x > innerBounds.left && point.x < innerBounds.right && point.y > innerBounds.top && point.y < innerBounds.bottom);
-      }).length;
-    }, 0);
-  }
-
-  function componentBounds(component, padding = 0) {
-    return {
-      left: component.x - padding,
-      right: component.x + component.element.offsetWidth + padding,
-      top: component.y - padding,
-      bottom: component.y + component.element.offsetHeight + padding
-    };
-  }
-
-  function segmentIntersectsBounds(start, end, bounds) {
-    if (start.x === end.x) {
-      const y1 = Math.min(start.y, end.y);
-      const y2 = Math.max(start.y, end.y);
-      return start.x >= bounds.left && start.x <= bounds.right && y2 >= bounds.top && y1 <= bounds.bottom;
-    }
-
-    if (start.y === end.y) {
-      const x1 = Math.min(start.x, end.x);
-      const x2 = Math.max(start.x, end.x);
-      return start.y >= bounds.top && start.y <= bounds.bottom && x2 >= bounds.left && x1 <= bounds.right;
-    }
-
-    return false;
-  }
-
   function toBoardPoint(clientX, clientY) {
     return screenToWorld(clientX, clientY);
   }
@@ -2845,10 +2505,6 @@ export function createBoardEditor(document) {
 
   function applyViewportTransform() {
     boardViewport.style.transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.scale})`;
-  }
-
-  function clamp(value, min, max) {
-    return Math.min(max, Math.max(min, value));
   }
 
   return {

@@ -134,10 +134,23 @@ test('web electrical solver reports direct 5V to GND short', () => {
 
 function createComponents() {
   return new Map([
-    ['arduino-1', { id: 'arduino-1', type: 'arduino', properties: {} }],
-    ['resistor-1', { id: 'resistor-1', type: 'resistor', electricalPrimitive: 'resistor', properties: { resistanceOhms: 220, maximumPowerWatts: 0.25 } }],
-    ['led-1', { id: 'led-1', type: 'led', electricalPrimitive: 'led', properties: { forwardVoltage: 2, recommendedCurrent: 0.01, minimumVisibleCurrent: 0.001, maximumCurrent: 0.02 } }]
+    ['arduino-1', componentFromDefinition('arduino-1', 'arduino', {})],
+    ['resistor-1', componentFromDefinition('resistor-1', 'resistor', { resistanceOhms: 220, maximumPowerWatts: 0.25 })],
+    ['led-1', componentFromDefinition('led-1', 'led', { forwardVoltage: 2, recommendedCurrent: 0.01, minimumVisibleCurrent: 0.001, maximumCurrent: 0.02 })]
   ]);
+}
+
+function componentFromDefinition(id, type, properties) {
+  const definition = componentDefinitions[type];
+
+  return {
+    id,
+    type,
+    behavior: definition.behavior ?? {},
+    electricalModel: definition.electricalModel ?? null,
+    electricalPrimitive: definition.electricalPrimitive,
+    properties
+  };
 }
 
 function net(id, references) {

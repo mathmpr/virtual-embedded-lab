@@ -489,11 +489,7 @@ test('FC-37 rain WASM session updates rain without resetting virtual time', asyn
   const session = await createProjectWasmSimulationSession({
     state: {
       components: new Map([
-        ['arduino-1', {
-          id: 'arduino-1',
-          type: 'arduino',
-          properties: {}
-        }],
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
         ['rain-sensor-1', officialComponent('rain-sensor-1', 'fc37-rain-sensor', {
             activeLow: true
         })],
@@ -538,11 +534,7 @@ test('LDR light WASM session updates analogRead without resetting virtual time',
   const session = await createProjectWasmSimulationSession({
     state: {
       components: new Map([
-        ['arduino-1', {
-          id: 'arduino-1',
-          type: 'arduino',
-          properties: {}
-        }],
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
         ['ldr-1', officialComponent('ldr-1', 'ldr-light-sensor', {
             darkResistanceOhms: 100000,
             brightResistanceOhms: 1000,
@@ -614,11 +606,7 @@ test('BMP280 WASM session updates climate readings without resetting virtual tim
   const session = await createProjectWasmSimulationSession({
     state: {
       components: new Map([
-        ['arduino-1', {
-          id: 'arduino-1',
-          type: 'arduino',
-          properties: {}
-        }],
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
         ['bmp280-1', officialComponent('bmp280-1', 'bmp280-sensor', {
             i2cAddress: 118,
             temperatureOffsetC: 0,
@@ -703,7 +691,7 @@ test('external ADC WASM sessions update analog source without resetting virtual 
     const session = await createProjectWasmSimulationSession({
       state: {
         components: new Map([
-          ['arduino-1', { id: 'arduino-1', type: 'arduino', properties: {} }],
+          ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
           [item.adcId, officialComponent(item.adcId, item.adcType, item.adcProps)],
           ['analog-1', officialComponent('analog-1', 'analog-voltage-source', { enabled: true, voltageVolts: item.adcType === 'mcp3008-adc' ? 2.5 : 1.024 })]
         ])
@@ -778,11 +766,7 @@ async function createHcsr04WasmSession(wasmBase64, valueCm) {
   const session = await createProjectWasmSimulationSession({
     state: {
       components: new Map([
-        ['arduino-1', {
-          id: 'arduino-1',
-          type: 'arduino',
-          properties: {}
-        }],
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
         ['sensor-1', officialComponent('sensor-1', 'hcsr04', {})],
         ['distance-1', officialComponent('distance-1', 'distance', {
             valueCm
@@ -839,6 +823,7 @@ function officialManifestByVisualType(type) {
     'analog-voltage-source': 'components/official/analog-voltage-source/component.json',
     'ads1015-adc': 'components/official/ads1015/component.json',
     'ads1115-adc': 'components/official/ads1115/component.json',
+    'arduino': 'components/official/arduino-uno/component.json',
     'bmp280-sensor': 'components/official/bmp280/component.json',
     'climate-environment': 'components/official/climate/component.json',
     'distance': 'components/official/distance-range/component.json',
