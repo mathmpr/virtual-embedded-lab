@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "HC-SR04 com LED",
+  "board": {
+    "width": 1600,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "arduino-1",
+      "componentId": "board.arduino.uno",
+      "position": { "x": 253, "y": 210 },
+      "properties": {}
+    },
+    {
+      "id": "sensor-1",
+      "componentId": "sensor.ultrasonic.hc-sr04",
+      "position": { "x": 847, "y": 173 },
+      "properties": {}
+    },
+    {
+      "id": "led-1",
+      "componentId": "electronic.led.red",
+      "position": { "x": 1039, "y": 435 },
+      "properties": {}
+    },
+    {
+      "id": "resistor-1",
+      "componentId": "electronic.resistor",
+      "position": { "x": 846, "y": 365 },
+      "properties": {
+        "resistanceOhms": 220
+      }
+    },
+    {
+      "id": "distance-1",
+      "componentId": "environment.distance-range",
+      "position": { "x": 1050, "y": 200 },
+      "properties": {
+        "valueCm": 150,
+        "minCm": 2,
+        "maxCm": 400
+      }
+    }
+  ],
+  "connections": [
+    { "id": "net-1", "color": "#f05252", "terminals": ["arduino-1.5v", "sensor-1.vcc"] },
+    { "id": "net-2", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "sensor-1.gnd", "led-1.cathode"] },
+    { "id": "net-3", "color": "#4c8dff", "terminals": ["arduino-1.d7", "sensor-1.trigger"] },
+    { "id": "net-4", "color": "#45d6c4", "terminals": ["arduino-1.d6", "sensor-1.echo"] },
+    { "id": "net-5", "color": "#ffb454", "terminals": ["arduino-1.d13", "resistor-1.a"] },
+    { "id": "net-6", "color": "#ffb454", "terminals": ["resistor-1.b", "led-1.anode"] }
+  ],
+  "environmentConnections": [
+    {
+      "source": "distance-1.distance",
+      "target": "sensor-1.trigger",
+      "color": "#6fbf73"
+    }
+  ],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "const int TRIGGER_PIN = 7;\\nconst int ECHO_PIN = 6;\\nconst int LED_PIN = 13;\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    Serial.println(\"Virtual Embedded Lab iniciado\");\\n\\n    pinMode(TRIGGER_PIN, OUTPUT);\\n    pinMode(ECHO_PIN, INPUT);\\n    pinMode(LED_PIN, OUTPUT);\\n\\n    digitalWrite(TRIGGER_PIN, LOW);\\n    digitalWrite(LED_PIN, LOW);\\n}\\n\\nvoid loop()\\n{\\n    digitalWrite(TRIGGER_PIN, LOW);\\n    delayMicroseconds(2);\\n\\n    digitalWrite(TRIGGER_PIN, HIGH);\\n    delayMicroseconds(10);\\n    digitalWrite(TRIGGER_PIN, LOW);\\n\\n    const unsigned long echoDuration = pulseIn(ECHO_PIN, HIGH, 30000);\\n    const float distanceCm = echoDuration / 58.0;\\n\\n    if (echoDuration > 0 && distanceCm < 100.0) {\\n        digitalWrite(LED_PIN, HIGH);\\n        Serial.print(\"LED ON - distancia cm: \");\\n        Serial.println(distanceCm);\\n    } else {\\n        digitalWrite(LED_PIN, LOW);\\n        Serial.print(\"LED OFF - distancia cm: \");\\n        Serial.println(distanceCm);\\n    }\\n\\n    delay(50);\\n}\\n"
+    }
+  }
+}

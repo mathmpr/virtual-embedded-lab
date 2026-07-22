@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://virtual-embedded-lab.local/schemas/project.schema.json",
+  "title": "Virtual Embedded Lab Project",
+  "type": "object",
+  "required": ["schemaVersion", "name", "board", "components", "connections", "code"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "name": { "type": "string", "minLength": 1 },
+    "board": {
+      "type": "object",
+      "required": ["width", "height", "gridSize"],
+      "properties": {
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "gridSize": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/componentInstance" }
+    },
+    "connections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/netConnection" }
+    },
+    "environmentConnections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/environmentConnection" },
+      "default": []
+    },
+    "code": {
+      "type": "object",
+      "required": ["language", "entry", "files"],
+      "properties": {
+        "language": { "const": "arduino-cpp" },
+        "entry": { "type": "string", "minLength": 1 },
+        "files": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "componentInstance": {
+      "type": "object",
+      "required": ["id", "componentId", "position", "properties"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "componentId": { "type": "string", "minLength": 1 },
+        "position": {
+          "type": "object",
+          "required": ["x", "y"],
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" }
+          },
+          "additionalProperties": false
+        },
+        "properties": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "netConnection": {
+      "type": "object",
+      "required": ["id", "terminals"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "terminals": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[^.]+\\.[^.]+$" },
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    "environmentConnection": {
+      "type": "object",
+      "required": ["source", "target"],
+      "properties": {
+        "source": { "type": "string", "pattern": "^[^.]+\\.[^.]+$" },
+        "target": { "type": "string", "pattern": "^[^.]+\\.[^.]+$" },
+        "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

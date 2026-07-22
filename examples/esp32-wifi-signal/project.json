@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "ESP32 Wi-Fi Signal",
+  "board": {
+    "width": 1600,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "esp32-1",
+      "componentId": "board.esp32.devkit",
+      "position": { "x": 422, "y": 162 },
+      "properties": {
+        "logicVoltage": 3.3,
+        "wifiMode": "station",
+        "bluetoothEnabled": true
+      }
+    },
+    {
+      "id": "wifi-1",
+      "componentId": "environment.wifi-signal",
+      "position": { "x": 875, "y": 265 },
+      "properties": {
+        "ssid": "VirtualLab",
+        "connected": true,
+        "strengthPercent": 82
+      }
+    }
+  ],
+  "connections": [],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "#include <WiFi.h>\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    Serial.println(\"ESP32 Wi-Fi Signal example\");\\n\\n    WiFi.mode(WIFI_STA);\\n    WiFi.begin(\"VirtualLab\", \"secret\");\\n\\n    if (WiFi.status() == WL_CONNECTED) {\\n        Serial.println(\"Wi-Fi connected\");\\n        Serial.print(\"RSSI dBm: \");\\n        Serial.println(WiFi.RSSI());\\n    } else {\\n        Serial.println(\"Wi-Fi disconnected\");\\n    }\\n}\\n\\nvoid loop()\\n{\\n    Serial.print(\"RSSI dBm: \");\\n    Serial.println(WiFi.RSSI());\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

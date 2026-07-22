@@ -1,0 +1,57 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "environment.distance-range",
+    "name": "Controle de distância",
+    "category": "environment"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment"],
+    "implemented": true
+  },
+  "properties": {
+    "valueCm": {
+      "type": "number",
+      "default": 150,
+      "minimum": 2,
+      "maximum": 400,
+      "unit": "cm"
+    },
+    "minCm": {
+      "type": "number",
+      "default": 2,
+      "unit": "cm"
+    },
+    "maxCm": {
+      "type": "number",
+      "default": 400,
+      "unit": "cm"
+    }
+  },
+  "terminals": [
+    { "id": "distance", "label": "Distância", "type": "environment-output" }
+  ],
+  "behavior": {
+    "type": "environment-source",
+    "channel": "distance",
+    "valueProperty": "valueCm"
+  },
+  "visual": {
+    "type": "distance",
+    "title": "Distância",
+    "className": "distance",
+    "body": "150 cm",
+    "width": 190,
+    "height": 104,
+    "palette": {
+      "group": "Inputs",
+      "icon": "distance-icon",
+      "order": 30
+    },
+    "terminals": [
+      { "id": "distance", "label": "ENV", "side": "left", "x": 0, "y": 58, "kind": "environment" }
+    ]
+  }
+}

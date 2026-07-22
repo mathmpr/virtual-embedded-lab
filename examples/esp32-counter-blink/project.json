@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "ESP32 Counter Blink",
+  "board": {
+    "width": 1600,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "esp32-1",
+      "componentId": "board.esp32.devkit",
+      "position": { "x": 560, "y": 190 },
+      "properties": {
+        "logicVoltage": 3.3,
+        "wifiMode": "idle",
+        "bluetoothEnabled": true
+      }
+    }
+  ],
+  "connections": [],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "int counter = 0;\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    pinMode(PIN, OUTPUT);\\n    digitalWrite(PIN, LOW);\\n}\\n\\nvoid loop()\\n{\\n    counter++;\\n\\n    Serial.print(\"counter: \");\\n    Serial.println(counter);\\n\\n    if (counter % 10 == 0) {\\n        Serial.println(\"multiple of 10 - LED ON\");\\n        digitalWrite(PIN, HIGH);\\n        delay(4000);\\n        digitalWrite(PIN, LOW);\\n    }\\n\\n    delay(250);\\n}\\n"
+    }
+  }
+}

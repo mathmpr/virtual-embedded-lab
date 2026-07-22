@@ -1,0 +1,67 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "sensor.ultrasonic.hc-sr04",
+    "name": "HC-SR04",
+    "category": "sensor",
+    "subCategory": "ultrasonic-distance"
+  },
+  "simulation": {
+    "kind": "behavioral-sensor",
+    "effects": ["firmware", "environment"],
+    "implemented": true
+  },
+  "power": {
+    "recommendedVoltage": {
+      "min": 4.5,
+      "typical": 5,
+      "max": 5.5,
+      "unit": "V"
+    }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "trigger", "label": "TRIG", "type": "digital-input" },
+    { "id": "echo", "label": "ECHO", "type": "digital-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" }
+  ],
+  "environmentInputs": [
+    {
+      "id": "obstacleDistance",
+      "label": "Distância do obstáculo",
+      "type": "distance",
+      "minimum": 2,
+      "maximum": 400,
+      "unit": "cm"
+    }
+  ],
+  "behavior": {
+    "engine": "state-machine",
+    "entry": "behavior.ts",
+    "parameters": {
+      "minimumTriggerPulseUs": 10,
+      "echoMicrosecondsPerCentimeter": 58,
+      "echoStartDelayUs": 100
+    }
+  },
+  "visual": {
+    "type": "hcsr04",
+    "title": "HC-SR04",
+    "className": "hcsr04",
+    "body": "TRIG -> ECHO",
+    "width": 160,
+    "height": 104,
+    "palette": {
+      "group": "Sensors",
+      "icon": "sensor-icon",
+      "order": 20
+    },
+    "terminals": [
+      { "id": "vcc", "side": "left", "x": 0, "y": 30, "kind": "power" },
+      { "id": "trigger", "side": "left", "x": 0, "y": 55, "kind": "signal" },
+      { "id": "echo", "side": "left", "x": 0, "y": 80, "kind": "signal" },
+      { "id": "gnd", "side": "bottom", "x": 80, "y": 104, "kind": "ground" }
+    ]
+  }
+}

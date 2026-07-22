@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "electronic.led.green",
+    "name": "LED verde",
+    "category": "semiconductor"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": ["electrical", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "forwardVoltage": { "type": "number", "default": 2.1, "unit": "V" },
+    "recommendedCurrent": { "type": "number", "default": 0.01, "unit": "A" },
+    "minimumVisibleCurrent": { "type": "number", "default": 0.001, "unit": "A" },
+    "maximumCurrent": { "type": "number", "default": 0.02, "unit": "A" }
+  },
+  "terminals": [
+    { "id": "anode", "label": "Anodo", "type": "passive" },
+    { "id": "cathode", "label": "Catodo", "type": "ground-capable" }
+  ],
+  "electricalModel": {
+    "type": "primitive",
+    "primitive": "led",
+    "forwardVoltageProperty": "forwardVoltage"
+  },
+  "visual": {
+    "type": "led-green",
+    "title": "LED verde",
+    "className": "led led-green",
+    "body": "off",
+    "width": 118,
+    "height": 104,
+    "palette": {
+      "group": "Electronic",
+      "subgroup": "LEDs",
+      "icon": "led-green-icon",
+      "order": 51
+    },
+    "terminals": [
+      { "id": "anode", "label": "A", "side": "left", "x": 0, "y": 52, "kind": "signal" },
+      { "id": "cathode", "label": "K", "side": "bottom", "x": 59, "y": 104, "kind": "ground" }
+    ]
+  }
+}

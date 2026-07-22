@@ -1,0 +1,23 @@
+{
+  "name": "virtual-embedded-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Visual environment for behavioral firmware and basic electronics simulation.",
+  "scripts": {
+    "dev": "node apps/web/server.mjs",
+    "test": "node --experimental-transform-types --test \"tests/**/*.test.*\"",
+    "check": "node --experimental-transform-types --test \"tests/**/*.test.*\""
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.10.4",
+    "@codemirror/lang-cpp": "^6.0.3",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/state": "^6.7.1",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "@codemirror/view": "^6.43.6"
+  }
+}

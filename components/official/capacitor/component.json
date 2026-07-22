@@ -1,0 +1,76 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "electronic.capacitor",
+    "name": "Capacitor",
+    "category": "passive",
+    "subCategory": "capacitors"
+  },
+  "simulation": {
+    "kind": "passive-electrical",
+    "effects": ["electrical"],
+    "implemented": false,
+    "notes": ["Manifest definido; solver transiente para capacitor ainda pendente."]
+  },
+  "properties": {
+    "capacitanceMicrofarads": {
+      "type": "number",
+      "default": 10,
+      "minimum": 0.001,
+      "maximum": 4700,
+      "unit": "µF"
+    },
+    "maximumVoltageVolts": {
+      "type": "number",
+      "default": 16,
+      "unit": "V"
+    }
+  },
+  "variants": {
+    "capacitanceMicrofarads": [
+      { "label": "1 nF", "value": 0.001 },
+      { "label": "10 nF", "value": 0.01 },
+      { "label": "100 nF", "value": 0.1 },
+      { "label": "1 µF", "value": 1 },
+      { "label": "2.2 µF", "value": 2.2 },
+      { "label": "4.7 µF", "value": 4.7 },
+      { "label": "10 µF", "value": 10 },
+      { "label": "22 µF", "value": 22 },
+      { "label": "47 µF", "value": 47 },
+      { "label": "100 µF", "value": 100 },
+      { "label": "220 µF", "value": 220 },
+      { "label": "470 µF", "value": 470 },
+      { "label": "1000 µF", "value": 1000 },
+      { "label": "2200 µF", "value": 2200 },
+      { "label": "4700 µF", "value": 4700 }
+    ]
+  },
+  "terminals": [
+    { "id": "a", "label": "A", "type": "passive" },
+    { "id": "b", "label": "B", "type": "passive" }
+  ],
+  "electricalModel": {
+    "type": "primitive",
+    "primitive": "capacitor",
+    "capacitanceProperty": "capacitanceMicrofarads"
+  },
+  "visual": {
+    "type": "capacitor",
+    "title": "Capacitor",
+    "className": "capacitor",
+    "body": "10 µF",
+    "width": 134,
+    "height": 104,
+    "palette": {
+      "group": "Electronic",
+      "subgroup": "Capacitors",
+      "icon": "capacitor-icon",
+      "order": 60
+    },
+    "terminals": [
+      { "id": "a", "side": "left", "x": 0, "y": 52, "kind": "signal" },
+      { "id": "b", "side": "right", "x": 134, "y": 52, "kind": "signal" }
+    ]
+  }
+}

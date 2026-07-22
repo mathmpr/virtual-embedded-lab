@@ -1,0 +1,100 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "board.arduino.uno",
+    "name": "Arduino UNO",
+    "category": "microcontroller"
+  },
+  "simulation": {
+    "kind": "microcontroller",
+    "effects": ["firmware", "electrical", "visual-state"],
+    "implemented": true
+  },
+  "terminals": [
+    { "id": "vin", "label": "VIN", "type": "power-output" },
+    { "id": "3v3", "label": "3V3", "type": "power-output" },
+    { "id": "5v", "label": "5V", "type": "power-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "gnd2", "label": "GND", "type": "ground" },
+    { "id": "d0", "label": "D0/RX", "type": "digital-io" },
+    { "id": "d1", "label": "D1/TX", "type": "digital-io" },
+    { "id": "d2", "label": "D2", "type": "digital-io" },
+    { "id": "d3", "label": "D3", "type": "digital-io" },
+    { "id": "d4", "label": "D4", "type": "digital-io" },
+    { "id": "d5", "label": "D5", "type": "digital-io" },
+    { "id": "d6", "label": "D6", "type": "digital-input" },
+    { "id": "d7", "label": "D7", "type": "digital-output" },
+    { "id": "d8", "label": "D8", "type": "digital-io" },
+    { "id": "d9", "label": "D9", "type": "digital-io" },
+    { "id": "d10", "label": "D10", "type": "digital-io" },
+    { "id": "d11", "label": "D11", "type": "digital-io" },
+    { "id": "d12", "label": "D12", "type": "digital-io" },
+    { "id": "d13", "label": "D13", "type": "digital-output" },
+    { "id": "a0", "label": "A0", "type": "analog-input" },
+    { "id": "a1", "label": "A1", "type": "analog-input" },
+    { "id": "a2", "label": "A2", "type": "analog-input" },
+    { "id": "a3", "label": "A3", "type": "analog-input" },
+    { "id": "a4", "label": "A4", "type": "analog-input" },
+    { "id": "a5", "label": "A5", "type": "analog-input" }
+  ],
+  "electricalModel": {
+    "type": "microcontroller",
+    "logicVoltage": 5,
+    "recommendedPinCurrentAmps": 0.02
+  },
+  "behavior": {
+    "type": "microcontroller",
+    "runtime": "arduino-compatible",
+    "builtInLeds": [
+      {
+        "id": "led_builtin",
+        "label": "L",
+        "pin": 13,
+        "terminalId": "d13",
+        "activeHigh": true,
+        "color": "amber"
+      }
+    ]
+  },
+  "visual": {
+    "type": "arduino",
+    "title": "Arduino UNO",
+    "className": "arduino",
+    "body": "5V logic / GPIO",
+    "width": 260,
+    "height": 290,
+    "palette": {
+      "group": "Boards",
+      "icon": "board-icon",
+      "order": 10
+    },
+    "terminals": [
+      { "id": "vin", "side": "top", "x": 34, "y": 0, "kind": "power" },
+      { "id": "3v3", "side": "top", "x": 70, "y": 0, "kind": "power" },
+      { "id": "5v", "side": "top", "x": 106, "y": 0, "kind": "power" },
+      { "id": "gnd", "side": "bottom", "x": 52, "y": 290, "kind": "ground" },
+      { "id": "gnd2", "side": "bottom", "x": 92, "y": 290, "kind": "ground" },
+      { "id": "a0", "label": "A0", "side": "left", "x": 0, "y": 54, "kind": "signal" },
+      { "id": "a1", "label": "A1", "side": "left", "x": 0, "y": 86, "kind": "signal" },
+      { "id": "a2", "label": "A2", "side": "left", "x": 0, "y": 118, "kind": "signal" },
+      { "id": "a3", "label": "A3", "side": "left", "x": 0, "y": 150, "kind": "signal" },
+      { "id": "a4", "label": "A4", "side": "left", "x": 0, "y": 182, "kind": "signal" },
+      { "id": "a5", "label": "A5", "side": "left", "x": 0, "y": 214, "kind": "signal" },
+      { "id": "d0", "side": "right", "x": 260, "y": 26, "kind": "signal" },
+      { "id": "d1", "side": "right", "x": 260, "y": 44, "kind": "signal" },
+      { "id": "d2", "side": "right", "x": 260, "y": 62, "kind": "signal" },
+      { "id": "d3", "side": "right", "x": 260, "y": 80, "kind": "signal" },
+      { "id": "d4", "side": "right", "x": 260, "y": 98, "kind": "signal" },
+      { "id": "d5", "side": "right", "x": 260, "y": 116, "kind": "signal" },
+      { "id": "d6", "side": "right", "x": 260, "y": 134, "kind": "signal" },
+      { "id": "d7", "side": "right", "x": 260, "y": 152, "kind": "signal" },
+      { "id": "d8", "side": "right", "x": 260, "y": 170, "kind": "signal" },
+      { "id": "d9", "side": "right", "x": 260, "y": 188, "kind": "signal" },
+      { "id": "d10", "side": "right", "x": 260, "y": 206, "kind": "signal" },
+      { "id": "d11", "side": "right", "x": 260, "y": 224, "kind": "signal" },
+      { "id": "d12", "side": "right", "x": 260, "y": 242, "kind": "signal" },
+      { "id": "d13", "side": "right", "x": 260, "y": 260, "kind": "signal" }
+    ]
+  }
+}

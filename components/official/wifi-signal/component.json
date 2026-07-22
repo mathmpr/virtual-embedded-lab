@@ -1,0 +1,52 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "environment.wifi-signal",
+    "name": "Wi-Fi Signal",
+    "category": "environment",
+    "subCategory": "wireless"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment", "firmware"],
+    "implemented": true
+  },
+  "properties": {
+    "ssid": {
+      "type": "string",
+      "default": "VirtualLab"
+    },
+    "connected": {
+      "type": "boolean",
+      "default": true
+    },
+    "strengthPercent": {
+      "type": "number",
+      "default": 80,
+      "minimum": 0,
+      "maximum": 100,
+      "unit": "%"
+    }
+  },
+  "terminals": [],
+  "behavior": {
+    "type": "wireless-environment",
+    "capability": "wifi"
+  },
+  "visual": {
+    "type": "wifi-signal",
+    "title": "Wi-Fi Signal",
+    "className": "wifi-signal",
+    "body": "80%",
+    "width": 210,
+    "height": 122,
+    "palette": {
+      "group": "Inputs",
+      "subgroup": "Wireless",
+      "icon": "wifi-icon",
+      "order": 35
+    },
+    "terminals": []
+  }
+}

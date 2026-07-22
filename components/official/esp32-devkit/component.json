@@ -1,0 +1,159 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "board.esp32.devkit",
+    "name": "ESP32 DevKitC V4",
+    "category": "microcontroller",
+    "subCategory": "esp32"
+  },
+  "simulation": {
+    "kind": "microcontroller",
+    "effects": ["firmware", "electrical", "environment", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "logicVoltage": {
+      "type": "number",
+      "default": 3.3,
+      "unit": "V"
+    },
+    "wifiMode": {
+      "type": "string",
+      "default": "idle"
+    },
+    "bluetoothEnabled": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "terminals": [
+    { "id": "3v3", "label": "3V3", "type": "power-output" },
+    { "id": "en", "label": "EN", "type": "reset-input" },
+    { "id": "vp", "label": "VP", "type": "analog-input" },
+    { "id": "vn", "label": "VN", "type": "analog-input" },
+    { "id": "io34", "label": "IO34", "type": "analog-input" },
+    { "id": "io35", "label": "IO35", "type": "analog-input" },
+    { "id": "io32", "label": "IO32", "type": "digital-io" },
+    { "id": "io33", "label": "IO33", "type": "digital-io" },
+    { "id": "io25", "label": "IO25", "type": "digital-io" },
+    { "id": "io26", "label": "IO26", "type": "digital-io" },
+    { "id": "io27", "label": "IO27", "type": "digital-io" },
+    { "id": "io14", "label": "IO14", "type": "digital-io" },
+    { "id": "io12", "label": "IO12", "type": "digital-io" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "io13", "label": "IO13", "type": "digital-io" },
+    { "id": "d2", "label": "D2", "type": "flash-reserved" },
+    { "id": "d3", "label": "D3", "type": "flash-reserved" },
+    { "id": "cmd", "label": "CMD", "type": "flash-reserved" },
+    { "id": "5v", "label": "5V", "type": "power-output" },
+    { "id": "gnd2", "label": "GND", "type": "ground" },
+    { "id": "io23", "label": "IO23", "type": "digital-io" },
+    { "id": "io22", "label": "IO22", "type": "digital-io" },
+    { "id": "tx", "label": "TX", "type": "uart-io" },
+    { "id": "rx", "label": "RX", "type": "uart-io" },
+    { "id": "io21", "label": "IO21", "type": "digital-io" },
+    { "id": "gnd3", "label": "GND", "type": "ground" },
+    { "id": "io19", "label": "IO19", "type": "digital-io" },
+    { "id": "io18", "label": "IO18", "type": "digital-io" },
+    { "id": "io5", "label": "IO5", "type": "digital-io" },
+    { "id": "io17", "label": "IO17", "type": "digital-io" },
+    { "id": "io16", "label": "IO16", "type": "digital-io" },
+    { "id": "io4", "label": "IO4", "type": "digital-io" },
+    { "id": "io0", "label": "IO0", "type": "digital-io" },
+    { "id": "io2", "label": "IO2", "type": "digital-io" },
+    { "id": "io15", "label": "IO15", "type": "digital-io" },
+    { "id": "d1", "label": "D1", "type": "flash-reserved" },
+    { "id": "d0", "label": "D0", "type": "flash-reserved" },
+    { "id": "clk", "label": "CLK", "type": "flash-reserved" }
+  ],
+  "electricalModel": {
+    "type": "microcontroller",
+    "logicVoltage": 3.3,
+    "recommendedPinCurrentAmps": 0.012
+  },
+  "behavior": {
+    "type": "microcontroller",
+    "runtime": "arduino-compatible",
+    "wireless": ["wifi", "bluetooth"],
+    "builtInLeds": [
+      {
+        "id": "power",
+        "label": "PWR",
+        "pin": null,
+        "active": true,
+        "color": "green",
+        "description": "5V Power On LED; nao e controlado por GPIO."
+      },
+      {
+        "id": "led_builtin",
+        "label": "LD",
+        "pin": 2,
+        "terminalId": "io2",
+        "activeHigh": true,
+        "color": "blue",
+        "description": "LED programavel associado ao GPIO2."
+      }
+    ],
+    "notes": [
+      "PWR e o LED de alimentacao 5V.",
+      "LD e o LED programavel associado ao GPIO2 em placas ESP32 DevKit comuns.",
+      "D0, D1, D2, D3, CMD e CLK sao reservados para SPI flash.",
+      "GPIO16 e GPIO17 dependem do modulo ESP32 usado na placa."
+    ]
+  },
+  "visual": {
+    "type": "esp32-devkit",
+    "title": "ESP32 DevKitC V4",
+    "className": "esp32-devkit",
+    "body": "3.3V logic / Wi-Fi / Bluetooth",
+    "width": 310,
+    "height": 390,
+    "palette": {
+      "group": "Boards",
+      "subgroup": "ESP32",
+      "icon": "esp32-icon",
+      "order": 12
+    },
+    "terminals": [
+      { "id": "3v3", "side": "top", "x": 42, "y": 0, "kind": "power" },
+      { "id": "en", "side": "top", "x": 84, "y": 0, "kind": "signal" },
+      { "id": "5v", "side": "top", "x": 126, "y": 0, "kind": "power" },
+      { "id": "gnd", "side": "bottom", "x": 62, "y": 390, "kind": "ground" },
+      { "id": "gnd2", "side": "bottom", "x": 104, "y": 390, "kind": "ground" },
+      { "id": "gnd3", "side": "bottom", "x": 146, "y": 390, "kind": "ground" },
+      { "id": "vp", "side": "left", "x": 0, "y": 34, "kind": "signal" },
+      { "id": "vn", "side": "left", "x": 0, "y": 54, "kind": "signal" },
+      { "id": "io34", "side": "left", "x": 0, "y": 74, "kind": "signal" },
+      { "id": "io35", "side": "left", "x": 0, "y": 94, "kind": "signal" },
+      { "id": "io32", "side": "left", "x": 0, "y": 114, "kind": "signal" },
+      { "id": "io33", "side": "left", "x": 0, "y": 134, "kind": "signal" },
+      { "id": "io25", "side": "left", "x": 0, "y": 154, "kind": "signal" },
+      { "id": "io26", "side": "left", "x": 0, "y": 174, "kind": "signal" },
+      { "id": "io27", "side": "left", "x": 0, "y": 194, "kind": "signal" },
+      { "id": "io14", "side": "left", "x": 0, "y": 214, "kind": "signal" },
+      { "id": "io12", "side": "left", "x": 0, "y": 234, "kind": "signal" },
+      { "id": "io13", "side": "left", "x": 0, "y": 254, "kind": "signal" },
+      { "id": "d2", "side": "left", "x": 0, "y": 274, "kind": "signal" },
+      { "id": "d3", "side": "left", "x": 0, "y": 294, "kind": "signal" },
+      { "id": "cmd", "side": "left", "x": 0, "y": 314, "kind": "signal" },
+      { "id": "io23", "side": "right", "x": 310, "y": 34, "kind": "signal" },
+      { "id": "io22", "side": "right", "x": 310, "y": 54, "kind": "signal" },
+      { "id": "tx", "side": "right", "x": 310, "y": 74, "kind": "signal" },
+      { "id": "rx", "side": "right", "x": 310, "y": 94, "kind": "signal" },
+      { "id": "io21", "side": "right", "x": 310, "y": 114, "kind": "signal" },
+      { "id": "io19", "side": "right", "x": 310, "y": 134, "kind": "signal" },
+      { "id": "io18", "side": "right", "x": 310, "y": 154, "kind": "signal" },
+      { "id": "io5", "side": "right", "x": 310, "y": 174, "kind": "signal" },
+      { "id": "io17", "side": "right", "x": 310, "y": 194, "kind": "signal" },
+      { "id": "io16", "side": "right", "x": 310, "y": 214, "kind": "signal" },
+      { "id": "io4", "side": "right", "x": 310, "y": 234, "kind": "signal" },
+      { "id": "io0", "side": "right", "x": 310, "y": 254, "kind": "signal" },
+      { "id": "io2", "side": "right", "x": 310, "y": 274, "kind": "signal" },
+      { "id": "io15", "side": "right", "x": 310, "y": 294, "kind": "signal" },
+      { "id": "d1", "side": "right", "x": 310, "y": 314, "kind": "signal" },
+      { "id": "d0", "side": "right", "x": 310, "y": 334, "kind": "signal" },
+      { "id": "clk", "side": "right", "x": 310, "y": 354, "kind": "signal" }
+    ]
+  }
+}

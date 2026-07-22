@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Virtual Embedded Lab</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "@codemirror/state": "/node_modules/@codemirror/state/dist/index.js",
+          "@codemirror/view": "/node_modules/@codemirror/view/dist/index.js",
+          "@codemirror/commands": "/node_modules/@codemirror/commands/dist/index.js",
+          "@codemirror/language": "/node_modules/@codemirror/language/dist/index.js",
+          "@codemirror/lang-cpp": "/node_modules/@codemirror/lang-cpp/dist/index.js",
+          "@codemirror/theme-one-dark": "/node_modules/@codemirror/theme-one-dark/dist/index.js",
+          "@lezer/common": "/node_modules/@lezer/common/dist/index.js",
+          "@lezer/highlight": "/node_modules/@lezer/highlight/dist/index.js",
+          "@lezer/lr": "/node_modules/@lezer/lr/dist/index.js",
+          "@lezer/cpp": "/node_modules/@lezer/cpp/dist/index.js",
+          "@marijn/find-cluster-break": "/node_modules/@marijn/find-cluster-break/src/index.js",
+          "style-mod": "/node_modules/style-mod/src/style-mod.js",
+          "w3c-keyname": "/node_modules/w3c-keyname/index.js",
+          "crelt": "/node_modules/crelt/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="ide-shell">
+      <header class="topbar">
+        <div class="product-mark">
+          <span class="mark-grid"></span>
+          <div>
+            <strong>Virtual Embedded Lab</strong>
+            <small>Build without components</small>
+          </div>
+        </div>
+        <nav class="menu">
+          <button id="openExamples">Exemplos</button>
+        </nav>
+        <div class="run-controls">
+          <button id="startSimulation" class="primary">Run</button>
+          <button id="pauseSimulation">Pause</button>
+          <button id="resetSimulation">Reset</button>
+        </div>
+      </header>
+
+      <main class="workspace-grid">
+        <aside class="tool-window palette">
+          <div class="tool-title">Componentes</div>
+          <div class="palette-scroll">
+            <p class="muted">Carregando componentes oficiais...</p>
+          </div>
+        </aside>
+
+        <section class="board-panel">
+          <div class="board-toolbar">
+            <span>Board visual</span>
+            <div>
+              <button id="undoBoard" disabled>Undo</button>
+              <button id="redoBoard" disabled>Redo</button>
+              <button id="saveProject">Salvar</button>
+              <button id="loadSavedProject">Carregar</button>
+              <button id="exportProject">Exportar</button>
+              <button id="importProject">Importar</button>
+              <button id="clearBoard">Limpar</button>
+              <input id="projectFileInput" type="file" accept="application/json,.json" hidden>
+            </div>
+          </div>
+          <div id="board" class="board" aria-label="Board visual">
+            <div id="boardViewport" class="board-viewport">
+              <svg id="wireLayer" class="wire-layer"></svg>
+              <div id="componentLayer" class="component-layer"></div>
+            </div>
+            <div class="board-watermark">Drag components here</div>
+          </div>
+        </section>
+
+        <aside class="tool-window inspector">
+          <div class="tool-title">Propriedades</div>
+          <div id="inspectorContent" class="inspector-content">
+            <p class="muted">Selecione um componente ou fio.</p>
+          </div>
+          <div class="inspector-signals">
+            <div class="tool-title">Sinais</div>
+            <div id="signalMonitor" class="signal-monitor"></div>
+          </div>
+        </aside>
+
+        <section class="bottom-panel">
+          <div id="bottomResizeHandle" class="bottom-resize-handle" title="Redimensionar painel inferior"></div>
+          <div class="tabs">
+            <button class="active" data-bottom-tab="code">Código</button>
+            <button data-bottom-tab="console">Console</button>
+            <button data-bottom-tab="serial">Serial</button>
+            <button data-bottom-tab="problems">Problemas</button>
+          </div>
+          <div class="bottom-grid">
+            <div class="editor-panel bottom-view active" data-bottom-panel="code">
+              <div class="editor-header">main.ino</div>
+              <div id="codeEditor" class="code-editor" aria-label="Editor de código Arduino"></div>
+            </div>
+            <div class="runtime-panel">
+              <div class="panel-card bottom-view" data-bottom-panel="console">
+                <strong>Console</strong>
+                <pre id="consoleOutput">Runtime pronto.</pre>
+              </div>
+              <div class="panel-card bottom-view" data-bottom-panel="problems">
+                <strong>Problemas</strong>
+                <ul id="problemList" class="problem-list"></ul>
+              </div>
+              <div class="panel-card bottom-view" data-bottom-panel="serial">
+                <strong>Serial</strong>
+                <div class="serial-controls">
+                  <select id="serialBaudRate" aria-label="Baud rate Serial">
+                    <option value="300">300</option>
+                    <option value="1200">1200</option>
+                    <option value="2400">2400</option>
+                    <option value="4800">4800</option>
+                    <option value="9600">9600</option>
+                    <option value="14400">14400</option>
+                    <option value="19200">19200</option>
+                    <option value="28800">28800</option>
+                    <option value="38400">38400</option>
+                    <option value="57600">57600</option>
+                    <option value="115200" selected>115200</option>
+                    <option value="230400">230400</option>
+                    <option value="250000">250000</option>
+                  </select>
+                  <input id="serialInput" type="text" placeholder="RX">
+                  <button id="sendSerialInput">Enviar</button>
+                </div>
+                <div id="serialMonitor" class="serial-monitor">
+                  <p class="muted">Nenhuma mensagem serial.</p>
+                </div>
+                <div class="serial-actions">
+                  <button id="toggleSerialAutoScroll" class="serial-autoscroll-toggle active" type="button" aria-label="Auto-scroll Serial ativado" aria-pressed="true" title="Auto-scroll Serial">⇣ Auto</button>
+                  <button id="clearSerialHistory" class="serial-clear-button" title="Limpar histórico Serial">Clear</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <dialog id="examplesDialog" class="examples-dialog">
+        <form method="dialog" class="examples-modal">
+          <div class="modal-header">
+            <div>
+              <strong>Exemplos</strong>
+              <span>Carregue um projeto completo com board e código.</span>
+            </div>
+            <button value="cancel" aria-label="Fechar">×</button>
+          </div>
+          <div id="examplesList" class="examples-list">
+            <p class="muted">Carregando exemplos...</p>
+          </div>
+        </form>
+      </dialog>
+    </div>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
