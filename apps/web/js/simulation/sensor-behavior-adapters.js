@@ -1,0 +1,448 @@
+import { normalizeEnvironmentValue } from './environment-payload.js';
+import { Hcsr04Behavior } from './hcsr04-behavior.js';
+
+export function registerSensorBehaviorAdapters(registry) {
+  registry.register('hcsr04-sensor', bindHcsr04Sensors);
+  registry.register('rain-sensor', bindRainSensorAdapter);
+  registry.register('light-sensor', bindLightSensorAdapter);
+  registry.register('bmp280-sensor', bindBmp280Sensors);
+  registry.register('adc-i2c', bindI2cAdcConverters);
+  registry.register('adc-spi', bindSpiAdcConverters);
+}
+
+export function applyRainSensorInputs({ runtime, environment, rainBindings }) {
+  for (const binding of rainBindings) {
+    const rain = environment.read(binding.channelId);
+    const activeLow = binding.sensor.properties.activeLow !== false;
+    const isWet = Boolean(rain?.active);
+    const value = isWet
+      ? activeLow ? 'LOW' : 'HIGH'
+      : activeLow ? 'HIGH' : 'LOW';
+
+    runtime.driveInput(binding.pin, value);
+  }
+}
+
+export function applyLightSensorInputs({ runtime, environment, lightBindings }) {
+  for (const binding of lightBindings) {
+    const light = normalizeEnvironmentValue('light', environment.read(binding.channelId));
+    const ldrResistance = ldrResistanceOhms(binding.sensor, light);
+    const reading = voltageDividerReading({
+      ldrResistanceOhms: ldrResistance,
+      fixedResistanceOhms: binding.fixedResistanceOhms,
+      ldrSide: binding.ldrSide
+    });
+
+    runtime.driveAnalogInput(binding.pin, reading.raw, {
+      voltageVolts: reading.voltageVolts,
+      resistanceOhms: ldrResistance,
+      sourceComponentId: binding.sensor.id
+    });
+  }
+}
+
+function bindHcsr04Sensors({ graph, environment, runtime, clock, scheduler, program, diagnostics, components }) {
+  const arduino = graph.findComponentsByBehaviorType('microcontroller')[0];
+
+  for (const sensor of components) {
+    const sensorBehavior = sensor.behavior ?? {};
+    const triggerTerminal = sensorBehavior.triggerTerminal ?? 'trigger';
+    const distanceSource = graph.findComponentsByBehaviorChannel(sensorBehavior.environmentChannel ?? 'distance').find((distanceControl) => {
+      return graph.areConnected(
+        { componentId: distanceControl.id, terminalId: distanceControl.behavior?.outputTerminal ?? distanceControl.behavior?.channel ?? 'distance' },
+        { componentId: sensor.id, terminalId: triggerTerminal }
+      );
+    });
+
+    if (!distanceSource) {
+      diagnostics.push(`${sensor.id}: nenhum controle de distância ligado ao TRIG.`);
+      continue;
+    }
+
+    if (!arduino) {
+      diagnostics.push(`${sensor.id}: Arduino não encontrado para mapear TRIG/ECHO.`);
+      continue;
+    }
+
+    if (!Number.isInteger(program.pins.trigger) || !Number.isInteger(program.pins.echo)) {
+      diagnostics.push(`${sensor.id}: firmware não exportou constantes TRIGGER_PIN/ECHO_PIN para mapear TRIG/ECHO.`);
+      continue;
+    }
+
+    const behavior = new Hcsr04Behavior({
+      component: sensor,
+      clock,
+      scheduler,
+      environment,
+      runtime,
+      graph,
+      channelId: `${distanceSource.id}.distance`,
+      pins: program.pins
+    });
+
+    graph.onTerminalDriven((terminal, value) => {
+      const isSensorTriggerTerminal = terminal.componentId === sensor.id && terminal.terminalId === triggerTerminal;
+
+      if (isSensorTriggerTerminal) {
+        behavior.onTrigger(value);
+      }
+    });
+  }
+}
+
+function bindBmp280Sensors({ graph, environment, runtime, diagnostics, components }) {
+  const climateSources = graph.findComponentsByBehaviorChannel('climate');
+
+  for (const sensor of components) {
+    const source = climateSources[0] ?? null;
+    const address = Number(sensor.properties[sensor.behavior?.addressProperty] ?? 118);
+
+    if (!source) {
+      diagnostics.push(`${sensor.id}: nenhum controle de clima disponível.`);
+      continue;
+    }
+
+    if (!i2cBusConnected(graph, sensor)) {
+      diagnostics.push(`${sensor.id}: SDA/SCL não estão ligados a um barramento I2C conhecido.`);
+      continue;
+    }
+
+    runtime.registerI2cDevice(address, {
+      type: 'bmp280',
+      componentId: sensor.id,
+      readTemperature() {
+        const climate = normalizeEnvironmentValue('climate', environment.read(`${source.id}.climate`));
+        return climate.enabled ? climate.temperatureC + Number(sensor.properties[sensor.behavior?.temperatureOffsetProperty] ?? 0) : 0;
+      },
+      readPressure() {
+        const climate = normalizeEnvironmentValue('climate', environment.read(`${source.id}.climate`));
+        return climate.enabled ? (climate.pressureHpa + Number(sensor.properties[sensor.behavior?.pressureOffsetProperty] ?? 0)) * 100 : 0;
+      },
+      readBytes(count) {
+        return new Array(Math.max(0, Number(count) || 0)).fill(0);
+      }
+    });
+  }
+}
+
+function bindI2cAdcConverters({ graph, environment, runtime, diagnostics, components }) {
+  for (const adc of components) {
+    const model = adc.behavior?.model;
+    const maxRaw = Number(adc.behavior?.maxRaw ?? (adc.electricalModel?.resolutionBits === 12 ? 2047 : 32767));
+    const inputTerminal = adc.behavior?.inputTerminals?.[0] ?? 'a0';
+    const source = analogSourceForTerminal(graph, { componentId: adc.id, terminalId: inputTerminal });
+
+    if (!source) {
+      diagnostics.push(`${adc.id}: canal A0 sem fonte analógica.`);
+      continue;
+    }
+
+    if (!i2cBusConnected(graph, adc)) {
+      diagnostics.push(`${adc.id}: SDA/SCL não estão ligados a um barramento I2C conhecido.`);
+      continue;
+    }
+
+    runtime.registerI2cDevice(Number(adc.properties[adc.behavior?.addressProperty] ?? 72), {
+      type: model,
+      componentId: adc.id,
+      readChannel(channel) {
+        return channel === 0 ? externalAdcRaw({
+          voltage: analogVoltage(environment, source.id),
+          maxRaw,
+          fullScaleVolts: gainToFullScaleVolts(adc.properties[adc.behavior?.gainProperty])
+        }) : 0;
+      },
+      computeVolts(raw) {
+        return clamp(Number(raw) / maxRaw, 0, 1) * gainToFullScaleVolts(adc.properties[adc.behavior?.gainProperty]);
+      },
+      readBytes(count) {
+        return new Array(Math.max(0, Number(count) || 0)).fill(0);
+      }
+    });
+  }
+}
+
+function bindSpiAdcConverters({ graph, environment, runtime, diagnostics, components }) {
+  for (const adc of components) {
+    const inputTerminal = adc.behavior?.inputTerminals?.[0] ?? 'ch0';
+    const source = analogSourceForTerminal(graph, { componentId: adc.id, terminalId: inputTerminal });
+    const chipSelectTerminal = adc.behavior?.chipSelectTerminal ?? 'cs';
+    const chipSelectPin = digitalPinConnectedToTerminal(graph, { componentId: adc.id, terminalId: chipSelectTerminal });
+
+    if (!source) {
+      diagnostics.push(`${adc.id}: canal CH0 sem fonte analógica.`);
+      continue;
+    }
+
+    if (!Number.isInteger(chipSelectPin)) {
+      diagnostics.push(`${adc.id}: CS não está ligado a um pino digital do Arduino.`);
+      continue;
+    }
+
+    runtime.registerSpiDevice(chipSelectPin, {
+      type: 'mcp3008',
+      componentId: adc.id,
+      readChannel(channel) {
+        return channel === 0 ? externalAdcRaw({
+          voltage: analogVoltage(environment, source.id),
+          maxRaw: Number(adc.behavior?.maxRaw ?? 1023),
+          fullScaleVolts: Number(adc.properties[adc.behavior?.referenceVoltageProperty] ?? 5)
+        }) : 0;
+      }
+    });
+  }
+}
+
+function bindRainSensorAdapter({ graph, environment, runtime, diagnostics, components }) {
+  const rainBindings = [];
+  const rainSources = graph.findComponentsByBehaviorChannel('rain');
+
+  for (const sensor of components) {
+    const digitalTerminal = sensor.behavior?.digitalOutputTerminal ?? 'do';
+    const pin = digitalPinConnectedToTerminal(graph, { componentId: sensor.id, terminalId: digitalTerminal });
+    const rainSource = rainSourceForSensor({ graph, rainSources, sensor });
+
+    if (!Number.isInteger(pin)) {
+      diagnostics.push(`${sensor.id}: DO não está ligado a um pino digital do Arduino.`);
+      continue;
+    }
+
+    if (!rainSource) {
+      diagnostics.push(`${sensor.id}: nenhum controle de chuva disponível.`);
+      continue;
+    }
+
+    rainBindings.push({
+      sensor,
+      pin,
+      channelId: `${rainSource.id}.rain`
+    });
+  }
+
+  applyRainSensorInputs({ runtime, environment, rainBindings });
+  return { rainBindings };
+}
+
+function bindLightSensorAdapter({ graph, environment, runtime, diagnostics, components }) {
+  const lightBindings = [];
+  const lightSources = graph.findComponentsByBehaviorChannel('light');
+
+  for (const sensor of components) {
+    const source = lightSources[0] ?? null;
+    const divider = ldrVoltageDivider({ graph, sensor });
+
+    if (!source) {
+      diagnostics.push(`${sensor.id}: nenhum controle de luminosidade disponível.`);
+      continue;
+    }
+
+    if (!divider) {
+      diagnostics.push(`${sensor.id}: divisor de tensão incompleto para leitura analógica.`);
+      continue;
+    }
+
+    lightBindings.push({
+      sensor,
+      channelId: `${source.id}.light`,
+      ...divider
+    });
+  }
+
+  applyLightSensorInputs({ runtime, environment, lightBindings });
+  return { lightBindings };
+}
+
+function rainSourceForSensor({ graph, rainSources, sensor }) {
+  const digitalTerminal = sensor.behavior?.digitalOutputTerminal ?? 'do';
+
+  return rainSources.find((source) => {
+    return graph.areConnected(
+      { componentId: source.id, terminalId: source.behavior?.outputTerminal ?? source.behavior?.channel ?? 'rain' },
+      { componentId: sensor.id, terminalId: digitalTerminal }
+    );
+  }) ?? rainSources[0] ?? null;
+}
+
+function i2cBusConnected(graph, component) {
+  return graph.findComponentsByBehaviorType('microcontroller').some((board) => {
+    if (board.electricalModel?.logicVoltage === 5) {
+      return graph.areConnected({ componentId: board.id, terminalId: 'a4' }, { componentId: component.id, terminalId: 'sda' })
+        && graph.areConnected({ componentId: board.id, terminalId: 'a5' }, { componentId: component.id, terminalId: 'scl' });
+    }
+
+    return graph.areConnected({ componentId: board.id, terminalId: 'io21' }, { componentId: component.id, terminalId: 'sda' })
+      && graph.areConnected({ componentId: board.id, terminalId: 'io22' }, { componentId: component.id, terminalId: 'scl' });
+  });
+}
+
+function analogSourceForTerminal(graph, terminal) {
+  return graph.findComponentsByBehaviorType('analog-voltage-source').find((source) => {
+    return graph.areConnected({ componentId: source.id, terminalId: source.behavior?.outputTerminal ?? 'out' }, terminal);
+  }) ?? null;
+}
+
+function analogVoltage(environment, sourceId) {
+  const value = normalizeEnvironmentValue('analog-voltage', environment.read(`${sourceId}.analog-voltage`));
+  return value.enabled ? value.voltageVolts : 0;
+}
+
+function externalAdcRaw({ voltage, maxRaw, fullScaleVolts }) {
+  return Math.round(clamp(Number(voltage) / Math.max(0.001, Number(fullScaleVolts)), 0, 1) * maxRaw);
+}
+
+function gainToFullScaleVolts(gain = '2.048V') {
+  const parsed = Number(String(gain).replace('V', ''));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 2.048;
+}
+
+function ldrVoltageDivider({ graph, sensor }) {
+  const sides = [
+    { ldrTerminalId: 'a', midpointTerminalId: 'b', side: 'power' },
+    { ldrTerminalId: 'b', midpointTerminalId: 'a', side: 'ground' }
+  ];
+
+  for (const candidate of sides) {
+    const pin = analogPinConnectedToTerminal(graph, {
+      componentId: sensor.id,
+      terminalId: candidate.midpointTerminalId
+    });
+    const resistor = resistorFromMidpointToOppositeRail(graph, {
+      midpoint: { componentId: sensor.id, terminalId: candidate.midpointTerminalId },
+      expectedRailKind: candidate.side === 'power' ? 'ground' : 'power'
+    });
+    const ldrRail = terminalNetHasKind(graph, { componentId: sensor.id, terminalId: candidate.ldrTerminalId }, candidate.side);
+
+    if (Number.isInteger(pin) && resistor && ldrRail) {
+      return {
+        pin,
+        fixedResistanceOhms: Number(resistor.component.properties.resistanceOhms ?? 10000),
+        ldrSide: candidate.side
+      };
+    }
+  }
+
+  return null;
+}
+
+function resistorFromMidpointToOppositeRail(graph, { midpoint, expectedRailKind }) {
+  const midpointNet = graph.findTerminalNet(midpoint.componentId, midpoint.terminalId);
+
+  if (!midpointNet) {
+    return null;
+  }
+
+  for (const component of graph.findComponentsByElectricalPrimitive('resistor')) {
+    const terminals = ['a', 'b'];
+
+    for (const terminalId of terminals) {
+      const otherTerminalId = terminalId === 'a' ? 'b' : 'a';
+      const connectedToMidpoint = midpointNet.terminals.some((terminal) => terminal.componentId === component.id && terminal.terminalId === terminalId);
+
+      if (!connectedToMidpoint) {
+        continue;
+      }
+
+      if (terminalNetHasKind(graph, { componentId: component.id, terminalId: otherTerminalId }, expectedRailKind)) {
+        return { component, terminalId, otherTerminalId };
+      }
+    }
+  }
+
+  return null;
+}
+
+function terminalNetHasKind(graph, terminal, kind) {
+  const net = graph.findTerminalNet(terminal.componentId, terminal.terminalId);
+
+  if (!net) {
+    return false;
+  }
+
+  return net.terminals.some((item) => graph.terminalKind(item) === kind);
+}
+
+function analogPinConnectedToTerminal(graph, terminal) {
+  const microcontrollers = graph.findComponentsByBehaviorType('microcontroller');
+  const net = graph.findTerminalNet(terminal.componentId, terminal.terminalId);
+
+  if (!net) {
+    return null;
+  }
+
+  for (const board of microcontrollers) {
+    for (const netTerminal of net.terminals) {
+      if (netTerminal.componentId !== board.id) {
+        continue;
+      }
+
+      const unoMatch = netTerminal.terminalId.match(/^a([0-5])$/);
+
+      if (board.electricalModel?.logicVoltage === 5 && unoMatch) {
+        return 14 + Number(unoMatch[1]);
+      }
+
+      const espMatch = netTerminal.terminalId.match(/^io(\d+)$/);
+
+      if (board.electricalModel?.logicVoltage === 3.3 && espMatch) {
+        return Number(espMatch[1]);
+      }
+    }
+  }
+
+  return null;
+}
+
+function digitalPinConnectedToTerminal(graph, terminal) {
+  const arduino = graph.findComponentsByBehaviorType('microcontroller')[0];
+
+  if (!arduino) {
+    return null;
+  }
+
+  const net = graph.findTerminalNet(terminal.componentId, terminal.terminalId);
+
+  if (!net) {
+    return null;
+  }
+
+  for (const netTerminal of net.terminals) {
+    if (netTerminal.componentId !== arduino.id) {
+      continue;
+    }
+
+    const match = netTerminal.terminalId.match(/^d(\d+)$/);
+
+    if (match) {
+      return Number(match[1]);
+    }
+  }
+
+  return null;
+}
+
+function ldrResistanceOhms(sensor, light) {
+  const dark = clamp(Number(sensor.properties.darkResistanceOhms ?? 100000), 1, 10_000_000);
+  const bright = clamp(Number(sensor.properties.brightResistanceOhms ?? 1000), 1, dark);
+  const gamma = clamp(Number(sensor.properties.gamma ?? 0.7), 0.1, 2);
+  const intensity = light.enabled ? clamp(Number(light.intensityPercent ?? 0) / 100, 0, 1) : 0;
+  const curved = Math.pow(intensity, gamma);
+
+  return dark * Math.pow(bright / dark, curved);
+}
+
+function voltageDividerReading({ ldrResistanceOhms, fixedResistanceOhms, ldrSide }) {
+  const fixedResistance = Math.max(1, Number(fixedResistanceOhms) || 10000);
+  const totalResistance = Math.max(1, ldrResistanceOhms + fixedResistance);
+  const voltageVolts = ldrSide === 'power'
+    ? 5 * fixedResistance / totalResistance
+    : 5 * ldrResistanceOhms / totalResistance;
+
+  return {
+    voltageVolts,
+    raw: Math.round(clamp(voltageVolts / 5, 0, 1) * 1023)
+  };
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
