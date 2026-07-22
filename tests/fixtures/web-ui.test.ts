@@ -518,8 +518,16 @@ test('web UI exposes electrical solver readings to simulation and inspector', ()
   assert.match(graph, /findComponentsByBehaviorType\(type\)/);
   assert.doesNotMatch(graph, /findComponentsByType\(type\)/);
   assert.match(solver, /solveLedPath/);
+  assert.match(solver, /createElectricalNetlist/);
+  assert.match(solver, /applyGenericVoltageSources/);
+  assert.match(solver, /applyGenericResistors/);
+  assert.match(solver, /applyGenericCapacitors/);
+  assert.match(solver, /applySensorModuleLimits/);
+  assert.match(solver, /diagnoseFloatingInputs/);
   assert.match(solver, /LED ligado a saída HIGH sem resistor em série/);
   assert.match(solver, /curto direto entre 5V e GND/);
+  assert.match(solver, /componentId: component\.id/);
+  assert.match(solver, /terminalId: outputTerminal/);
   assert.match(editor, /createInspectorPanel/);
   assert.match(inspector, /renderComponentReadings\(component\.id\)/);
   assert.match(inspector, /formatCurrent\(reading\.currentAmps\)/);

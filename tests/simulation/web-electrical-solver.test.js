@@ -11,8 +11,13 @@ const root = new URL('../..', import.meta.url).pathname;
 installComponentCatalog([
   readManifest('components/official/arduino-uno/component.json'),
   readManifest('components/official/resistor/component.json'),
+  readManifest('components/official/capacitor/component.json'),
   readManifest('components/official/led-red/component.json'),
-  readManifest('components/official/led-green/component.json')
+  readManifest('components/official/led-green/component.json'),
+  readManifest('components/official/analog-voltage-source/component.json'),
+  readManifest('components/official/hc-sr04/component.json'),
+  readManifest('components/official/fc-37-rain-sensor/component.json'),
+  readManifest('components/official/bmp280/component.json')
 ]);
 
 test('web electrical solver computes LED series current from nets', () => {
@@ -132,6 +137,118 @@ test('web electrical solver reports direct 5V to GND short', () => {
   assert.equal(result.netReadings.get('net-1').state, 'short');
 });
 
+test('web electrical solver exposes generic netlist and resistor readings from voltage sources', () => {
+  const components = new Map([
+    ['source-1', componentFromDefinition('source-1', 'analog-voltage-source', { enabled: true, voltageVolts: 1.024 })],
+    ['resistor-1', componentFromDefinition('resistor-1', 'resistor', { resistanceOhms: 1000, maximumPowerWatts: 0.25 })],
+    ['arduino-1', componentFromDefinition('arduino-1', 'arduino', {})]
+  ]);
+  const graph = createCircuitGraph({
+    components,
+    nets: [
+      net('net-out', ['source-1.out', 'resistor-1.a']),
+      net('net-gnd', ['source-1.gnd', 'resistor-1.b', 'arduino-1.gnd'])
+    ],
+    terminalKind: terminalKindFor(components)
+  });
+
+  const result = solveElectricalState({ graph, runtime: runtimeWithHighPin(null) });
+  const resistor = result.componentReadings.get('resistor-1');
+
+  assert.equal(result.netlist.primitives.some((primitive) => primitive.kind === 'resistor'), true);
+  assert.equal(result.netReadings.get('net-out').state, 'voltage-source');
+  assert.equal(Number(resistor.currentAmps.toFixed(6)), 0.001024);
+  assert.equal(Number(resistor.powerWatts.toFixed(6)), 0.001049);
+});
+
+test('web electrical solver validates capacitor voltage limits', () => {
+  const components = new Map([
+    ['arduino-1', componentFromDefinition('arduino-1', 'arduino', {})],
+    ['capacitor-1', componentFromDefinition('capacitor-1', 'capacitor', { capacitanceMicrofarads: 10, maximumVoltageVolts: 3.3 })]
+  ]);
+  const graph = createCircuitGraph({
+    components,
+    nets: [
+      net('net-vcc', ['arduino-1.5v', 'capacitor-1.a']),
+      net('net-gnd', ['arduino-1.gnd', 'capacitor-1.b'])
+    ],
+    terminalKind: terminalKindFor(components)
+  });
+
+  const result = solveElectricalState({ graph, runtime: runtimeWithHighPin(null) });
+  const capacitor = result.componentReadings.get('capacitor-1');
+
+  assert.equal(capacitor.state, 'overvoltage');
+  assert.match(result.diagnostics.join('\n'), /excede limite do capacitor/);
+});
+
+test('web electrical solver validates sensor module voltage and floating MCU inputs', () => {
+  const components = new Map([
+    ['arduino-1', componentFromDefinition('arduino-1', 'arduino', {})],
+    ['bmp280-1', componentFromDefinition('bmp280-1', 'bmp280-sensor', { i2cAddress: 118, maximumCurrentAmps: 0.0005 })],
+    ['resistor-1', componentFromDefinition('resistor-1', 'resistor', { resistanceOhms: 1000, maximumPowerWatts: 0.25 })]
+  ]);
+  const graph = createCircuitGraph({
+    components,
+    nets: [
+      net('net-vcc', ['arduino-1.5v', 'bmp280-1.vcc']),
+      net('net-gnd', ['arduino-1.gnd', 'bmp280-1.gnd']),
+      net('net-floating-input', ['arduino-1.a0'])
+    ],
+    terminalKind: terminalKindFor(components)
+  });
+
+  const result = solveElectricalState({ graph, runtime: runtimeWithHighPin(null) });
+
+  assert.match(result.diagnostics.join('\n'), /bmp280-1\.vcc .*incompatível/);
+  assert.match(result.diagnostics.join('\n'), /corrente .* excede limite do módulo/);
+  assert.match(result.diagnostics.join('\n'), /arduino-1\.a0 .*net flutuante/);
+  assert.equal(result.componentReadings.get('bmp280-1').type, 'sensor-module');
+  assert.equal(result.componentReadings.get('bmp280-1').state, 'overcurrent');
+});
+
+test('web electrical solver does not report runtime-driven sensor outputs as floating inputs', () => {
+  const components = new Map([
+    ['arduino-1', componentFromDefinition('arduino-1', 'arduino', {})],
+    ['sensor-1', componentFromDefinition('sensor-1', 'hcsr04', {})],
+    ['rain-sensor-1', componentFromDefinition('rain-sensor-1', 'fc37-rain-sensor', {})]
+  ]);
+  const graph = createCircuitGraph({
+    components,
+    nets: [
+      net('net-echo', ['arduino-1.d6', 'sensor-1.echo']),
+      net('net-trigger', ['arduino-1.d7', 'sensor-1.trigger']),
+      net('net-rain-do', ['arduino-1.d8', 'rain-sensor-1.do'])
+    ],
+    terminalKind: terminalKindFor(components)
+  });
+
+  const result = solveElectricalState({ graph, runtime: runtimeWithHighPin(null) });
+
+  assert.doesNotMatch(result.diagnostics.join('\n'), /arduino-1\.d6 .*net flutuante/);
+  assert.doesNotMatch(result.diagnostics.join('\n'), /arduino-1\.d8 .*net flutuante/);
+});
+
+test('web electrical solver does not report connected I2C buses as floating inputs', () => {
+  const components = new Map([
+    ['arduino-1', componentFromDefinition('arduino-1', 'arduino', {})],
+    ['bmp280-1', componentFromDefinition('bmp280-1', 'bmp280-sensor', { i2cAddress: 118 })]
+  ]);
+  const graph = createCircuitGraph({
+    components,
+    nets: [
+      net('net-sda', ['arduino-1.a4', 'bmp280-1.sda']),
+      net('net-scl', ['arduino-1.a5', 'bmp280-1.scl'])
+    ],
+    terminalKind: terminalKindFor(components)
+  });
+
+  const result = solveElectricalState({ graph, runtime: runtimeWithHighPin(null) });
+
+  assert.doesNotMatch(result.diagnostics.join('\n'), /arduino-1\.a4 .*net flutuante/);
+  assert.doesNotMatch(result.diagnostics.join('\n'), /arduino-1\.a5 .*net flutuante/);
+});
+
 function createComponents() {
   return new Map([
     ['arduino-1', componentFromDefinition('arduino-1', 'arduino', {})],
@@ -168,6 +285,14 @@ function terminalKind(terminal) {
   const component = createComponents().get(terminal.componentId);
   const definition = componentDefinitions[component?.type];
   return definition?.terminals.find((item) => item.id === terminal.terminalId)?.kind ?? 'signal';
+}
+
+function terminalKindFor(components) {
+  return (terminal) => {
+    const component = components.get(terminal.componentId);
+    const definition = componentDefinitions[component?.type];
+    return definition?.terminals.find((item) => item.id === terminal.terminalId)?.kind ?? 'signal';
+  };
 }
 
 function runtimeWithHighPin(highPin) {
