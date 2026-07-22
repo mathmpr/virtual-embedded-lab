@@ -1,5 +1,7 @@
 # Add Components: MCP3008 ADC
 
+Antes de usar este documento, leia `docs/official-component-guidelines.md` e `docs/component-contract.md`. A implementação deve seguir manifests, resolvers e adapters, não lógica específica no editor/runtime central.
+
 ## Objetivo
 
 Adicionar suporte ao MCP3008, um ADC externo de 10 bits por SPI com 8 canais. O componente deve permitir leitura analógica por firmware usando barramento SPI, validando o caminho de periféricos SPI reais no projeto.

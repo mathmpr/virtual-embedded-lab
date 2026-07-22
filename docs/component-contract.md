@@ -1,5 +1,7 @@
 # Contrato de Componentes Oficiais
 
+Antes de implementar um componente oficial, leia também `docs/official-component-guidelines.md`. Este arquivo define o contrato técnico do manifest; o guia define as regras arquiteturais para evitar acoplamento hardcoded.
+
 Todo componente oficial fica em `components/official/**/component.json` e deve declarar, no mínimo:
 
 - `identity`: identificador estável, nome, categoria e subcategoria opcional.

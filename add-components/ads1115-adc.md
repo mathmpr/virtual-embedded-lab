@@ -1,5 +1,7 @@
 # Add Components: ADS1115 ADC
 
+Antes de usar este documento, leia `docs/official-component-guidelines.md` e `docs/component-contract.md`. A implementação deve seguir manifests, resolvers e adapters, não lógica específica no editor/runtime central.
+
 ## Objetivo
 
 Adicionar suporte ao conversor analógico-digital ADS1115, um ADC externo de 16 bits por I2C. O componente deve permitir que projetos com Arduino/ESP32 leiam sinais analógicos externos com maior resolução que o ADC interno.

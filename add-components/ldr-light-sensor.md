@@ -1,5 +1,7 @@
 # Add Components: LDR Light Sensor
 
+Antes de usar este documento, leia `docs/official-component-guidelines.md` e `docs/component-contract.md`. A implementação deve seguir manifests, resolvers e adapters, não lógica específica no editor/runtime central.
+
 ## Objetivo
 
 Adicionar suporte a sensor de luminosidade por LDR e a uma fonte ambiental standalone para simular intensidade de luz. O sensor deve poder ser ligado a um microcontrolador e lido por firmware via `analogRead`, refletindo mudanças de luminosidade sem reiniciar a simulação.

@@ -1,5 +1,7 @@
 # Add Components: FC-37 Rain Sensor
 
+Antes de usar este documento, leia `docs/official-component-guidelines.md` e `docs/component-contract.md`. A implementação deve seguir manifests, resolvers e adapters, não lógica específica no editor/runtime central.
+
 ## Objetivo
 
 Adicionar suporte ao sensor de chuva FC-37 e a uma fonte ambiental standalone para simular chuva ligada/desligada. O sensor deve poder ser ligado a um microcontrolador e lido por firmware via saída digital e, futuramente, por saída analógica.

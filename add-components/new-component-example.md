@@ -1,6 +1,6 @@
 # Template para Adicionar Novos Componentes
 
-Use este arquivo como modelo para descrever novos componentes antes da implementação. O objetivo é reduzir ambiguidades e evitar componentes parcialmente prontos, por exemplo apenas visuais, quando o esperado é integração com firmware, solver, UI e exemplos.
+Antes de preencher este template, leia `docs/official-component-guidelines.md` e `docs/component-contract.md`. O objetivo é reduzir ambiguidades e impedir componentes parcialmente prontos ou acoplados ao editor/runtime por `if (component.type === "...")`.
 
 ## Objetivo
 
@@ -10,6 +10,7 @@ Descreva o pacote de componentes e o resultado esperado para o usuário.
 - Cenário principal de uso:
 - Exemplo final esperado:
 - O componente deve ser apenas visual ou deve afetar a simulação?
+- O exemplo precisa rodar em WASM agora?
 
 ## Componentes
 
@@ -40,6 +41,7 @@ Regras:
 - Se for `microcontroller`, `behavioral-sensor` ou `environment-source`, deve existir `behavior`.
 - Se aparecer no catálogo, deve existir `visual.palette`.
 - `visual.terminals` deve ter os mesmos IDs de `terminals`.
+- Propriedades simples devem vir de `properties`, `variants`, `visual.controls` e `visual.stateBindings`, não de lógica específica no editor.
 
 #### Terminais
 
@@ -59,19 +61,21 @@ Tipos comuns:
 - Ambiente: `environment-input`, `environment-output`.
 - Passivo: `passive`, `ground-capable`.
 
-#### Propriedades e Variantes
+#### Propriedades, Variantes e Controles
 
 Liste propriedades editáveis no inspector e, se existir, variantes conhecidas.
 
-| property | type | default | min | max | unit | editável na UI? |
-| --- | --- | --- | --- | --- | --- | --- |
-| `value` | number | 10 | 0 | 100 | `%` | sim |
+| property | type | default | min | max | unit | simulationUpdate | editável na UI? |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `value` | number | 10 | 0 | 100 | `%` | `live` | sim |
 
-Exemplos:
+Declare também:
 
-- Resistores usam variantes em ohms com labels como `220 Ω`, `1 kΩ`, `1 MΩ`.
-- Capacitores usam variantes em `nF`/`µF`.
-- Componentes ambientais usam sliders, checkbox ou campos de texto no board e no inspector.
+- `variants` para opções fixas, como `220 Ω`, `1 kΩ`, `100 nF` ou `10 µF`.
+- `visual.controls` para sliders, checkboxes, selects, campos de texto e readouts inline.
+- `visual.stateBindings` para texto/classe derivados de sinais, nets, ambiente ou leitura elétrica.
+- `simulationUpdate: "live"` quando a alteração não deve reiniciar o firmware.
+- `simulationUpdate: "rerun"` quando a alteração deve reiniciar a simulação.
 
 #### Modelo Elétrico
 
@@ -83,13 +87,14 @@ Defina se o componente é:
 - Semicondutor: LED, diodo, transistor.
 - Fonte/carga: alimentação, buzzer, motor, display.
 - Microcontrolador: níveis lógicos, corrente recomendada por pino, pinos de power.
+- Módulo/sensor: tensão recomendada, consumo e limites por terminal.
 
 Campos esperados:
 
 - `electricalModel.type`:
 - `electricalModel.primitive`:
 - Propriedades usadas pelo solver:
-- Falhas que devem gerar problema: curto, sobrecorrente, tensão insuficiente, resistência inadequada, potência excedida etc.
+- Falhas que devem gerar problema: curto, sobrecorrente, tensão insuficiente, resistência inadequada, potência excedida, entrada flutuante etc.
 
 #### Comportamento Simulado
 
@@ -100,13 +105,15 @@ Descreva:
 - Como o componente lê entradas.
 - Como ele altera saídas.
 - Se depende de tempo virtual, eventos ou delays.
-- Se depende de ambiente, como distância, temperatura, umidade, luz ou Wi-Fi.
-- Se o comportamento precisa ficar dentro de runtime genérico ou em behavior específico do componente.
+- Se depende de ambiente, como distância, temperatura, pressão, chuva, luz ou Wi-Fi.
+- Que canais ambientais consome ou publica.
+- Que terminais ou barramentos usa.
+- Qual adapter/registry deve receber o comportamento especializado.
 
 Importante:
 
 - Não amarre regras específicas dentro do core se elas pertencem ao componente.
-- O core deve ser genérico; o manifest e os behaviors devem carregar as diferenças de cada componente.
+- O core deve ser genérico; o manifest, os behaviors, os shims e os adapters devem carregar as diferenças.
 
 #### Firmware/WASM
 
@@ -116,7 +123,7 @@ Exemplos:
 
 - GPIO: `pinMode`, `digitalRead`, `digitalWrite`.
 - Analógico/PWM: `analogRead`, `analogWrite`, PWM/timers.
-- Tempo: `delay`, `delayMicroseconds`, `millis`, `micros`.
+- Tempo: `delay`, `delayMicroseconds`, `millis`, `micros`, `pulseIn`.
 - Serial: `Serial.begin`, `Serial.print`, `Serial.println`, `Serial.available`, `Serial.read`.
 - Wi-Fi: `WiFi.mode`, `WiFi.begin`, `WiFi.status`, `WiFi.scanNetworks`, `WiFi.RSSI`, `WiFi.internetAvailable`.
 - I2C: `Wire.begin`, `Wire.write`, `Wire.read`, `Wire.requestFrom`.
@@ -124,9 +131,9 @@ Exemplos:
 
 Para cada API:
 
-| API | precisa compilar? | precisa simular comportamento? | observação |
-| --- | --- | --- | --- |
-| `analogRead(pin)` | sim | sim | retorna valor do ambiente/sensor |
+| API | precisa compilar? | precisa simular comportamento? | biblioteca/shim | observação |
+| --- | --- | --- | --- | --- |
+| `analogRead(pin)` | sim | sim | Arduino core | retorna valor do ambiente/sensor |
 
 Se uma API não será implementada agora, declare como fora de escopo.
 
@@ -174,6 +181,7 @@ Marque o que precisa ser coberto.
 - [ ] Solver elétrico detecta falhas relevantes.
 - [ ] Inspector mostra propriedades/sinais relevantes.
 - [ ] Serial mostra TX/RX esperado, quando aplicável.
+- [ ] Propriedades simples funcionam sem editar `board-editor.js`.
 
 #### Critérios de Aceite
 
@@ -185,7 +193,7 @@ Liste condições objetivas para considerar o componente pronto.
 - [ ] Propriedades podem ser editadas na UI.
 - [ ] Exemplo carrega pelo modal `Exemplos`.
 - [ ] Firmware do exemplo compila em WASM.
-- [ ] Simulação roda sem fallback para IR.
+- [ ] Simulação roda sem fallback para IR JS.
 - [ ] Estado visual bate com o comportamento simulado.
 - [ ] Testes passam com `npm test`.
 
@@ -197,36 +205,3 @@ Declare explicitamente o que não será feito nesta etapa.
 - Periféricos não simulados:
 - Limitações elétricas conhecidas:
 - Limitações visuais:
-
-## Exemplo Preenchido: ESP32 + Wi-Fi Signal
-
-### Wi-Fi Signal
-
-- `identity.id`: `environment.wifi-signal`.
-- `simulation.kind`: `environment-source`.
-- `simulation.effects`: `environment`, `firmware`.
-- Standalone: não precisa de fios.
-- Propriedades: `ssid`, `connected` como internet ativa, `strengthPercent`.
-- UI: campo de SSID, checkbox de internet ativa e slider de força do sinal.
-- Firmware/WASM: alimenta `WiFi.scanNetworks`, `WiFi.RSSI()`, `WiFi.RSSI(ssid)` e `WiFi.internetAvailable()`.
-
-### ESP32 DevKit
-
-- `identity.id`: `board.esp32.devkit`.
-- `simulation.kind`: `microcontroller`.
-- `simulation.effects`: `firmware`, `electrical`, `environment`, `visual-state`.
-- Terminais: headers reais da placa, power, GND, GPIO, UART e pinos reservados de flash.
-- Built-in LEDs: `PWR` fixo e `LD` programável em GPIO2/`LED_BUILTIN`.
-- Firmware/WASM: suporte inicial a GPIO, Serial e Wi-Fi.
-
-### Exemplos Criados
-
-- `examples/esp32-wifi-signal/project.json`: ESP32 lê uma rede Wi-Fi e imprime RSSI no Serial.
-- `examples/esp32-wifi-failover/project.json`: ESP32 escolhe a melhor rede com internet ativa entre múltiplos sinais.
-
-### Ajustes que o Template Deve Evitar no Futuro
-
-- Não tratar `connected` como força de sinal; conexão/internet ativa e RSSI são conceitos separados.
-- Não implementar comportamento específico diretamente no core quando ele pertence ao componente ou ao runtime genérico.
-- Não deixar exemplo visual sem firmware WASM funcional.
-- Não adicionar componente ao catálogo sem testes de palette e terminais.

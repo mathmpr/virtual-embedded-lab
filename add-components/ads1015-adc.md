@@ -1,5 +1,7 @@
 # Add Components: ADS1015 ADC
 
+Antes de usar este documento, leia `docs/official-component-guidelines.md` e `docs/component-contract.md`. A implementação deve seguir manifests, resolvers e adapters, não lógica específica no editor/runtime central.
+
 ## Objetivo
 
 Adicionar suporte ao ADS1015, um ADC externo de 12 bits por I2C. O ADS1015 é muito parecido com o ADS1115, mas tem resolução menor e taxa de amostragem maior. O projeto deve modelar essa diferença em vez de tratar ambos como o mesmo componente visual.

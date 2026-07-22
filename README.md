@@ -131,6 +131,7 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 - O exemplo default atual é `examples/hc-sr04-led-distance/project.json`.
 - Há exemplos WASM para HC-SR04, ESP32 counter blink, ESP32 Wi-Fi Signal, ESP32 Wi-Fi Failover, FC-37 Rain Digital, LDR Light Analog, BMP280 Weather I2C, ADS1015/ADS1115 Single Ended e MCP3008 Single Ended.
 - Componentes oficiais ficam em `components/official/**/component.json`.
+- Novos componentes oficiais devem seguir `docs/official-component-guidelines.md`, `docs/component-contract.md` e o template `add-components/new-component-example.md` antes da implementação.
 - O catálogo oficial já inclui Arduino UNO, ESP32 DevKitC V4, HC-SR04, FC-37 Rain Sensor, LDR Light Sensor, BMP280, ADS1015, ADS1115, MCP3008, distância, Rain Environment, Light Environment, Climate Environment, Analog Voltage Source, Wi-Fi Signal, resistores, capacitores e LEDs vermelho/verde/azul.
 - O Arduino UNO expõe LED built-in `L` em D13/`LED_BUILTIN`; o ESP32 DevKitC V4 expõe `PWR` e LED programável `LD` em GPIO2/`LED_BUILTIN`.
 - Sketches de blink em LED built-in rodam continuamente até Pause/Reset, respeitando `delay()` por tempo virtual e animando a timeline de `digitalWrite`; `LED_PIN`/`PIN` sem declaração são tratados como aliases de `LED_BUILTIN`.

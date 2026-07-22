@@ -1,5 +1,7 @@
 # Add Components: BMP280 Pressure and Temperature Sensor
 
+Antes de usar este documento, leia `docs/official-component-guidelines.md` e `docs/component-contract.md`. A implementação deve seguir manifests, resolvers e adapters, não lógica específica no editor/runtime central.
+
 ## Objetivo
 
 Adicionar suporte ao sensor BMP280 para pressão barométrica e temperatura, junto de uma fonte ambiental standalone para clima. O sensor deve poder ser ligado por I2C a um microcontrolador e lido por firmware, refletindo mudanças de temperatura e pressão sem reiniciar a simulação.
