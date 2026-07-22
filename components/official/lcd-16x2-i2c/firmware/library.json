@@ -1,0 +1,7 @@
+{
+  "id": "liquid-crystal-i2c",
+  "headers": ["LiquidCrystal_I2C"],
+  "identifiers": ["LiquidCrystal_I2C"],
+  "imports": ["lcdBegin", "lcdSetCursor", "lcdPrint", "lcdPrintInt", "lcdClear", "lcdBacklight"],
+  "apis": ["LiquidCrystal_I2C.init", "LiquidCrystal_I2C.begin", "LiquidCrystal_I2C.backlight", "LiquidCrystal_I2C.noBacklight", "LiquidCrystal_I2C.setCursor", "LiquidCrystal_I2C.print", "LiquidCrystal_I2C.clear"]
+}

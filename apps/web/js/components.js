@@ -1,4 +1,5 @@
 import { localizeComponentDefinition } from './i18n.js';
+import { installComponentContributionManifests } from './component-contributions.js';
 
 export const storageKey = 'virtual-embedded-lab.project';
 
@@ -23,6 +24,7 @@ export async function loadOfficialComponents(fetchImpl = fetch) {
 export function installComponentCatalog(manifests, { remember = true } = {}) {
   if (remember) {
     installedManifests = manifests;
+    installComponentContributionManifests(manifests);
   }
 
   clearObject(componentDefinitions);

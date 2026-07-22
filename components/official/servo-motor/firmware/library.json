@@ -1,0 +1,7 @@
+{
+  "id": "servo",
+  "headers": ["Servo"],
+  "identifiers": ["Servo"],
+  "imports": ["servoAttach", "servoWrite", "servoWriteMicroseconds"],
+  "apis": ["Servo.attach", "Servo.write", "Servo.writeMicroseconds"]
+}

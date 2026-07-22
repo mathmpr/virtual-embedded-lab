@@ -666,8 +666,99 @@ test('ESP8266 MQTT example connects to virtual broker through WASM', async () =>
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const esp8266 = JSON.parse(readFileSync(join(root, 'components/official/esp8266-nodemcu/component.json'), 'utf8'));
   const wifiSignal = JSON.parse(readFileSync(join(root, 'components/official/wifi-signal/component.json'), 'utf8'));
-  const project = JSON.parse(readFileSync(join(root, 'examples/esp8266-mqtt-water-pump/project.json'), 'utf8'));
-  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
+  const code = normalizeProjectCode(`
+    #include <ESP8266WiFi.h>
+    #include <AsyncMqttClient.h>
+    #include <SimpleTimer.h>
+
+    #define LED_PIN 2
+
+    AsyncMqttClient mqttClient;
+    SimpleTimer keepAliveTimer;
+    bool enabledWaterPump = false;
+    int keepAliveCount = 0;
+
+    void onLed() { digitalWrite(LED_PIN, LOW); }
+    void offLed() { digitalWrite(LED_PIN, HIGH); }
+
+    void publishStatus() {
+      if (enabledWaterPump) {
+        mqttClient.publish("on_off/water", 0, false, "secret:asker:manual:1");
+        Serial.println("MQTT publish on_off/water manual:1");
+      }
+    }
+
+    void publishKeepAlive() {
+      if (mqttClient.connected()) {
+        keepAliveCount++;
+        mqttClient.publish("keep/alive", 0, false, "secret:asker");
+        Serial.print("MQTT keepalive #");
+        Serial.println(keepAliveCount);
+      }
+    }
+
+    void onMqttConnect(bool sessionPresent) {
+      Serial.println("MQTT On!");
+      onLed();
+      mqttClient.subscribe("toggle/water", 0);
+      publishKeepAlive();
+    }
+
+    void onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
+      Serial.println("MQTT Off!");
+      offLed();
+    }
+
+    void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
+      Serial.print("MQTT RX ");
+      Serial.print(topic);
+      Serial.print(" ");
+      for (size_t i = 0; i < len; i++) {
+        Serial.write(payload[i]);
+      }
+      Serial.println();
+      if (topic[0] == 't' && payload[0] == '1') {
+        enabledWaterPump = true;
+        publishStatus();
+      }
+    }
+
+    void setup() {
+      Serial.begin(9600);
+      pinMode(LED_PIN, OUTPUT);
+      offLed();
+      WiFi.mode(WIFI_STA);
+      WiFi.begin("VirtualLab", "secret");
+      if (WiFi.status() == WL_CONNECTED && WiFi.internetAvailable()) {
+        Serial.println("Wi-Fi connected with internet");
+      }
+      mqttClient.onConnect(onMqttConnect);
+      mqttClient.onDisconnect(onMqttDisconnect);
+      mqttClient.onMessage(onMqttMessage);
+      mqttClient.setServer("mqtt.local", 1883);
+      keepAliveTimer.setInterval(8300, publishKeepAlive);
+      mqttClient.connect();
+    }
+
+    void loop() {
+      keepAliveTimer.run();
+      delay(1000);
+    }
+  `);
+  const network = {
+    mqtt: {
+      brokers: {
+        'mqtt.local': {
+          port: 1883,
+          online: true,
+          messages: [
+            { topic: 'toggle/water', payload: '1' }
+          ]
+        }
+      }
+    }
+  };
+  const wasm = await compileFirmwareWasmWithClang(code, {
     constants: {
       LED_BUILTIN: 2
     }
@@ -698,7 +789,7 @@ test('ESP8266 MQTT example connects to virtual broker through WASM', async () =>
       return 'signal';
     },
     wasmBase64: wasm.wasmBase64,
-    network: project.network
+    network
   });
 
   const frames = Array.from({ length: 10 }, () => session.runFrame());

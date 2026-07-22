@@ -33,6 +33,14 @@
     "minPulseProperty": "minPulseUs",
     "maxPulseProperty": "maxPulseUs"
   },
+  "contributions": {
+    "wasmImports": {
+      "modules": ["./firmware/wasm-imports.js"]
+    },
+    "simulationBehaviors": {
+      "modules": ["./simulation/behavior.js"]
+    }
+  },
   "electricalModel": {
     "type": "load",
     "primitive": "servo-motor",

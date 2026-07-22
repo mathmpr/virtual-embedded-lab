@@ -1,9 +1,11 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = join(moduleDir, '..', '..', '..');
 const arduinoShimRoot = join(moduleDir, 'shims', 'arduino-wasm');
+const officialComponentsRoot = join(workspaceRoot, 'components', 'official');
 
 function shimFragmentPaths(directory) {
   return readdirSync(directory)
@@ -17,7 +19,28 @@ function shimFragmentPaths(directory) {
     });
 }
 
-const arduinoShimTemplate = shimFragmentPaths(arduinoShimRoot)
+function componentShimFragmentPaths(directory) {
+  if (!existsSync(directory)) {
+    return [];
+  }
+
+  return readdirSync(directory, { withFileTypes: true })
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .flatMap((entry) => {
+      const path = join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        return componentShimFragmentPaths(path);
+      }
+
+      return entry.isFile() && entry.name.endsWith('.cpp') && path.includes('/firmware/shims/') ? [path] : [];
+    });
+}
+
+const arduinoShimTemplate = [
+  ...shimFragmentPaths(arduinoShimRoot),
+  ...componentShimFragmentPaths(officialComponentsRoot)
+]
   .map((path) => readFileSync(path, 'utf8').trimEnd())
   .join('\n\n');
 

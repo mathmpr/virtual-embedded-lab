@@ -1,0 +1,7 @@
+{
+  "id": "ads",
+  "headers": ["ADS1015", "ADS1115"],
+  "identifiers": ["ADS1015", "ADS1115"],
+  "imports": ["adcBegin", "adcReadSingleEnded", "adcComputeVolts"],
+  "apis": ["ADS1015.begin", "ADS1015.readADC_SingleEnded", "ADS1015.computeVolts", "ADS1115.begin", "ADS1115.readADC_SingleEnded", "ADS1115.computeVolts"]
+}

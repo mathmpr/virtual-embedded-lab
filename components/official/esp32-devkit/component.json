@@ -155,6 +155,11 @@
       "GPIO16 e GPIO17 dependem do modulo ESP32 usado na placa."
     ]
   },
+  "contributions": {
+    "wasmImports": {
+      "modules": ["./firmware/wasm-imports.js"]
+    }
+  },
   "visual": {
     "type": "esp32-devkit",
     "title": "ESP32 DevKitC V4",

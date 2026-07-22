@@ -29,6 +29,7 @@
   ],
   "electricalModel": { "type": "adc", "resolutionBits": 10, "bus": "spi", "inputChannels": 8, "differential": true, "referenceVoltageProperty": "referenceVoltageVolts" },
   "behavior": { "type": "adc-spi", "model": "mcp3008", "chipSelectTerminal": "cs", "resolutionBits": 10, "maxRaw": 1023, "referenceVoltageProperty": "referenceVoltageVolts", "inputTerminals": ["ch0", "ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7"] },
+  "contributions": { "wasmImports": { "modules": ["./firmware/wasm-imports.js"] }, "simulationBehaviors": { "modules": ["./simulation/behavior.js"] } },
   "visual": {
     "type": "mcp3008-adc",
     "title": "MCP3008",

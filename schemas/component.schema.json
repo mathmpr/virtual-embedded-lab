@@ -96,7 +96,9 @@
     "electricalModel": { "type": "object" },
     "behavior": { "type": "object" },
     "visual": { "type": "object" },
-    "visualBehavior": { "type": "object" }
+    "visualBehavior": { "type": "object" },
+    "contributions": { "type": "object" },
+    "resources": { "type": "object" }
   },
   "additionalProperties": false
 }

@@ -32,6 +32,14 @@
     "temperatureProperty": "temperatureCelsius",
     "humidityProperty": "humidityPercent"
   },
+  "contributions": {
+    "wasmImports": {
+      "modules": ["../dht22/firmware/wasm-imports.js"]
+    },
+    "simulationBehaviors": {
+      "modules": ["../dht22/simulation/behavior.js"]
+    }
+  },
   "electricalModel": {
     "type": "sensor-module",
     "primitive": "temperature-humidity-sensor",

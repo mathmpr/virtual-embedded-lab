@@ -1,0 +1,7 @@
+{
+  "id": "mqtt",
+  "headers": ["AsyncMqttClient"],
+  "identifiers": ["AsyncMqttClient"],
+  "imports": ["mqttSetServer", "mqttConnect", "mqttDisconnect", "mqttConnected", "mqttSubscribe", "mqttPublish", "mqttReadMessage"],
+  "apis": ["AsyncMqttClient.setServer", "AsyncMqttClient.onConnect", "AsyncMqttClient.onDisconnect", "AsyncMqttClient.onMessage", "AsyncMqttClient.connect", "AsyncMqttClient.connected", "AsyncMqttClient.subscribe", "AsyncMqttClient.publish"]
+}

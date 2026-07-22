@@ -186,7 +186,7 @@ function bindHcsr04Sensors({ graph, environment, runtime, clock, scheduler, prog
   }
 }
 
-function bindBmp280Sensors({ graph, environment, runtime, diagnostics, components }) {
+export function bindBmp280Sensors({ graph, environment, runtime, diagnostics, components }) {
   const climateSources = graph.findComponentsByBehaviorChannel('climate');
 
   for (const sensor of components) {
@@ -221,7 +221,7 @@ function bindBmp280Sensors({ graph, environment, runtime, diagnostics, component
   }
 }
 
-function bindLcd16x2Displays({ graph, runtime, diagnostics, components }) {
+export function bindLcd16x2Displays({ graph, runtime, diagnostics, components }) {
   for (const display of components) {
     const address = Number(display.properties[display.behavior?.addressProperty] ?? 39);
 
@@ -306,7 +306,7 @@ function bindShiftRegisters74hc595({ graph, components }) {
   }
 }
 
-function bindDhtSensors({ graph, environment, runtime, diagnostics, components }) {
+export function bindDhtSensors({ graph, environment, runtime, diagnostics, components }) {
   const climateSources = graph.findComponentsByBehaviorChannel('climate');
 
   for (const sensor of components) {
@@ -347,7 +347,7 @@ function bindDhtSensors({ graph, environment, runtime, diagnostics, components }
   }
 }
 
-function bindServoMotors({ graph, runtime, diagnostics, components }) {
+export function bindServoMotors({ graph, runtime, diagnostics, components }) {
   for (const servo of components) {
     const inputTerminal = servo.behavior?.inputTerminal ?? 'sig';
     const pin = resolveRuntimeDigitalPinConnectedToTerminal(graph, runtime, {
@@ -370,7 +370,7 @@ function bindServoMotors({ graph, runtime, diagnostics, components }) {
   }
 }
 
-function bindI2cAdcConverters({ graph, environment, runtime, diagnostics, components }) {
+export function bindI2cAdcConverters({ graph, environment, runtime, diagnostics, components }) {
   for (const adc of components) {
     const model = adc.behavior?.model;
     const maxRaw = Number(adc.behavior?.maxRaw ?? (adc.electricalModel?.resolutionBits === 12 ? 2047 : 32767));
@@ -407,7 +407,7 @@ function bindI2cAdcConverters({ graph, environment, runtime, diagnostics, compon
   }
 }
 
-function bindSpiAdcConverters({ graph, environment, runtime, diagnostics, components }) {
+export function bindSpiAdcConverters({ graph, environment, runtime, diagnostics, components }) {
   for (const adc of components) {
     const inputTerminal = adc.behavior?.inputTerminals?.[0] ?? 'ch0';
     const source = analogSourceForTerminal(graph, { componentId: adc.id, terminalId: inputTerminal });
@@ -572,7 +572,7 @@ function bindMomentaryButtons({ graph, runtime, diagnostics, components }) {
   return { buttonBindings };
 }
 
-function bindBuzzers({ graph, runtime, diagnostics, components }) {
+export function bindBuzzers({ graph, runtime, diagnostics, components }) {
   const buzzerBindings = [];
 
   for (const buzzer of components) {

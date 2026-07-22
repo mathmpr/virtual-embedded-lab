@@ -1,0 +1,7 @@
+{
+  "id": "dht",
+  "headers": ["DHT"],
+  "identifiers": ["DHT", "DHT11", "DHT22"],
+  "imports": ["dhtBegin", "dhtReadTemperature", "dhtReadHumidity"],
+  "apis": ["DHT.begin", "DHT.readTemperature", "DHT.readHumidity"]
+}

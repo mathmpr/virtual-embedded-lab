@@ -90,10 +90,15 @@ const server = createServer(async (request, response) => {
     }
 
     const pathname = url.pathname === '/' ? '/index.html' : url.pathname;
-    const base = pathname.startsWith('/examples/') || pathname.startsWith('/node_modules/') ? root : webRoot;
+    const base = pathname.startsWith('/examples/')
+      || pathname.startsWith('/node_modules/')
+      || pathname.startsWith('/components/')
+      || pathname.startsWith('/apps/')
+      ? root
+      : webRoot;
     const filePath = normalize(join(base, pathname));
 
-    if (!filePath.startsWith(base)) {
+    if (!isInsideBase(filePath, base)) {
       response.writeHead(403);
       response.end('Forbidden');
       return;
@@ -221,7 +226,17 @@ async function readOfficialComponentManifests(directory) {
     }
 
     if (entry.isFile() && entry.name === 'component.json') {
-      manifests.push(JSON.parse(await readFile(entryPath, 'utf8')));
+      const manifest = JSON.parse(await readFile(entryPath, 'utf8'));
+      const componentDirectory = normalize(join(entryPath, '..')).replaceAll('\\', '/');
+      const relativeDirectory = componentDirectory.slice(root.replaceAll('\\', '/').length).replace(/^\/+/, '');
+
+      manifests.push({
+        ...manifest,
+        resources: {
+          ...(manifest.resources ?? {}),
+          baseUrl: `/${relativeDirectory}/`
+        }
+      });
     }
   }
 
@@ -246,6 +261,11 @@ function readRequestBody(request, limitBytes) {
     request.on('end', () => resolve(body));
     request.on('error', reject);
   });
+}
+
+function isInsideBase(filePath, base) {
+  const normalizedBase = normalize(base);
+  return filePath === normalizedBase || filePath.startsWith(`${normalizedBase}/`);
 }
 
 server.listen(port, host, () => {

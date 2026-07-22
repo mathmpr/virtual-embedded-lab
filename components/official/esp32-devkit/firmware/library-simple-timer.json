@@ -1,0 +1,7 @@
+{
+  "id": "simple-timer",
+  "headers": ["SimpleTimer"],
+  "identifiers": ["SimpleTimer"],
+  "imports": [],
+  "apis": ["SimpleTimer.setInterval", "SimpleTimer.run"]
+}

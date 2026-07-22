@@ -27,6 +27,7 @@ import { boardWorld, createInitialBoardState } from './board/state.js';
 import { normalizeProjectCode } from './project-serializer.js';
 import { createViewportController } from './board/viewport-controller.js';
 import { routeWire } from './board/wire-routing.js';
+import { installComponentStyles } from './component-contributions.js';
 
 export function createBoardEditor(document) {
   const board = document.querySelector('#board');
@@ -189,6 +190,7 @@ export function createBoardEditor(document) {
   async function loadComponents() {
     try {
       await loadOfficialComponents();
+      installComponentStyles(document);
     } catch (error) {
       renderProblems([error.message]);
       setConsoleText(`${t('Failed to load official components')}: ${error.message}`);

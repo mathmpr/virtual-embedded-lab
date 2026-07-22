@@ -73,6 +73,14 @@
     "sdaTerminal": "sda",
     "sclTerminal": "scl"
   },
+  "contributions": {
+    "wasmImports": {
+      "modules": ["./firmware/wasm-imports.js"]
+    },
+    "simulationBehaviors": {
+      "modules": ["./simulation/behavior.js"]
+    }
+  },
   "visual": {
     "type": "bmp280-sensor",
     "title": "BMP280",

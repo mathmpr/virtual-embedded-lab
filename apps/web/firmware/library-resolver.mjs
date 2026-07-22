@@ -1,12 +1,17 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = join(moduleDir, '..', '..', '..');
 const catalogPath = join(moduleDir, 'libraries', 'index.json');
+const officialComponentsRoot = join(workspaceRoot, 'components', 'official');
 const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
 
-export const firmwareLibraries = catalog.libraries;
+export const firmwareLibraries = [
+  ...catalog.libraries,
+  ...readComponentFirmwareLibraries(officialComponentsRoot)
+];
 
 export function resolveFirmwareLibraries(code, { alwaysIncludeCore = true } = {}) {
   const source = normalizeFirmwareSource(code);
@@ -67,4 +72,26 @@ export function normalizeFirmwareSource(code) {
 
 function referencesIdentifier(code, identifier) {
   return new RegExp(`\\b${identifier}\\b`).test(code);
+}
+
+function readComponentFirmwareLibraries(directory) {
+  if (!existsSync(directory)) {
+    return [];
+  }
+
+  return readdirSync(directory, { withFileTypes: true })
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .flatMap((entry) => {
+      const path = join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        return readComponentFirmwareLibraries(path);
+      }
+
+      if (!entry.isFile() || !entry.name.endsWith('.json') || !path.includes('/firmware/')) {
+        return [];
+      }
+
+      return [JSON.parse(readFileSync(path, 'utf8'))];
+    });
 }

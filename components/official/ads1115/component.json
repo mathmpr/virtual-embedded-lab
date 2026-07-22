@@ -36,6 +36,7 @@
   ],
   "electricalModel": { "type": "adc", "resolutionBits": 16, "bus": "i2c", "inputChannels": 4, "differential": true },
   "behavior": { "type": "adc-i2c", "model": "ads1115", "addressProperty": "i2cAddress", "gainProperty": "gain", "resolutionBits": 16, "maxRaw": 32767, "inputTerminals": ["a0", "a1", "a2", "a3"] },
+  "contributions": { "wasmImports": { "modules": ["../ads1015/firmware/wasm-imports.js"] }, "simulationBehaviors": { "modules": ["../ads1015/simulation/behavior.js"] } },
   "visual": {
     "type": "ads1115-adc",
     "title": "ADS1115",

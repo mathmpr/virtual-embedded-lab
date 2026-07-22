@@ -330,7 +330,7 @@ test('web UI exposes editable Wi-Fi signal controls', () => {
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const firmware = readFileSync(join(root, 'apps/web/js/simulation/firmware-engine.js'), 'utf8');
   const analyzer = readFileSync(join(root, 'apps/web/firmware/clang-analyzer.mjs'), 'utf8');
-  const wifiShim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/40-libraries/wifi.cpp'), 'utf8');
+  const wifiShim = readFileSync(join(root, 'components/official/esp32-devkit/firmware/shims/wifi.cpp'), 'utf8');
   const libraryResolver = readFileSync(join(root, 'apps/web/firmware/library-resolver.mjs'), 'utf8');
 
   assert.match(componentTemplate, /renderVisualControl/);
@@ -468,7 +468,7 @@ test('web UI exposes BMP280 climate controls and I2C runtime bindings', () => {
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
   const wireShim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/30-buses/wire.cpp'), 'utf8');
-  const bmp280Shim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/40-libraries/bmp280.cpp'), 'utf8');
+  const bmp280Shim = readFileSync(join(root, 'components/official/bmp280/firmware/shims/bmp280.cpp'), 'utf8');
 
   assert.match(componentTemplate, /renderVisualControl/);
   assert.doesNotMatch(climate, /data-climate-enabled/);
@@ -508,8 +508,8 @@ test('web UI exposes external ADC controls and runtime bindings', () => {
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
   const adapter = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
-  const adsShim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/40-libraries/ads.cpp'), 'utf8');
-  const mcp3008Shim = readFileSync(join(root, 'apps/web/firmware/shims/arduino-wasm/40-libraries/mcp3008.cpp'), 'utf8');
+  const adsShim = readFileSync(join(root, 'components/official/ads1015/firmware/shims/ads.cpp'), 'utf8');
+  const mcp3008Shim = readFileSync(join(root, 'components/official/mcp3008/firmware/shims/mcp3008.cpp'), 'utf8');
 
   assert.match(componentTemplate, /renderVisualControl/);
   assert.doesNotMatch(analogSource, /data-analog-voltage/);
@@ -587,6 +587,8 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   const wasmCompiler = readFileSync(join(root, 'apps/web/firmware/wasm-compiler.mjs'), 'utf8');
   const wasmShimRegistry = readFileSync(join(root, 'apps/web/firmware/wasm-shim-registry.mjs'), 'utf8');
   const libraryIndex = readFileSync(join(root, 'apps/web/firmware/libraries/index.json'), 'utf8');
+  const espWifiLibrary = readFileSync(join(root, 'components/official/esp32-devkit/firmware/library-wifi.json'), 'utf8');
+  const espWasmImports = readFileSync(join(root, 'components/official/esp32-devkit/firmware/wasm-imports.js'), 'utf8');
   const wasmRunner = readFileSync(join(root, 'apps/web/js/simulation/wasm-firmware-runner.js'), 'utf8');
   const wasmImportAdapters = readFileSync(join(root, 'apps/web/js/simulation/wasm-import-adapters.js'), 'utf8');
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
@@ -605,12 +607,15 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   assert.match(wasmCompiler, /supportedWasmLibraryDocs/);
   assert.match(wasmShimRegistry, /supportedWasmLibraryDocs/);
   assert.match(wasmShimRegistry, /resolveFirmwareLibraries/);
-  assert.match(libraryIndex, /"headers": \["WiFi", "ESP8266WiFi"\]/);
-  assert.match(libraryIndex, /"WiFi\.mode"/);
+  assert.doesNotMatch(libraryIndex, /"headers": \["WiFi", "ESP8266WiFi"\]/);
+  assert.match(espWifiLibrary, /"headers": \["WiFi", "ESP8266WiFi"\]/);
+  assert.match(espWifiLibrary, /"WiFi\.mode"/);
   assert.match(wasmRunner, /createWasmImportRegistry/);
   assert.match(wasmRunner, /registerDefaultWasmImportAdapters/);
-  assert.match(wasmImportAdapters, /libraries: \['WiFi'\]/);
-  assert.match(wasmImportAdapters, /capabilities: \['wifi'\]/);
+  assert.match(wasmRunner, /registerComponentContributions\('wasmImports'/);
+  assert.match(espWasmImports, /libraries: \['WiFi'\]/);
+  assert.match(espWasmImports, /capabilities: \['wifi'\]/);
+  assert.match(wasmImportAdapters, /arduinoCoreImportAdapter/);
   assert.doesNotMatch(adapter, /d13High/);
   assert.doesNotMatch(adapter, /distanceCm\s*</);
   assert.match(engine, /createCircuitGraph/);

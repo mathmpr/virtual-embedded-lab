@@ -1,0 +1,7 @@
+{
+  "id": "bmp280",
+  "headers": ["BMP280"],
+  "identifiers": ["BMP280"],
+  "imports": ["bmp280Begin", "bmp280ReadTemperature", "bmp280ReadPressure"],
+  "apis": ["BMP280.begin", "BMP280.readTemperature", "BMP280.readPressure"]
+}

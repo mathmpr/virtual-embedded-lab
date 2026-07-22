@@ -195,11 +195,43 @@ test('clang analyzer accepts ESP32 WiFiClient TCP example', async () => {
   assert.deepEqual(result.diagnostics, []);
 });
 
-test('clang analyzer accepts ESP8266 AsyncMqttClient example', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/esp8266-mqtt-water-pump/project.json'), 'utf8')
-  );
-  const result = await analyzeFirmwareWithClang(normalizeProjectCode(project.code.files['main.ino']));
+test('clang analyzer accepts ESP8266 AsyncMqttClient firmware', async () => {
+  const result = await analyzeFirmwareWithClang(normalizeProjectCode(`
+    #include <ESP8266WiFi.h>
+    #include <AsyncMqttClient.h>
+    #include <SimpleTimer.h>
+
+    AsyncMqttClient mqttClient;
+    SimpleTimer keepAliveTimer;
+
+    void publishKeepAlive() {
+      mqttClient.publish("keep/alive", 0, false, "ok");
+    }
+
+    void onMqttConnect(bool sessionPresent) {
+      mqttClient.subscribe("toggle/water", 0);
+      publishKeepAlive();
+    }
+
+    void onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {}
+
+    void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {}
+
+    void setup() {
+      WiFi.mode(WIFI_STA);
+      WiFi.begin("VirtualLab", "secret");
+      mqttClient.onConnect(onMqttConnect);
+      mqttClient.onDisconnect(onMqttDisconnect);
+      mqttClient.onMessage(onMqttMessage);
+      mqttClient.setServer("192.168.200.70", 1883);
+      keepAliveTimer.setInterval(8300, publishKeepAlive);
+      mqttClient.connect();
+    }
+
+    void loop() {
+      keepAliveTimer.run();
+    }
+  `));
 
   assert.equal(result.available, true);
   assert.equal(result.ok, true);

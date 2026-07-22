@@ -54,7 +54,6 @@ const jsonFiles = [
   'examples/esp32-wifi-signal/project.json',
   'examples/esp32-wifi-tcp-jsonplaceholder/project.json',
   'examples/esp-water-control-pump-reservoir/project.json',
-  'examples/esp8266-mqtt-water-pump/project.json',
   'examples/fc-37-rain-digital/project.json',
   'examples/hc-sr04-led-distance/project.json',
   'examples/ldr-light-analog/project.json',

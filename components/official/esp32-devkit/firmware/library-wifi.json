@@ -1,0 +1,7 @@
+{
+  "id": "wifi",
+  "headers": ["WiFi", "ESP8266WiFi"],
+  "identifiers": ["WiFi", "WIFI_STA", "WL_CONNECTED", "WiFiEventHandler"],
+  "imports": ["wifiMode", "wifiBegin", "wifiStatus", "wifiSoftAP", "wifiScanNetworks", "wifiRssi", "wifiRssiForSsid", "wifiInternetAvailable"],
+  "apis": ["WiFi.mode", "WiFi.begin", "WiFi.status", "WiFi.softAP", "WiFi.scanNetworks", "WiFi.RSSI", "WiFi.internetAvailable", "WiFi.disconnect", "WiFi.SSID"]
+}

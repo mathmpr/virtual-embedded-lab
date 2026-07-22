@@ -1,0 +1,7 @@
+{
+  "id": "mcp3008",
+  "headers": ["MCP3008"],
+  "identifiers": ["MCP3008"],
+  "imports": ["mcp3008Begin", "mcp3008Read"],
+  "apis": ["MCP3008.begin", "MCP3008.read"]
+}

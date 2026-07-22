@@ -88,6 +88,11 @@
       }
     ]
   },
+  "contributions": {
+    "wasmImports": {
+      "modules": ["../esp32-devkit/firmware/wasm-imports.js"]
+    }
+  },
   "visual": {
     "type": "esp8266-nodemcu",
     "title": "ESP8266 NodeMCU",

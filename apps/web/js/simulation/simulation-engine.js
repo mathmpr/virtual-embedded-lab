@@ -25,6 +25,10 @@ import {
 import { createSignalSnapshot } from './signal-snapshot.js';
 import { EventScheduler, VirtualClock } from './virtual-time.js';
 import { createWasmFirmwareSession } from './wasm-firmware-runner.js';
+import {
+  loadComponentContributionModules,
+  registerLoadedComponentContributions
+} from '../component-contributions.js';
 
 export async function createProjectWasmSimulationSession({ state, nets, terminalKind, wasmBase64, wasmDiagnostics = [], serialRx = [], network = {} }) {
   const context = createSimulationContext({ state, nets, terminalKind, serialRx, network });
@@ -34,6 +38,7 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
   const diagnostics = formatFirmwareDiagnostics(wasmDiagnostics);
   let inputBindings = { rainBindings: [], lightBindings: [], buttonBindings: [], buzzerBindings: [], waterBindings: [], sevenSegmentBindings: [] };
 
+  await loadComponentContributionModules('simulationBehaviors');
   inputBindings = bindSimulationInputs({ graph, environment, runtime, clock, scheduler, program, diagnostics });
   wasmSession.setup();
 
@@ -97,6 +102,7 @@ export async function createProjectMultiWasmSimulationSession({ state, nets, ter
   const inputBindingsByComponent = new Map();
 
   bindEnvironmentChannels({ graph, environment, diagnostics });
+  await loadComponentContributionModules('simulationBehaviors');
 
   for (const component of graph.findComponentsByBehaviorType('microcontroller')) {
     const wasm = wasmByComponentId.get(component.id);
@@ -187,6 +193,7 @@ export async function runProjectWasmSimulation({ state, nets, terminalKind, wasm
   const program = programFromWasmConstants(wasmSession.constants);
   const diagnostics = formatFirmwareDiagnostics(wasmDiagnostics);
 
+  await loadComponentContributionModules('simulationBehaviors');
   const inputBindings = bindSimulationInputs({ graph, environment, runtime, clock, scheduler, program, diagnostics });
   wasmSession.setup();
 
@@ -373,6 +380,7 @@ export function bindSimulationInputs({ graph, environment, runtime, clock, sched
 
   const registry = createSimulationBehaviorRegistry();
   registerSensorBehaviorAdapters(registry);
+  registerLoadedComponentContributions('simulationBehaviors', registry);
 
   return registry.bindAll({ graph, environment, runtime, clock, scheduler, program, diagnostics });
 }

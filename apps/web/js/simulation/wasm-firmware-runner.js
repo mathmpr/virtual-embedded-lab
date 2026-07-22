@@ -2,6 +2,7 @@ import {
   createWasmImportRegistry,
   registerDefaultWasmImportAdapters
 } from './wasm-import-adapters.js';
+import { registerComponentContributions } from '../component-contributions.js';
 
 export async function runWasmFirmware(runtime, wasmBase64, options = {}) {
   const session = await createWasmFirmwareSession(runtime, wasmBase64);
@@ -12,7 +13,7 @@ export async function runWasmFirmware(runtime, wasmBase64, options = {}) {
 export async function createWasmFirmwareSession(runtime, wasmBase64) {
   const bytes = base64ToBytes(wasmBase64);
   let memory = null;
-  const { instance } = await WebAssembly.instantiate(bytes, createImports(runtime, () => memory));
+  const { instance } = await WebAssembly.instantiate(bytes, await createImports(runtime, () => memory));
   memory = instance.exports.memory;
   const constants = readExportedConstants(instance.exports);
 
@@ -50,9 +51,10 @@ function readExportedConstants(exports) {
   return constants;
 }
 
-function createImports(runtime, getMemory) {
+async function createImports(runtime, getMemory) {
   const registry = createWasmImportRegistry();
   registerDefaultWasmImportAdapters(registry);
+  await registerComponentContributions('wasmImports', registry);
 
   return {
     env: registry.createImports({

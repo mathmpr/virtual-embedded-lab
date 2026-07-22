@@ -1,0 +1,7 @@
+{
+  "id": "tcp-client",
+  "headers": ["WiFiClient"],
+  "identifiers": ["WiFiClient"],
+  "imports": ["tcpConnect", "tcpPrint", "tcpPrintln", "tcpAvailable", "tcpRead", "tcpStop", "tcpConnected"],
+  "apis": ["WiFiClient.connect", "WiFiClient.print", "WiFiClient.println", "WiFiClient.available", "WiFiClient.read", "WiFiClient.stop", "WiFiClient.connected"]
+}
