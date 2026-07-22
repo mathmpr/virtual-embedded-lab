@@ -249,6 +249,25 @@ test('web electrical solver does not report connected I2C buses as floating inpu
   assert.doesNotMatch(result.diagnostics.join('\n'), /arduino-1\.a5 .*net flutuante/);
 });
 
+test('web electrical solver does not report connected UART peers as floating inputs', () => {
+  const components = new Map([
+    ['arduino-1', componentFromDefinition('arduino-1', 'arduino', {})],
+    ['arduino-2', componentFromDefinition('arduino-2', 'arduino', {})]
+  ]);
+  const graph = createCircuitGraph({
+    components,
+    nets: [
+      net('net-uart', ['arduino-1.d1', 'arduino-2.d0'])
+    ],
+    terminalKind: terminalKindFor(components)
+  });
+
+  const result = solveElectricalState({ graph, runtime: runtimeWithHighPin(null) });
+
+  assert.doesNotMatch(result.diagnostics.join('\n'), /arduino-1\.d1 .*net flutuante/);
+  assert.doesNotMatch(result.diagnostics.join('\n'), /arduino-2\.d0 .*net flutuante/);
+});
+
 function createComponents() {
   return new Map([
     ['arduino-1', componentFromDefinition('arduino-1', 'arduino', {})],

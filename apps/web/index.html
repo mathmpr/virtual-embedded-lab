@@ -98,7 +98,12 @@
           </div>
           <div class="bottom-grid">
             <div class="editor-panel bottom-view active" data-bottom-panel="code">
-              <div class="editor-header">main.ino</div>
+              <div class="editor-header">
+                <span id="currentFirmwareName">main.ino</span>
+                <select id="firmwareTarget" class="firmware-target" aria-label="Firmware ativo">
+                  <option value="">main.ino</option>
+                </select>
+              </div>
               <div id="codeEditor" class="code-editor" aria-label="Editor de código Arduino"></div>
             </div>
             <div class="runtime-panel">
@@ -113,6 +118,9 @@
               <div class="panel-card bottom-view" data-bottom-panel="serial">
                 <strong>Serial</strong>
                 <div class="serial-controls">
+                  <select id="serialTarget" aria-label="Destino RX Serial">
+                    <option value="">RX alvo</option>
+                  </select>
                   <select id="serialBaudRate" aria-label="Baud rate Serial">
                     <option value="300">300</option>
                     <option value="1200">1200</option>

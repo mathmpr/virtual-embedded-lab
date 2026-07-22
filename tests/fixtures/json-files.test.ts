@@ -33,6 +33,8 @@ const jsonFiles = [
   'examples/bmp280-weather-i2c/project.json',
   'examples/ads1015-single-ended/project.json',
   'examples/ads1115-single-ended/project.json',
+  'examples/arduino-serial-bridge-led/project.json',
+  'examples/arduino-serial-led/project.json',
   'examples/esp32-counter-blink/project.json',
   'examples/esp32-wifi-failover/project.json',
   'examples/esp32-wifi-signal/project.json',

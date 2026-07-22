@@ -17,7 +17,9 @@ export function createProjectActions({
   renderProblems,
   selectComponent,
   simulation,
-  syncRestoredComponentControls
+  syncRestoredComponentControls,
+  saveActiveFirmware,
+  syncFirmwareEditor
 }) {
   function clearBoard() {
     const shouldRecord = state.components.size > 0 && !state.isRestoring;
@@ -26,12 +28,15 @@ export function createProjectActions({
     state.selectedId = null;
     state.selectedNetId = null;
     state.pendingTerminal = null;
+    state.firmwares = new Map();
+    state.activeFirmwareComponentId = null;
     state.nextComponentId = 1;
     state.nextWireId = 1;
     componentLayer.querySelectorAll('.component').forEach((item) => item.remove());
     drawWires();
     centerViewportOnContent();
     renderInspector();
+    syncFirmwareEditor({ loadActive: true });
     if (shouldRecord) {
       recordHistory();
     }
@@ -46,6 +51,7 @@ export function createProjectActions({
 
     component.element.remove();
     state.components.delete(componentId);
+    state.firmwares.delete(componentId);
     state.wires = state.wires.filter((wire) => wire.from.componentId !== componentId && wire.to.componentId !== componentId);
 
     if (state.selectedId === componentId) {
@@ -62,6 +68,7 @@ export function createProjectActions({
 
     drawWires();
     renderInspector();
+    syncFirmwareEditor({ loadActive: true });
     simulation.resetSimulation();
     recordHistory();
   }
@@ -98,10 +105,21 @@ export function createProjectActions({
         to: { ...wire.to },
         color: wire.color
       })),
+      firmwares: state.firmwares instanceof Map
+        ? new Map([...state.firmwares.entries()].map(([componentId, firmware]) => [componentId, cloneFirmware(firmware)]))
+        : new Map(),
       nextComponentId: state.nextComponentId,
       nextWireId: state.nextWireId,
       selectedId: state.selectedId,
-      selectedNetId: state.selectedNetId
+      selectedNetId: state.selectedNetId,
+      activeFirmwareComponentId: state.activeFirmwareComponentId
+    };
+  }
+
+  function cloneFirmware(firmware) {
+    return {
+      ...firmware,
+      files: { ...(firmware?.files ?? {}) }
     };
   }
 
@@ -124,6 +142,8 @@ export function createProjectActions({
       to: { ...wire.to },
       color: wire.color
     }));
+    state.firmwares = snapshot.firmwares ?? new Map();
+    state.activeFirmwareComponentId = snapshot.activeFirmwareComponentId ?? null;
     state.nextComponentId = snapshot.nextComponentId;
     state.nextWireId = snapshot.nextWireId;
     state.selectedId = snapshot.selectedId;
@@ -183,6 +203,7 @@ export function createProjectActions({
   }
 
   function saveProjectToLocalStorage() {
+    saveActiveFirmware();
     const project = currentProject();
     localStorage.setItem(storageKey, JSON.stringify(project));
     consoleOutput.textContent = `Projeto salvo no navegador: ${project.components.length} componentes, ${project.connections.length} conexoes eletricas, ${project.environmentConnections.length} conexoes ambientais.`;
@@ -204,6 +225,7 @@ export function createProjectActions({
   }
 
   function exportProjectFile() {
+    saveActiveFirmware();
     const project = currentProject();
     const blob = new Blob([`${JSON.stringify(project, null, 2)}\n`], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -235,6 +257,7 @@ export function createProjectActions({
   function restoreProject(project, shouldRecord = true) {
     codeEditor.value = projectCodeOrReference(project);
     restoreBoard(projectToSnapshot(project));
+    syncFirmwareEditor({ loadActive: true });
 
     if (shouldRecord) {
       recordHistory();
@@ -244,6 +267,7 @@ export function createProjectActions({
   }
 
   function currentProject() {
+    saveActiveFirmware();
     return boardToProject({
       state,
       board,

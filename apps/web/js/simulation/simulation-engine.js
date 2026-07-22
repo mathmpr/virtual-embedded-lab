@@ -66,6 +66,81 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
   };
 }
 
+export async function createProjectMultiWasmSimulationSession({ state, nets, terminalKind, wasmByComponentId, wasmDiagnosticsByComponentId = new Map(), serialRx = [] }) {
+  const clock = new VirtualClock();
+  const scheduler = new EventScheduler(clock);
+  const graph = createCircuitGraph({ components: state.components, nets, terminalKind });
+  const environment = new EnvironmentEngine();
+  const runtimesByComponent = new Map();
+  const sessions = [];
+  const diagnostics = [];
+
+  bindEnvironmentChannels({ graph, environment, diagnostics });
+
+  for (const component of graph.findComponentsByBehaviorType('microcontroller')) {
+    const wasm = wasmByComponentId.get(component.id);
+
+    if (!wasm?.wasmBase64) {
+      diagnostics.push(`${component.id}: firmware WASM ausente.`);
+      continue;
+    }
+
+    const runtime = new ArduinoRuntime(clock, scheduler, graph, { componentId: component.id });
+    const wasmSession = await createWasmFirmwareSession(runtime, wasm.wasmBase64);
+
+    runtimesByComponent.set(component.id, runtime);
+    sessions.push({
+      component,
+      runtime,
+      wasmSession,
+      pins: programFromWasmConstants(wasmSession.constants)
+    });
+    diagnostics.push(...formatFirmwareDiagnostics(wasmDiagnosticsByComponentId.get(component.id) ?? wasm.diagnostics ?? []));
+  }
+
+  for (const message of serialRx) {
+    receiveTargetedSerial({ runtimesByComponent, graph, message });
+  }
+
+  for (const session of sessions) {
+    bindWifiEnvironment({ graph, runtime: session.runtime });
+    wasmSessionSetup(session);
+  }
+
+  return {
+    runFrame({ serialRx: frameSerialRx = [] } = {}) {
+      for (const message of frameSerialRx) {
+        receiveTargetedSerial({ runtimesByComponent, graph, message });
+      }
+
+      const pinEvents = [];
+      const serialEvents = [];
+      let firmwareResult = null;
+
+      for (const session of sessions) {
+        const result = session.wasmSession.runLoop({ loopIterations: 3, drainEvents: true });
+
+        firmwareResult = result;
+        pinEvents.push(...result.pinEvents.map((event) => ({ ...event, componentId: session.component.id })));
+        serialEvents.push(...result.serial.events.map((event) => ({ ...event, componentId: session.component.id })));
+        routeSerialTxToConnectedRx({ graph, runtimesByComponent, sourceComponent: session.component, events: result.serial.events });
+      }
+
+      return finalizeMultiSimulationResult({
+        clock,
+        graph,
+        environment,
+        runtimesByComponent,
+        firmwareResult: firmwareResult ?? emptyFirmwareResult(),
+        pinEvents,
+        serialEvents,
+        diagnostics: [...diagnostics],
+        source: 'wasm'
+      });
+    }
+  };
+}
+
 export async function runProjectWasmSimulation({ state, nets, terminalKind, wasmBase64, wasmDiagnostics = [], serialRx = [] }) {
   const context = createSimulationContext({ state, nets, terminalKind, serialRx });
   const { graph, runtime, environment, clock, scheduler } = context;
@@ -79,6 +154,128 @@ export async function runProjectWasmSimulation({ state, nets, terminalKind, wasm
   const firmwareResult = wasmSession.runLoop({ loopIterations: 3 });
 
   return finalizeSimulationResult({ clock, graph, runtime, environment, firmwareResult, diagnostics, pins: program.pins, source: 'wasm' });
+}
+
+function wasmSessionSetup(session) {
+  session.wasmSession.setup();
+}
+
+function receiveTargetedSerial({ runtimesByComponent, graph, message }) {
+  const targetComponentId = message?.targetComponentId && runtimesByComponent.has(message.targetComponentId)
+    ? message.targetComponentId
+    : firstRuntimeComponentId({ graph, runtimesByComponent });
+  const runtime = runtimesByComponent.get(targetComponentId);
+
+  runtime?.serialReceive(message);
+}
+
+function firstRuntimeComponentId({ graph, runtimesByComponent }) {
+  return graph.findComponentsByBehaviorType('microcontroller').find((component) => runtimesByComponent.has(component.id))?.id
+    ?? [...runtimesByComponent.keys()][0];
+}
+
+function routeSerialTxToConnectedRx({ graph, runtimesByComponent, sourceComponent, events }) {
+  const sourceTx = sourceComponent.behavior?.buses?.uart?.[0]?.tx;
+
+  if (!sourceTx) {
+    return;
+  }
+
+  const sourceNet = graph.findTerminalNet(sourceComponent.id, sourceTx);
+
+  if (!sourceNet) {
+    return;
+  }
+
+  const data = events
+    .filter((event) => event.direction === 'TX' && event.type === 'data')
+    .map((event) => event.data)
+    .join('');
+
+  if (!data) {
+    return;
+  }
+
+  for (const component of graph.findComponentsByBehaviorType('microcontroller')) {
+    if (component.id === sourceComponent.id) {
+      continue;
+    }
+
+    const targetRx = component.behavior?.buses?.uart?.[0]?.rx;
+
+    if (!targetRx || !sourceNet.terminals.some((terminal) => terminal.componentId === component.id && terminal.terminalId === targetRx)) {
+      continue;
+    }
+
+    runtimesByComponent.get(component.id)?.serialReceive({
+      data,
+      baudRate: events.find((event) => event.baudRate)?.baudRate ?? null,
+      routedFromComponentId: sourceComponent.id
+    });
+  }
+}
+
+function finalizeMultiSimulationResult({ clock, graph, environment, runtimesByComponent, firmwareResult, pinEvents, serialEvents, diagnostics, source }) {
+  const primaryRuntime = runtimesByComponent.get(firstRuntimeComponentId({ graph, runtimesByComponent })) ?? [...runtimesByComponent.values()][0];
+  const electrical = solveElectricalState({ graph, runtime: primaryRuntime, runtimesByComponent });
+  const signalSnapshot = createSignalSnapshot({ graph, runtime: primaryRuntime, electrical });
+
+  diagnostics.push(...electrical.diagnostics);
+
+  return {
+    source,
+    timeUs: clock.nowUs(),
+    firmwareResult: {
+      ...firmwareResult,
+      pinEvents,
+      serial: {
+        baudRate: serialEvents.findLast((event) => Number.isFinite(event.baudRate))?.baudRate ?? null,
+        events: serialEvents,
+        supportedBaudRates: primaryRuntime?.getSerialSnapshot().supportedBaudRates ?? []
+      },
+      pinStatesByComponent: Object.fromEntries([...runtimesByComponent.entries()].map(([componentId, runtime]) => [componentId, runtime.getPinsSnapshot()]))
+    },
+    signals: {
+      trig: 0,
+      echo: 0,
+      led: [...electrical.ledStates.values()].some(Boolean) ? 1 : 0,
+      rain: rainSignal(environment),
+      rainDo: 0,
+      light: lightSignal(environment),
+      lightAnalog: 0
+    },
+    signalsByComponent: signalSnapshot.signalsByComponent,
+    signalsByNet: signalSnapshot.signalsByNet,
+    ledStates: electrical.ledStates,
+    builtInLedStates: builtInLedStates({ graph, runtime: primaryRuntime, runtimesByComponent }),
+    builtInLedEvents: builtInLedEvents({ graph, pinEvents }),
+    electrical,
+    environment: environment.snapshot(),
+    serial: {
+      baudRate: serialEvents.findLast((event) => Number.isFinite(event.baudRate))?.baudRate ?? null,
+      events: serialEvents,
+      supportedBaudRates: primaryRuntime?.getSerialSnapshot().supportedBaudRates ?? []
+    },
+    diagnostics
+  };
+}
+
+function emptyFirmwareResult() {
+  return {
+    echoDuration: 0,
+    distanceCm: 0,
+    ledValue: 'LOW',
+    variables: {},
+    checkpoints: [],
+    pinStates: {},
+    analogPinStates: {},
+    pinEvents: [],
+    serial: { baudRate: null, events: [], supportedBaudRates: [] },
+    i2c: {},
+    spi: {},
+    wifi: {},
+    source: 'wasm'
+  };
 }
 
 export function createSimulationContext({ state, nets, terminalKind, serialRx = [] }) {
@@ -227,7 +424,7 @@ function firstProgrammableBuiltInLed(graph) {
   return null;
 }
 
-function builtInLedStates({ graph, runtime }) {
+function builtInLedStates({ graph, runtime, runtimesByComponent = null }) {
   const states = new Map();
 
   for (const component of graph.components.values()) {
@@ -239,7 +436,8 @@ function builtInLedStates({ graph, runtime }) {
         continue;
       }
 
-      const pinValue = runtime.getPin(led.pin).value;
+      const boardRuntime = runtimesByComponent?.get(component.id) ?? runtime;
+      const pinValue = boardRuntime.getPin(led.pin).value;
       const isOn = led.activeHigh === false ? pinValue === 'LOW' : pinValue === 'HIGH';
       states.set(key, isOn);
     }

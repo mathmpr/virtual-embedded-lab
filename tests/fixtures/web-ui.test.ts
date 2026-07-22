@@ -151,8 +151,8 @@ test('web UI prevents known interaction regressions', () => {
 
   assert.match(script, /nextComponentId\(type\)/);
   assert.match(script, /syncComponentCounter\(componentId\)/);
-  assert.match(solver, /solveElectricalState\(\{ graph, runtime \}\)/);
-  assert.match(solver, /findDrivenHighPins\(\{ runtime, arduino \}\)/);
+  assert.match(solver, /solveElectricalState\(\{ graph, runtime, runtimesByComponent = null \}\)/);
+  assert.match(solver, /findDrivenHighPins\(\{ graph, runtime, arduino, runtimesByComponent \}\)/);
   assert.match(componentBinder, /closest\('/);
   assert.match(componentBinder, /input, textarea, select/);
   assert.match(componentTemplate, /data-delete-component/);

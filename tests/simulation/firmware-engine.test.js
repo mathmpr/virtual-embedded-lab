@@ -6,7 +6,10 @@ import { normalizeProjectCode } from '../../apps/web/js/project-serializer.js';
 import { compileArduinoFirmware, runArduinoFirmware } from '../../apps/web/js/simulation/firmware-engine.js';
 import { ArduinoRuntime } from '../../apps/web/js/simulation/arduino-runtime.js';
 import { runLegacyIrProjectSimulation } from '../../apps/web/js/simulation/legacy-ir-simulation.js';
-import { createProjectWasmSimulationSession } from '../../apps/web/js/simulation/simulation-engine.js';
+import {
+  createProjectMultiWasmSimulationSession,
+  createProjectWasmSimulationSession
+} from '../../apps/web/js/simulation/simulation-engine.js';
 import { EventScheduler, VirtualClock } from '../../apps/web/js/simulation/virtual-time.js';
 
 const root = new URL('../..', import.meta.url).pathname;
@@ -330,6 +333,96 @@ test('counter blink WASM session persists globals across simulation frames', asy
 
   assert.match(serial, /counter: 3/);
   assert.match(serial, /counter: 6/);
+});
+
+test('Arduino Serial LED example reacts to RX on and off commands through WASM', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-serial-led/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
+    constants: {
+      LED_BUILTIN: 13
+    }
+  });
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})]
+      ])
+    },
+    nets: [],
+    terminalKind() {
+      return 'signal';
+    },
+    wasmBase64: wasm.wasmBase64
+  });
+
+  session.runFrame();
+  const onResult = session.runFrame({ serialRx: [{ data: 'on', baudRate: 115200 }] });
+  const offResult = session.runFrame({ serialRx: [{ data: 'off', baudRate: 115200 }] });
+
+  assert.equal(wasm.ok, true);
+  assert.equal(onResult.firmwareResult.pinStates[13].value, 'HIGH');
+  assert.match(serialText(onResult), /LED ON/);
+  assert.equal(offResult.firmwareResult.pinStates[13].value, 'LOW');
+  assert.match(serialText(offResult), /LED OFF/);
+});
+
+test('Arduino Serial bridge example routes TX to another board RX through WASM', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-serial-bridge-led/project.json'), 'utf8'));
+  const wasmByComponentId = new Map();
+
+  for (const componentId of ['arduino-1', 'arduino-2']) {
+    const firmware = project.firmwares[componentId];
+    const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(firmware.files[firmware.entry]), {
+      constants: {
+        LED_BUILTIN: 13
+      }
+    });
+
+    assert.equal(wasm.ok, true, componentId);
+    wasmByComponentId.set(componentId, wasm);
+  }
+
+  const session = await createProjectMultiWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
+        ['arduino-2', officialComponent('arduino-2', 'arduino', {})],
+        ['resistor-1', officialComponent('resistor-1', 'resistor', { resistanceOhms: 220 })],
+        ['led-1', officialComponent('led-1', 'led', {})]
+      ])
+    },
+    nets: project.connections.map((connection) => ({
+      id: connection.id,
+      terminals: connection.terminals.map((reference) => {
+        const [componentId, terminalId] = reference.split('.');
+        return { componentId, terminalId };
+      })
+    })),
+    terminalKind(terminal) {
+      if (/gnd/.test(terminal.terminalId)) {
+        return 'ground';
+      }
+
+      if (/5v|3v3/.test(terminal.terminalId)) {
+        return 'power';
+      }
+
+      return 'signal';
+    },
+    wasmByComponentId
+  });
+
+  session.runFrame();
+  const firstPing = session.runFrame({ serialRx: [{ targetComponentId: 'arduino-1', data: 'ping', baudRate: 115200 }] });
+  const secondPing = session.runFrame({ serialRx: [{ targetComponentId: 'arduino-1', data: 'ping', baudRate: 115200 }] });
+
+  assert.equal(firstPing.ledStates.get('led-1'), true);
+  assert.match(serialText(firstPing), /pong/);
+  assert.match(serialText(firstPing), /LED ON/);
+  assert.equal(secondPing.ledStates.get('led-1'), false);
+  assert.match(serialText(secondPing), /LED OFF/);
 });
 
 test('ESP32 WiFi example runs through WASM and reads signal environment', async () => {
@@ -853,6 +946,7 @@ function officialManifestByVisualType(type) {
     'fc37-rain-sensor': 'components/official/fc-37-rain-sensor/component.json',
     'hcsr04': 'components/official/hc-sr04/component.json',
     'ldr-light-sensor': 'components/official/ldr-light-sensor/component.json',
+    'led': 'components/official/led-red/component.json',
     'light-level': 'components/official/light-level/component.json',
     'mcp3008-adc': 'components/official/mcp3008/component.json',
     'rain-toggle': 'components/official/rain-toggle/component.json',

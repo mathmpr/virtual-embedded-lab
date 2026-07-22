@@ -22,6 +22,7 @@ import { createProjectActions } from './board/project-actions.js';
 import { createSerialPanel } from './board/serial-panel.js';
 import { createSignalsPanel } from './board/signals-panel.js';
 import { boardWorld, createInitialBoardState } from './board/state.js';
+import { normalizeProjectCode } from './project-serializer.js';
 import { createViewportController } from './board/viewport-controller.js';
 import { routeWire } from './board/wire-routing.js';
 
@@ -32,6 +33,8 @@ export function createBoardEditor(document) {
   const wireLayer = document.querySelector('#wireLayer');
   const inspectorContent = document.querySelector('#inspectorContent');
   const codeEditor = createCodeEditor(document.querySelector('#codeEditor'), '// Carregando exemplo...\n');
+  const firmwareTarget = document.querySelector('#firmwareTarget');
+  const currentFirmwareName = document.querySelector('#currentFirmwareName');
   const consoleOutput = document.querySelector('#consoleOutput');
   const signalMonitor = document.querySelector('#signalMonitor');
   const serialMonitor = document.querySelector('#serialMonitor');
@@ -137,7 +140,9 @@ export function createBoardEditor(document) {
     renderProblems,
     selectComponent,
     simulation,
-    syncRestoredComponentControls
+    syncRestoredComponentControls,
+    saveActiveFirmware,
+    syncFirmwareEditor
   });
   const { bindComponent } = createComponentBinder({
     state,
@@ -160,11 +165,13 @@ export function createBoardEditor(document) {
     bindPalette();
     bindToolbar();
     bindBottomTabs();
+    bindFirmwareSelector();
     bindSerialInput();
     bindBoardViewport();
     bindBoardDrop();
     bindResizer();
     await loadDefaultExample();
+    syncFirmwareEditor({ loadActive: true });
     recordHistory();
     window.addEventListener('resize', () => {
       centerViewportOnContent();
@@ -355,6 +362,7 @@ export function createBoardEditor(document) {
 
     state.components.set(componentId, model);
     syncComponentCounter(componentId);
+    syncFirmwareEditor();
     bindComponent(element, model);
     selectComponent(componentId);
     drawWires();
@@ -518,6 +526,94 @@ export function createBoardEditor(document) {
   async function loadExampleById(exampleId, shouldRecord = true) {
     const project = await loadExampleProject(exampleId);
     restoreProject(project, shouldRecord);
+  }
+
+  function bindFirmwareSelector() {
+    firmwareTarget.addEventListener('change', () => {
+      saveActiveFirmware();
+      state.activeFirmwareComponentId = firmwareTarget.value || null;
+      loadActiveFirmware();
+      syncFirmwareEditor();
+      simulation.resetSimulation();
+    });
+  }
+
+  function syncFirmwareEditor({ loadActive = false } = {}) {
+    const boards = microcontrollerComponents();
+
+    if (boards.length === 0) {
+      firmwareTarget.innerHTML = '<option value="">main.ino</option>';
+      currentFirmwareName.textContent = 'main.ino';
+      return;
+    }
+
+    ensureFirmwareEntries(boards);
+
+    if (!boards.some((component) => component.id === state.activeFirmwareComponentId)) {
+      state.activeFirmwareComponentId = boards[0].id;
+    }
+
+    firmwareTarget.innerHTML = boards.map((component) => {
+      const firmware = state.firmwares.get(component.id);
+      return `<option value="${escapeHtml(component.id)}">${escapeHtml(component.id)} / ${escapeHtml(firmware.entry)}</option>`;
+    }).join('');
+    firmwareTarget.value = state.activeFirmwareComponentId;
+    currentFirmwareName.textContent = state.firmwares.get(state.activeFirmwareComponentId)?.entry ?? 'main.ino';
+
+    if (loadActive) {
+      loadActiveFirmware();
+    }
+  }
+
+  function saveActiveFirmware() {
+    const componentId = state.activeFirmwareComponentId;
+
+    if (!componentId || !state.firmwares.has(componentId)) {
+      return;
+    }
+
+    const firmware = state.firmwares.get(componentId);
+    state.firmwares.set(componentId, {
+      ...firmware,
+      files: {
+        ...(firmware.files ?? {}),
+        [firmware.entry]: codeEditor.value
+      }
+    });
+  }
+
+  function loadActiveFirmware() {
+    const firmware = state.firmwares.get(state.activeFirmwareComponentId);
+
+    if (!firmware) {
+      return;
+    }
+
+    codeEditor.value = normalizeProjectCode(firmware.files?.[firmware.entry] ?? '');
+    currentFirmwareName.textContent = firmware.entry;
+  }
+
+  function ensureFirmwareEntries(boards) {
+    const legacyCode = codeEditor.value;
+
+    for (const [index, component] of boards.entries()) {
+      if (state.firmwares.has(component.id)) {
+        continue;
+      }
+
+      const entry = boards.length > 1 ? `main-${component.id}.ino` : 'main.ino';
+      state.firmwares.set(component.id, {
+        language: 'arduino-cpp',
+        entry,
+        files: {
+          [entry]: index === 0 ? legacyCode : 'void setup() {\n}\n\nvoid loop() {\n}\n'
+        }
+      });
+    }
+  }
+
+  function microcontrollerComponents() {
+    return [...state.components.values()].filter((component) => component.behavior?.type === 'microcontroller');
   }
 
   function syncRestoredComponentControls(component) {

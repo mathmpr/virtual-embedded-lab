@@ -5,6 +5,7 @@ export function createSerialPanel({ document, state, serialMonitor }) {
 
   function bindSerialInput() {
     const input = document.querySelector('#serialInput');
+    const target = document.querySelector('#serialTarget');
     const baudRate = document.querySelector('#serialBaudRate');
     const button = document.querySelector('#sendSerialInput');
     const clearButton = document.querySelector('#clearSerialHistory');
@@ -18,11 +19,13 @@ export function createSerialPanel({ document, state, serialMonitor }) {
 
       state.serialRxQueue.push({
         data: value,
+        targetComponentId: target.value || null,
         baudRate: Number(baudRate.value)
       });
       appendSerialEvents([{
         direction: 'RX',
         type: 'data',
+        componentId: target.value || null,
         baudRate: Number(baudRate.value),
         data: value,
         timeUs: 0
@@ -30,6 +33,7 @@ export function createSerialPanel({ document, state, serialMonitor }) {
       input.value = '';
     };
 
+    syncSerialTargets(target);
     button.addEventListener('click', send);
     autoScrollButton.addEventListener('click', () => {
       state.serialAutoScroll = !state.serialAutoScroll;
@@ -51,6 +55,7 @@ export function createSerialPanel({ document, state, serialMonitor }) {
   }
 
   function renderSerial() {
+    syncSerialTargets(document.querySelector('#serialTarget'));
     const events = state.serialHistory;
 
     if (events.length === 0) {
@@ -61,7 +66,7 @@ export function createSerialPanel({ document, state, serialMonitor }) {
     serialMonitor.innerHTML = events.map((event) => `
       <div class="serial-row">
         <span class="serial-direction ${event.direction.toLowerCase()}">${event.direction}</span>
-        <span class="serial-meta">${event.baudRate ?? 'no baud'}<br>${event.timeUs} us</span>
+        <span class="serial-meta">${escapeHtml(event.componentId ?? 'serial')}<br>${event.baudRate ?? 'no baud'}<br>${event.timeUs} us</span>
         <span class="serial-data">${escapeHtml(event.data)}</span>
       </div>
     `).join('');
@@ -108,6 +113,28 @@ export function createSerialPanel({ document, state, serialMonitor }) {
     button.setAttribute('aria-pressed', String(state.serialAutoScroll));
     button.setAttribute('aria-label', `Auto-scroll Serial ${state.serialAutoScroll ? 'ativado' : 'desativado'}`);
     button.title = `Auto-scroll Serial ${state.serialAutoScroll ? 'ativado' : 'desativado'}`;
+  }
+
+  function syncSerialTargets(select) {
+    if (!select) {
+      return;
+    }
+
+    const selected = select.value;
+    const targets = [...state.components.values()]
+      .filter((component) => component.behavior?.type === 'microcontroller')
+      .map((component) => ({
+        id: component.id,
+        label: `${component.id} (${component.type})`
+      }));
+
+    select.innerHTML = targets.length > 0
+      ? targets.map((target) => `<option value="${escapeHtml(target.id)}">${escapeHtml(target.label)}</option>`).join('')
+      : '<option value="">RX alvo</option>';
+
+    if (targets.some((target) => target.id === selected)) {
+      select.value = selected;
+    }
   }
 
   return {

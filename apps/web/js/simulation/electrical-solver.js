@@ -1,10 +1,10 @@
-export function solveElectricalState({ graph, runtime }) {
+export function solveElectricalState({ graph, runtime, runtimesByComponent = null }) {
   const diagnostics = [];
   const ledStates = new Map();
   const componentReadings = new Map();
   const netReadings = new Map();
   const arduino = graph.findComponentsByBehaviorType('microcontroller')[0] ?? null;
-  const drivenHighPins = findDrivenHighPins({ runtime, arduino });
+  const drivenHighPins = findDrivenHighPins({ graph, runtime, arduino, runtimesByComponent });
   const netlist = createElectricalNetlist({ graph, runtime, drivenHighPins });
 
   detectShorts({ graph, arduino, drivenHighPins, diagnostics, netReadings });
@@ -50,7 +50,7 @@ function solveLedPath({ graph, arduino, led, drivenHighPins }) {
     state: 'off'
   };
 
-  if (!arduino || drivenHighPins.length === 0) {
+  if (drivenHighPins.length === 0) {
     return { isLit: false, ledReading: defaultReading, resistorReading: null, diagnostics };
   }
 
@@ -219,19 +219,30 @@ function isTerminalConnectedToGround(graph, terminal) {
   });
 }
 
-function findDrivenHighPins({ runtime, arduino }) {
-  if (!arduino) {
-    return [];
+function findDrivenHighPins({ graph, runtime, arduino, runtimesByComponent }) {
+  const boards = runtimesByComponent
+    ? graph.findComponentsByBehaviorType('microcontroller')
+    : [arduino].filter(Boolean);
+  const pins = [];
+
+  for (const board of boards) {
+    const boardRuntime = runtimesByComponent?.get(board.id) ?? runtime;
+
+    if (!boardRuntime) {
+      continue;
+    }
+
+    pins.push(...Object.entries(board.behavior?.pinMap ?? {})
+      .filter(([, pin]) => {
+        return pin.capabilities?.includes('digital')
+          && Number.isInteger(pin.number)
+          && boardRuntime.getPin(pin.number).mode === 'OUTPUT'
+          && boardRuntime.getPin(pin.number).value === 'HIGH';
+      })
+      .map(([terminalId]) => ({ componentId: board.id, terminalId })));
   }
 
-  return Object.entries(arduino.behavior?.pinMap ?? {})
-    .filter(([, pin]) => {
-      return pin.capabilities?.includes('digital')
-        && Number.isInteger(pin.number)
-        && runtime.getPin(pin.number).mode === 'OUTPUT'
-        && runtime.getPin(pin.number).value === 'HIGH';
-    })
-    .map(([terminalId]) => ({ componentId: arduino.id, terminalId }));
+  return pins;
 }
 
 function detectShorts({ graph, arduino, drivenHighPins, diagnostics, netReadings }) {
@@ -663,6 +674,10 @@ function diagnoseFloatingInputs({ graph, netlist, runtime, diagnostics }) {
         continue;
       }
 
+      if (netHasUartPeer({ graph, net, ownerComponentId: component.id })) {
+        continue;
+      }
+
       const node = netlist.nodes.get(net.id);
 
       if (node?.state === 'floating') {
@@ -670,6 +685,28 @@ function diagnoseFloatingInputs({ graph, netlist, runtime, diagnostics }) {
       }
     }
   }
+}
+
+function netHasUartPeer({ graph, net, ownerComponentId }) {
+  const ownerTerminal = net.terminals.find((terminal) => terminal.componentId === ownerComponentId);
+  const ownerComponent = graph.components.get(ownerComponentId);
+  const ownerCapabilities = ownerComponent?.behavior?.pinMap?.[ownerTerminal?.terminalId]?.capabilities ?? [];
+
+  if (!ownerCapabilities.some((capability) => capability === 'uart-rx' || capability === 'uart-tx')) {
+    return false;
+  }
+
+  return net.terminals.some((terminal) => {
+    if (terminal.componentId === ownerComponentId) {
+      return false;
+    }
+
+    const component = graph.components.get(terminal.componentId);
+    const capabilities = component?.behavior?.pinMap?.[terminal.terminalId]?.capabilities ?? [];
+
+    return ownerCapabilities.includes('uart-rx') && capabilities.includes('uart-tx')
+      || ownerCapabilities.includes('uart-tx') && capabilities.includes('uart-rx');
+  });
 }
 
 function netHasRuntimeDriverOrPassivePath({ graph, net, ownerComponentId }) {

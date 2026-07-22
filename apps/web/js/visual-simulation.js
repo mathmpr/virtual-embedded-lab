@@ -1,11 +1,16 @@
-import { createProjectWasmSimulationSession } from './simulation/simulation-engine.js';
+import {
+  createProjectMultiWasmSimulationSession,
+  createProjectWasmSimulationSession
+} from './simulation/simulation-engine.js';
 import { analyzeFirmwareWithBackend, compileFirmwareWasmWithBackend } from './simulation/firmware-analysis-client.js';
+import { normalizeProjectCode } from './project-serializer.js';
 
 export function createVisualSimulation({ state, renderSignals, renderSerial, renderProblems, consoleOutput, getNets, terminalKind, codeEditor, consumeSerialRx, clearSerialRx, appendSerialEvents, clearSerialHistory, onSimulationResult }) {
   let builtInLedAnimationTimers = [];
   let simulationTimer = null;
   let firmwareAnalysisCache = null;
   let firmwareWasmCache = null;
+  let multiFirmwareWasmCache = null;
   let wasmSimulationSession = null;
   let runningFrame = false;
   let previousFrameTimeUs = 0;
@@ -18,6 +23,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     state.running = true;
     firmwareAnalysisCache = null;
     firmwareWasmCache = null;
+    multiFirmwareWasmCache = null;
     wasmSimulationSession = null;
     previousFrameTimeUs = 0;
     await runSimulationFrame();
@@ -33,10 +39,16 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     try {
       const firmwareAnalysis = firmwareAnalysisCache ?? await analyzeFirmwareWithBackend(codeEditor.value);
       firmwareAnalysisCache = firmwareAnalysis;
-      const firmwareWasm = firmwareWasmCache ?? await compileFirmwareWasmWithBackend(codeEditor.value, {
-        constants: firmwareConstantsForBoard()
-      });
-      firmwareWasmCache = firmwareWasm;
+      const multiFirmwareSources = firmwareSourcesByComponent();
+      const firmwareWasm = multiFirmwareSources.size > 1
+        ? await compileMultiFirmwareWasm(multiFirmwareSources)
+        : firmwareWasmCache ?? await compileFirmwareWasmWithBackend(codeEditor.value, {
+          constants: firmwareConstantsForBoard()
+        });
+
+      if (multiFirmwareSources.size <= 1) {
+        firmwareWasmCache = firmwareWasm;
+      }
 
       if (firmwareAnalysis.available && firmwareAnalysis.ok === false) {
         state.running = false;
@@ -92,6 +104,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     stopSimulationTimer();
     firmwareAnalysisCache = null;
     firmwareWasmCache = null;
+    multiFirmwareWasmCache = null;
     wasmSimulationSession = null;
     previousFrameTimeUs = 0;
     state.signals = { trig: 0, echo: 0, led: 0 };
@@ -215,6 +228,18 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
 
   async function runWasmSimulationFrame({ firmwareWasm, serialRx }) {
     if (!wasmSimulationSession) {
+      if (firmwareWasm.multi) {
+        wasmSimulationSession = await createProjectMultiWasmSimulationSession({
+          state,
+          nets: getNets(),
+          terminalKind,
+          wasmByComponentId: firmwareWasm.byComponentId,
+          wasmDiagnosticsByComponentId: firmwareWasm.diagnosticsByComponentId,
+          serialRx
+        });
+        return wasmSimulationSession.runFrame();
+      }
+
       wasmSimulationSession = await createProjectWasmSimulationSession({
         state,
         nets: getNets(),
@@ -229,8 +254,79 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     return wasmSimulationSession.runFrame({ serialRx });
   }
 
-  function firmwareConstantsForBoard() {
-    const led = firstProgrammableBuiltInLed();
+  async function compileMultiFirmwareWasm(sourcesByComponentId) {
+    const cacheKey = JSON.stringify([...sourcesByComponentId.entries()]);
+
+    if (multiFirmwareWasmCache?.cacheKey === cacheKey) {
+      return multiFirmwareWasmCache.result;
+    }
+
+    const byComponentId = new Map();
+    const diagnosticsByComponentId = new Map();
+    let ok = true;
+
+    for (const [componentId, code] of sourcesByComponentId) {
+      const component = state.components.get(componentId);
+      const result = await compileFirmwareWasmWithBackend(code, {
+        constants: firmwareConstantsForBoard(component)
+      });
+
+      byComponentId.set(componentId, result);
+      diagnosticsByComponentId.set(componentId, result.diagnostics ?? []);
+      ok = ok && result.ok === true;
+    }
+
+    const result = {
+      multi: true,
+      ok,
+      byComponentId,
+      diagnosticsByComponentId,
+      diagnostics: [...diagnosticsByComponentId.entries()].flatMap(([componentId, diagnostics]) => {
+        return diagnostics.map((diagnostic) => ({
+          ...diagnostic,
+          message: `${componentId}: ${diagnostic.message}`
+        }));
+      })
+    };
+
+    multiFirmwareWasmCache = { cacheKey, result };
+    return result;
+  }
+
+  function firmwareSourcesByComponent() {
+    const firmwares = state.firmwares instanceof Map
+      ? state.firmwares
+      : new Map(Object.entries(state.firmwares ?? {}));
+
+    if (firmwares.size === 0) {
+      return new Map();
+    }
+
+    const sources = new Map();
+    for (const component of state.components.values()) {
+      if (component.behavior?.type !== 'microcontroller') {
+        continue;
+      }
+
+      const firmware = firmwares.get(component.id);
+      const code = component.id === state.activeFirmwareComponentId
+        ? codeEditor.value
+        : firmwareCodeOrEmpty(firmware);
+
+      sources.set(component.id, code);
+    }
+
+    return sources;
+  }
+
+  function firmwareCodeOrEmpty(firmware) {
+    return normalizeProjectCode(firmware?.files?.[firmware.entry] ?? '');
+  }
+
+  function firmwareConstantsForBoard(component = null) {
+    const led = component
+      ? component.behavior?.builtInLeds?.find((item) => Number.isInteger(item.pin))
+      : firstProgrammableBuiltInLed();
 
     return Number.isInteger(led?.pin)
       ? { LED_BUILTIN: led.pin }
@@ -247,6 +343,10 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     }
 
     return null;
+  }
+
+  function firstMicrocontroller() {
+    return [...state.components.values()].find((component) => component.behavior?.type === 'microcontroller') ?? null;
   }
 
   return {

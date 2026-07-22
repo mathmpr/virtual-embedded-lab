@@ -31,10 +31,11 @@ export class ArduinoRuntime {
     accessPoint: null
   };
 
-  constructor(clock, scheduler, graph) {
+  constructor(clock, scheduler, graph, options = {}) {
     this.clock = clock;
     this.scheduler = scheduler;
     this.graph = graph;
+    this.componentId = options.componentId ?? null;
   }
 
   pinMode(pin, mode) {
@@ -54,7 +55,7 @@ export class ArduinoRuntime {
       value,
       timeUs: this.clock.nowUs()
     });
-    this.graph.driveArduinoPin(pin, value);
+    this.graph.driveArduinoPin(pin, value, this.componentId);
   }
 
   driveInput(pin, value) {

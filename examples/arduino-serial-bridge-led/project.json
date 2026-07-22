@@ -1,0 +1,108 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Arduino Serial Bridge LED",
+  "board": {
+    "width": 1600,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "arduino-1",
+      "componentId": "board.arduino.uno",
+      "position": {
+        "x": 260,
+        "y": 210
+      },
+      "properties": {}
+    },
+    {
+      "id": "arduino-2",
+      "componentId": "board.arduino.uno",
+      "position": {
+        "x": 760,
+        "y": 210
+      },
+      "properties": {}
+    },
+    {
+      "id": "resistor-1",
+      "componentId": "electronic.resistor",
+      "position": {
+        "x": 1140,
+        "y": 330
+      },
+      "properties": {
+        "resistanceOhms": 220
+      }
+    },
+    {
+      "id": "led-1",
+      "componentId": "electronic.led.red",
+      "position": {
+        "x": 1330,
+        "y": 380
+      },
+      "properties": {}
+    }
+  ],
+  "connections": [
+    {
+      "id": "net-1",
+      "color": "#45d6c4",
+      "terminals": [
+        "arduino-1.d1",
+        "arduino-2.d0"
+      ]
+    },
+    {
+      "id": "net-2",
+      "color": "#f5f7fa",
+      "terminals": [
+        "arduino-1.gnd",
+        "arduino-2.gnd",
+        "led-1.cathode"
+      ]
+    },
+    {
+      "id": "net-3",
+      "color": "#ffb454",
+      "terminals": [
+        "arduino-2.d13",
+        "resistor-1.a"
+      ]
+    },
+    {
+      "id": "net-4",
+      "color": "#ffb454",
+      "terminals": [
+        "resistor-1.b",
+        "led-1.anode"
+      ]
+    }
+  ],
+  "environmentConnections": [],
+  "firmwares": {
+    "arduino-1": {
+      "language": "arduino-cpp",
+      "entry": "main-arduino-1.ino",
+      "files": {
+        "main-arduino-1.ino": "char command[8];\\nint commandLength = 0;\\n\\nbool commandEquals(const char *expected)\\n{\\n    int index = 0;\\n\\n    while (expected[index] != 0 && command[index] != 0) {\\n        if (expected[index] != command[index]) {\\n            return false;\\n        }\\n\\n        index++;\\n    }\\n\\n    return expected[index] == 0 && command[index] == 0;\\n}\\n\\nvoid clearCommand()\\n{\\n    for (int index = 0; index < 8; index++) {\\n        command[index] = 0;\\n    }\\n\\n    commandLength = 0;\\n}\\n\\nvoid handleCommand()\\n{\\n    if (commandEquals(\"ping\")) {\\n        Serial.println(\"pong\");\\n        clearCommand();\\n    }\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    clearCommand();\\n}\\n\\nvoid loop()\\n{\\n    while (Serial.available() > 0) {\\n        const int incoming = Serial.read();\\n\\n        if (incoming == 10 || incoming == 13) {\\n            clearCommand();\\n            continue;\\n        }\\n\\n        if (commandLength < 7) {\\n            command[commandLength] = (char) incoming;\\n            commandLength++;\\n            command[commandLength] = 0;\\n            handleCommand();\\n        } else {\\n            clearCommand();\\n        }\\n    }\\n\\n    delay(10);\\n}\\n"
+      }
+    },
+    "arduino-2": {
+      "language": "arduino-cpp",
+      "entry": "main-arduino-2.ino",
+      "files": {
+        "main-arduino-2.ino": "const int LED_PIN = 13;\\nchar command[8];\\nint commandLength = 0;\\nbool ledOn = false;\\n\\nbool commandEquals(const char *expected)\\n{\\n    int index = 0;\\n\\n    while (expected[index] != 0 && command[index] != 0) {\\n        if (expected[index] != command[index]) {\\n            return false;\\n        }\\n\\n        index++;\\n    }\\n\\n    return expected[index] == 0 && command[index] == 0;\\n}\\n\\nvoid clearCommand()\\n{\\n    for (int index = 0; index < 8; index++) {\\n        command[index] = 0;\\n    }\\n\\n    commandLength = 0;\\n}\\n\\nvoid toggleLed()\\n{\\n    ledOn = !ledOn;\\n    digitalWrite(LED_PIN, ledOn ? HIGH : LOW);\\n\\n    if (ledOn) {\\n        Serial.println(\"LED ON\");\\n    } else {\\n        Serial.println(\"LED OFF\");\\n    }\\n}\\n\\nvoid handleCommand()\\n{\\n    if (commandEquals(\"pong\")) {\\n        toggleLed();\\n        clearCommand();\\n    }\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    pinMode(LED_PIN, OUTPUT);\\n    digitalWrite(LED_PIN, LOW);\\n    clearCommand();\\n}\\n\\nvoid loop()\\n{\\n    while (Serial.available() > 0) {\\n        const int incoming = Serial.read();\\n\\n        if (incoming == 10 || incoming == 13) {\\n            clearCommand();\\n            continue;\\n        }\\n\\n        if (commandLength < 7) {\\n            command[commandLength] = (char) incoming;\\n            commandLength++;\\n            command[commandLength] = 0;\\n            handleCommand();\\n        } else {\\n            clearCommand();\\n        }\\n    }\\n\\n    delay(10);\\n}\\n"
+      }
+    }
+  },
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main-arduino-1.ino",
+    "files": {
+      "main-arduino-1.ino": "char command[8];\\nint commandLength = 0;\\n\\nbool commandEquals(const char *expected)\\n{\\n    int index = 0;\\n\\n    while (expected[index] != 0 && command[index] != 0) {\\n        if (expected[index] != command[index]) {\\n            return false;\\n        }\\n\\n        index++;\\n    }\\n\\n    return expected[index] == 0 && command[index] == 0;\\n}\\n\\nvoid clearCommand()\\n{\\n    for (int index = 0; index < 8; index++) {\\n        command[index] = 0;\\n    }\\n\\n    commandLength = 0;\\n}\\n\\nvoid handleCommand()\\n{\\n    if (commandEquals(\"ping\")) {\\n        Serial.println(\"pong\");\\n        clearCommand();\\n    }\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    clearCommand();\\n}\\n\\nvoid loop()\\n{\\n    while (Serial.available() > 0) {\\n        const int incoming = Serial.read();\\n\\n        if (incoming == 10 || incoming == 13) {\\n            clearCommand();\\n            continue;\\n        }\\n\\n        if (commandLength < 7) {\\n            command[commandLength] = (char) incoming;\\n            commandLength++;\\n            command[commandLength] = 0;\\n            handleCommand();\\n        } else {\\n            clearCommand();\\n        }\\n    }\\n\\n    delay(10);\\n}\\n"
+    }
+  }
+}

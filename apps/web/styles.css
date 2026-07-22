@@ -1083,6 +1083,17 @@ button:disabled {
   text-transform: none;
 }
 
+.firmware-target {
+  max-width: 240px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #1e1f22;
+  color: var(--text);
+  font: 11px var(--mono);
+}
+
 .code-editor {
   width: 100%;
   height: calc(100% - 30px);
@@ -1184,7 +1195,7 @@ pre {
 
 .serial-controls {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(112px, 0.85fr) 88px minmax(0, 1fr) auto;
   flex: 0 0 auto;
   gap: 6px;
   margin-bottom: 8px;

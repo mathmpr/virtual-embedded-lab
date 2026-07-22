@@ -43,14 +43,21 @@ export function createCircuitGraph({ components, nets, terminalKind }) {
     return Boolean(leftNet && rightNet && leftNet.id === rightNet.id);
   }
 
-  function driveArduinoPin(pin, value) {
-    const arduino = findComponentsByBehaviorType('microcontroller')[0];
+  function driveArduinoPin(pin, value, componentId = null) {
+    const arduino = componentId
+      ? components.get(componentId)
+      : findComponentsByBehaviorType('microcontroller')[0];
 
     if (!arduino) {
       return;
     }
 
-    const terminalId = `d${pin}`;
+    const terminalId = terminalIdForPin(arduino, pin);
+
+    if (!terminalId) {
+      return;
+    }
+
     const net = findTerminalNet(arduino.id, terminalId);
 
     if (!net) {
@@ -62,6 +69,14 @@ export function createCircuitGraph({ components, nets, terminalKind }) {
         listener(terminal, value);
       }
     }
+  }
+
+  function terminalIdForPin(component, pin) {
+    const match = Object.entries(component.behavior?.pinMap ?? {}).find(([, pinConfig]) => {
+      return Number(pinConfig.number) === Number(pin);
+    });
+
+    return match?.[0] ?? `d${pin}`;
   }
 
   const terminalListeners = [];

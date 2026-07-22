@@ -9,8 +9,9 @@ import { partitionNetsByKind } from './nets.js';
 
 export function boardToProject({ state, board, codeEditor, nets, terminalKind }) {
   const { electricalNets, environmentNets } = partitionNetsByKind(nets);
+  const firmwares = projectFirmwaresFromState(state, codeEditor);
 
-  return {
+  const project = {
     schemaVersion: '1.0.0',
     name: 'Virtual Embedded Lab Project',
     board: {
@@ -50,6 +51,12 @@ export function boardToProject({ state, board, codeEditor, nets, terminalKind })
       }
     }
   };
+
+  if (firmwares.size > 0) {
+    project.firmwares = Object.fromEntries(firmwares.entries());
+  }
+
+  return project;
 }
 
 export function projectToSnapshot(project) {
@@ -85,6 +92,8 @@ export function projectToSnapshot(project) {
   return {
     components,
     wires: [...electricalWires, ...environmentWires],
+    firmwares: new Map(Object.entries(project.firmwares ?? {})),
+    activeFirmwareComponentId: Object.keys(project.firmwares ?? {})[0] ?? null,
     nextComponentId: nextCounterFromIds(components.map((component) => component.id)),
     nextWireId: nextCounterFromIds([...electricalWires, ...environmentWires].map((wire) => wire.id)),
     selectedId: components[0]?.id ?? null,
@@ -93,6 +102,12 @@ export function projectToSnapshot(project) {
 }
 
 export function projectCodeOrReference(project) {
+  const firstFirmware = Object.values(project.firmwares ?? {})[0];
+
+  if (firstFirmware?.files?.[firstFirmware.entry]) {
+    return normalizeProjectCode(firstFirmware.files[firstFirmware.entry]);
+  }
+
   return normalizeProjectCode(project.code?.files?.[project.code.entry] ?? '');
 }
 
@@ -116,6 +131,30 @@ function validateProjectShape(project) {
   if (!project.code?.files || !project.code.entry) {
     throw new Error('Projeto precisa conter code.files e code.entry.');
   }
+}
+
+function projectFirmwaresFromState(state, codeEditor) {
+  const firmwares = state.firmwares instanceof Map
+    ? new Map(state.firmwares)
+    : new Map(Object.entries(state.firmwares ?? {}));
+  const activeBoard = state.activeFirmwareComponentId
+    ? state.components.get(state.activeFirmwareComponentId)
+    : [...state.components.values()].find((component) => component.behavior?.type === 'microcontroller');
+
+  if (activeBoard && firmwares.has(activeBoard.id)) {
+    const current = firmwares.get(activeBoard.id);
+    firmwares.set(activeBoard.id, {
+      ...current,
+      language: current?.language ?? 'arduino-cpp',
+      entry: current?.entry ?? 'main.ino',
+      files: {
+        ...(current?.files ?? {}),
+        [current?.entry ?? 'main.ino']: codeEditor.value
+      }
+    });
+  }
+
+  return firmwares;
 }
 
 function terminalReferencesToWires(references, idPrefix, color) {
