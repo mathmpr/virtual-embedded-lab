@@ -4,6 +4,8 @@ Ambiente visual local-first para criação, programação e simulação comporta
 
 O projeto já possui um protótipo web funcional com board visual, catálogo oficial de componentes, editor CodeMirror, runtime Arduino inicial, análise de firmware com Clang local, Serial TX/RX, Wi-Fi simulado para ESP32/ESP8266, entradas analógicas por WASM, I2C/SPI inicial para sensores e ADCs, HTTP virtual, MQTT virtual/real, solver elétrico incremental, simulação multi-board e exemplos completos para HC-SR04 + LED, FC-37, LDR, BMP280, ADCs externos e controle de bomba d'água por broker MQTT.
 
+A arquitetura atual trata componentes como pacotes: cada componente oficial descreve seu manifest e pode carregar CSS, behavior de simulação, bibliotecas de firmware, shims C++ e imports WASM a partir da própria pasta.
+
 ## Requirements
 
 Obrigatórios:
@@ -137,7 +139,8 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 - O exemplo default atual é `examples/hc-sr04-led-distance/project.json`.
 - Há exemplos WASM para HC-SR04, Arduino Serial LED, Serial bridge multi-board, pull-up button, buzzer beep, ESP32 counter blink, ESP32 Wi-Fi Signal, ESP32 Wi-Fi Failover, ESP32 HTTP/TCP, ESP8266 MQTT water pump, FC-37 Rain Digital, LDR Light Analog, BMP280 Weather I2C, ADS1015/ADS1115 Single Ended, MCP3008 Single Ended e ESP Water Control Pump Reservoir.
 - Componentes oficiais ficam em `components/official/**/component.json`.
-- Novos componentes oficiais devem seguir `docs/official-component-guidelines.md`, `docs/component-contract.md` e o template `add-components/new-component-example.md` antes da implementação.
+- Componentes podem declarar contribuições locais em `ui/`, `simulation/` e `firmware/`; o core carrega esses arquivos por `contributions.styles`, `contributions.simulationBehaviors` e `contributions.wasmImports`.
+- Novos componentes oficiais devem seguir `docs/official-component-guidelines.md`, `docs/component-description.md`, `docs/component-contract.md` e o template `add-components/new-component-example.md` antes da implementação.
 - O catálogo oficial já inclui Arduino UNO, ESP32 DevKitC V4, ESP8266 NodeMCU, HC-SR04, FC-37 Rain Sensor, LDR Light Sensor, BMP280, ADS1015, ADS1115, MCP3008, pull-up button, buzzer, distância, Rain Environment, Light Environment, Climate Environment, Analog Voltage Source, Wi-Fi Signal, water pump, solid-state relay, water reservoir, resistores, capacitores e LEDs vermelho/verde/azul.
 - O Arduino UNO expõe LED built-in `L` em D13/`LED_BUILTIN`; o ESP32 DevKitC V4 expõe `PWR` e LED programável `LD` em GPIO2/`LED_BUILTIN`.
 - Sketches de blink em LED built-in rodam continuamente até Pause/Reset, respeitando `delay()` por tempo virtual e animando a timeline de `digitalWrite`; `LED_PIN`/`PIN` sem declaração são tratados como aliases de `LED_BUILTIN`.
@@ -156,6 +159,13 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 - O suporte LDR cobre `analogRead(A0)` via divisor de tensão com resistor, alimentado pelo Light Environment standalone sem resetar o tempo virtual quando a luminosidade muda.
 - O suporte BMP280 cobre `Wire.begin()` e uma classe shim `BMP280` mínima, registrada por endereço I2C, alimentada pelo Climate Environment standalone sem resetar o tempo virtual quando temperatura/pressão mudam.
 - O suporte a ADCs externos cobre `ADS1015`, `ADS1115` e `MCP3008` por classes shim mínimas, alimentadas por Analog Voltage Source sem resetar o tempo virtual quando a tensão muda.
+
+## Documentação de Componentes
+
+- `docs/component-description.md`: explica como um componente é empacotado, incluindo manifest, visual, contribuições, firmware, shims e behaviors.
+- `docs/component-contract.md`: define o contrato mínimo validado pelos testes.
+- `docs/official-component-guidelines.md`: define regras arquiteturais para evitar acoplamento novo no core.
+- `add-components/new-component-example.md`: template para planejar e aceitar um novo componente oficial.
 
 ## Limites Atuais
 

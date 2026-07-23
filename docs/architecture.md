@@ -5,7 +5,11 @@ O Virtual Embedded Lab está organizado em camadas para manter o protótipo visu
 ## Camadas Principais
 
 - `components/official/**/component.json`: fonte de verdade dos componentes oficiais, incluindo identidade, propriedades, variantes, terminais, modelo elétrico, comportamento e metadados visuais.
+- `components/official/**/ui/styles.css`: estilos visuais específicos carregados via `contributions.styles`.
+- `components/official/**/simulation/behavior.js`: behaviors especializados registrados via `contributions.simulationBehaviors`.
+- `components/official/**/firmware/`: bibliotecas, shims C++ e imports WASM específicos do componente.
 - `docs/component-contract.md`: contrato mínimo para manifests oficiais, incluindo `simulation.kind`, efeitos simulados, requisitos de `electricalModel`/`behavior` e invariantes de catálogo.
+- `docs/component-description.md`: guia prático de como um componente é descrito e empacotado.
 - `examples/**/project.json`: projetos de exemplo completos, incluindo board, componentes, conexões, cores de fios e código.
 - `schemas/`: contratos JSON de projeto e componentes.
 - `packages/`: núcleos reutilizáveis e tipos iniciais.
@@ -26,6 +30,8 @@ O servidor Node expõe:
 - `POST /api/network/mqtt/*`: bridge Node para broker MQTT TCP real quando o projeto declara `network.mqtt.mode` como `"real"`.
 
 Essa decisão mantém o frontend simples e permite que novos componentes/exemplos sejam adicionados por arquivo, sem editar código da UI.
+
+Os arquivos em `/components/official/**` também são servidos estaticamente. Isso permite que manifests apontem para CSS, behaviors e imports WASM dentro da própria pasta do componente.
 
 ## Firmware
 
@@ -67,7 +73,7 @@ O shim C++ transforma APIs Arduino mínimas em imports controlados pelo simulado
 - `WiFi.RSSI(ssid)`;
 - `WiFi.internetAvailable`.
 
-O frontend instancia o WASM e conecta esses imports ao `ArduinoRuntime`. A instância WASM é mantida viva durante o Run, preservando globais C/C++ entre frames de simulação. A UI usa WASM como caminho único de execução de firmware: quando a compilação WASM falha, a simulação é bloqueada e os diagnósticos do `clang-wasm` são exibidos, sem fallback para IR.
+O frontend instancia o WASM e conecta esses imports ao `ArduinoRuntime`. Imports Arduino/core ficam em `apps/web/js/simulation/wasm-import-adapters.js`; imports específicos de bibliotecas ficam nos componentes e são registrados via `contributions.wasmImports`. A instância WASM é mantida viva durante o Run, preservando globais C/C++ entre frames de simulação. A UI usa WASM como caminho único de execução de firmware: quando a compilação WASM falha, a simulação é bloqueada e os diagnósticos do `clang-wasm` são exibidos, sem fallback para IR.
 
 O compilador WASM exporta constantes de firmware, como `TRIGGER_PIN`, `ECHO_PIN`, `LED_PIN`, `PIN` e `LED_BUILTIN`, para que o runtime consiga mapear sensores e LEDs sem depender da IR. Com isso, os exemplos HC-SR04, blink/counter, Serial, ESP32/ESP8266 Wi-Fi/MQTT/HTTP, sensores I2C/SPI e bomba d'água rodam pelo caminho WASM.
 
@@ -78,6 +84,26 @@ Para uso público, a compilação WASM deve rodar isolada em container. O compil
 Builds WASM bem-sucedidos são cacheados em memória por hash do código gerado, constantes exportadas, comando do Clang e configuração de sandbox/toolchain. Esse cache reduz recompilações idênticas sem persistir binários entre reinícios do servidor.
 
 Fallback de compilação no browser foi avaliado e fica fora do MVP público. A decisão atual é manter um único caminho de execução por WASM compilado no servidor, preferencialmente isolado por container, porque embarcar toolchain C/C++ no browser aumentaria muito o peso, a complexidade de cache e a superfície de incompatibilidade.
+
+## Componentes e Contribuições
+
+Componentes oficiais seguem um modelo de pacote. O manifest descreve o contrato declarativo; arquivos opcionais dentro da pasta do componente adicionam comportamento específico.
+
+Princípios:
+
+- o core orquestra catálogo, board, runtime, solver, ambiente e firmware;
+- o componente declara dados, visual, propriedades, terminais, modelo elétrico e behavior;
+- CSS específico fica em `components/official/<slug>/ui/styles.css`;
+- libraries de firmware específicas ficam em `components/official/<slug>/firmware/library*.json`;
+- shims específicos ficam em `components/official/<slug>/firmware/shims/*.cpp`;
+- imports WASM específicos ficam em `components/official/<slug>/firmware/wasm-imports.js`;
+- behaviors específicos ficam em `components/official/<slug>/simulation/behavior.js`.
+
+O carregador de componentes instala manifests oficiais, injeta CSS declarado em `contributions.styles`, registra behaviors declarados em `contributions.simulationBehaviors` e registra imports WASM declarados em `contributions.wasmImports`.
+
+O arquivo `apps/web/firmware/core-libraries.json` contém apenas bibliotecas core compartilhadas: Arduino core, Serial, Wire e SPI. Bibliotecas como Wi-Fi, MQTT, DHT, Servo, LCD, BMP280 e ADCs externos ficam nas pastas dos respectivos componentes.
+
+Editar arquivos core deve ser exceção para adicionar capacidade genérica nova. Adicionar um sensor, display, atuador ou biblioteca específica deve ser majoritariamente append-only dentro de `components/official/<slug>/`.
 
 ## Simulação
 
@@ -94,6 +120,8 @@ Escopo atual:
 - `EnvironmentEngine` para canais ambientais.
 - `Hcsr04Behavior` integrado ao TRIG/ECHO.
 - Solver elétrico incremental para LED/resistor e curtos básicos.
+
+Behaviors especializados devem ser registrados por componentes quando possível. Adapters core permanecem apenas para capacidades genéricas ou legado ainda não extraído.
 
 Limite atual: o solver ainda não é nodal/SPICE geral. Ele cobre o caminho necessário para o MVP e expõe leituras úteis ao inspector.
 

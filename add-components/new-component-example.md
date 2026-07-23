@@ -1,6 +1,6 @@
 # Template para Adicionar Novos Componentes
 
-Antes de preencher este template, leia `docs/official-component-guidelines.md` e `docs/component-contract.md`. O objetivo é reduzir ambiguidades e impedir componentes parcialmente prontos ou acoplados ao editor/runtime por `if (component.type === "...")`.
+Antes de preencher este template, leia `docs/official-component-guidelines.md`, `docs/component-description.md` e `docs/component-contract.md`. O objetivo é reduzir ambiguidades e impedir componentes parcialmente prontos ou acoplados ao editor/runtime por `if (component.type === "...")`.
 
 ## Objetivo
 
@@ -25,6 +25,7 @@ Repita esta seção para cada componente.
 - `identity.category`: `microcontroller`, `sensor`, `environment`, `passive`, `semiconductor`, `actuator`, `display` ou outra categoria justificada.
 - `identity.subCategory`:
 - Caminho esperado: `components/official/<slug>/component.json`.
+- Arquivos extras esperados: `ui/styles.css`, `simulation/behavior.js`, `firmware/library*.json`, `firmware/wasm-imports.js`, `firmware/shims/*.cpp`, conforme necessidade.
 
 #### Papel na Simulação
 
@@ -42,6 +43,7 @@ Regras:
 - Se aparecer no catálogo, deve existir `visual.palette`.
 - `visual.terminals` deve ter os mesmos IDs de `terminals`.
 - Propriedades simples devem vir de `properties`, `variants`, `visual.controls` e `visual.stateBindings`, não de lógica específica no editor.
+- CSS, shims, imports WASM e behaviors específicos devem ficar dentro da pasta do componente e ser declarados em `contributions`.
 
 #### Terminais
 
@@ -137,6 +139,14 @@ Para cada API:
 
 Se uma API não será implementada agora, declare como fora de escopo.
 
+Arquivos esperados quando houver biblioteca nova:
+
+- `components/official/<slug>/firmware/library.json` ou `library-<name>.json`: headers, identificadores, imports e APIs suportadas.
+- `components/official/<slug>/firmware/shims/<name>.cpp`: classe/header C++ mínimo para compilar o sketch.
+- `components/official/<slug>/firmware/wasm-imports.js`: registro dos imports WASM usados pelo shim.
+
+Bibliotecas Arduino core, Serial, Wire e SPI pertencem a `apps/web/firmware/core-libraries.json`. Não duplique essas definições dentro do componente.
+
 #### UI e Inspector
 
 Descreva como o componente aparece e como é editado.
@@ -149,8 +159,32 @@ Descreva como o componente aparece e como é editado.
 - Propriedades editáveis no inspector:
 - Leituras/sinais exibidos no inspector:
 - Estados visuais: ligado/desligado, brilho, valor atual, conexão, erro etc.
+- CSS específico: `components/official/<slug>/ui/styles.css`.
+- Entrada no manifest: `contributions.styles.files`.
 
 Para componentes ambientais standalone, deixe explícito se eles precisam ou não de fios.
+
+#### Contribuições
+
+Declare somente as contribuições necessárias.
+
+```json
+{
+  "contributions": {
+    "styles": {
+      "files": ["./ui/styles.css"]
+    },
+    "simulationBehaviors": {
+      "modules": ["./simulation/behavior.js"]
+    },
+    "wasmImports": {
+      "modules": ["./firmware/wasm-imports.js"]
+    }
+  }
+}
+```
+
+Se o componente reutiliza arquivos de outro componente, use caminho relativo claro, por exemplo `../dht22/ui/styles.css`.
 
 #### Exemplos Obrigatórios
 
@@ -182,6 +216,8 @@ Marque o que precisa ser coberto.
 - [ ] Inspector mostra propriedades/sinais relevantes.
 - [ ] Serial mostra TX/RX esperado, quando aplicável.
 - [ ] Propriedades simples funcionam sem editar `board-editor.js`.
+- [ ] CSS específico é carregado por `contributions.styles`, sem voltar para `apps/web/styles.css`.
+- [ ] Bibliotecas/shims/imports específicos ficam dentro da pasta do componente.
 
 #### Critérios de Aceite
 
@@ -196,6 +232,7 @@ Liste condições objetivas para considerar o componente pronto.
 - [ ] Simulação roda sem fallback para IR JS.
 - [ ] Estado visual bate com o comportamento simulado.
 - [ ] Testes passam com `npm test`.
+- [ ] A mudança é append-only no componente sempre que não houver capacidade core nova.
 
 #### Fora de Escopo
 
