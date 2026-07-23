@@ -92,6 +92,7 @@ export function normalizeEnvironmentValue(channel, value) {
 
   if (channel === 'analog-voltage') {
     return {
+      ...value,
       enabled: Boolean(value?.enabled ?? true),
       voltageVolts: clamp(Number(value?.voltageVolts ?? 0), 0, 5)
     };

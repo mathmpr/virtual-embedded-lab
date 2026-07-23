@@ -10,6 +10,8 @@ const officialComponentsRoot = join(root, 'components/official');
 const jsonFiles = [
   'schemas/project.schema.json',
   'schemas/component.schema.json',
+  'components/official/ac-load/component.json',
+  'components/official/ac-mains-environment/component.json',
   'components/official/ads1015/component.json',
   'components/official/ads1115/component.json',
   'components/official/74hc595/component.json',
@@ -37,7 +39,9 @@ const jsonFiles = [
   'components/official/rain-toggle/component.json',
   'components/official/seven-segment-display/component.json',
   'components/official/servo-motor/component.json',
+  'components/official/sct-current-transformer/component.json',
   'components/official/hc-sr04/component.json',
+  'components/official/zmpt101b-voltage-sensor/component.json',
   'components/official/distance-range/component.json',
   'components/official/dht11/component.json',
   'components/official/dht22/component.json',
@@ -51,6 +55,7 @@ const jsonFiles = [
   'examples/arduino-serial-bridge-led/project.json',
   'examples/arduino-serial-led/project.json',
   'examples/esp32-counter-blink/project.json',
+  'examples/esp32-ac-energy-meter-poc/project.json',
   'examples/esp32-simon-says/project.json',
   'examples/esp32-wifi-failover/project.json',
   'examples/esp32-wifi-signal/project.json',
@@ -323,6 +328,31 @@ test('BBC micro:bit V2 manifest exposes edge connector pins and simulated LED ma
   assert.match(JSON.stringify(microbit.visual.controls), /data-built-in-led=\\"px-2-2\\"/);
   assert.deepEqual(project.components.map((component: { componentId: string }) => component.componentId), ['board.bbc.microbit.v2']);
   assert.match(project.code.files['main.ino'], /HEART_PIXELS/);
+});
+
+test('AC energy metering package exposes mains, loads, sensors and POC example', () => {
+  const mains = readJson('components/official/ac-mains-environment/component.json');
+  const load = readJson('components/official/ac-load/component.json');
+  const zmpt = readJson('components/official/zmpt101b-voltage-sensor/component.json');
+  const sct = readJson('components/official/sct-current-transformer/component.json');
+  const ads1115 = readJson('components/official/ads1115/component.json');
+  const project = readJson('examples/esp32-ac-energy-meter-poc/project.json');
+
+  assert.equal(mains.behavior.type, 'ac-mains-environment');
+  assert.equal(load.behavior.type, 'ac-load');
+  assert.equal(zmpt.behavior.type, 'ac-voltage-sensor');
+  assert.equal(zmpt.behavior.channel, 'analog-voltage');
+  assert.equal(sct.behavior.type, 'sct-current-transformer');
+  assert.equal(sct.behavior.channel, 'analog-voltage');
+  assert.deepEqual(ads1115.behavior.inputTerminals, ['a0', 'a1', 'a2', 'a3']);
+  assert.ok(project.components.some((component: { componentId: string }) => component.componentId === 'environment.ac-mains'));
+  assert.ok(project.components.some((component: { componentId: string }) => component.componentId === 'sensor.voltage.zmpt101b'));
+  assert.ok(project.components.some((component: { componentId: string }) => component.componentId === 'sensor.current.sct'));
+  assert.ok(project.components.some((component: { componentId: string }) => component.componentId === 'converter.adc.ads1115'));
+  assert.ok(project.components.filter((component: { componentId: string }) => component.componentId === 'environment.ac-load').length >= 3);
+  assert.ok(project.environmentConnections.some((connection: { target: string }) => connection.target === 'load-ab.env'));
+  assert.match(project.code.files['main.ino'], /Vrms/);
+  assert.match(project.code.files['main.ino'], /TOTAL: W=/);
 });
 
 test('Wi-Fi signal component exposes connection and signal strength properties', () => {

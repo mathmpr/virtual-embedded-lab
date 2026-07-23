@@ -1,0 +1,65 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "environment.ac-load",
+    "name": "AC Load",
+    "category": "actuator",
+    "subCategory": "power-load"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "connection": { "type": "string", "default": "A_N", "simulationUpdate": "rerun" },
+    "loadType": { "type": "string", "default": "resistive", "simulationUpdate": "rerun" },
+    "activePowerW": { "type": "number", "default": 100, "minimum": 0, "maximum": 10000, "unit": "W", "simulationUpdate": "rerun" },
+    "powerFactor": { "type": "number", "default": 1, "minimum": 0.1, "maximum": 1, "simulationUpdate": "rerun" },
+    "enabled": { "type": "boolean", "default": true, "simulationUpdate": "rerun" },
+    "label": { "type": "string", "default": "Load", "simulationUpdate": "none" }
+  },
+  "terminals": [
+    { "id": "env", "label": "AC Env", "type": "environment-input" }
+  ],
+  "behavior": {
+    "type": "ac-load",
+    "inputTerminal": "env"
+  },
+  "contributions": {
+    "simulationBehaviors": {
+      "modules": ["../ac-mains-environment/simulation/behavior.js"]
+    },
+    "styles": {
+      "files": ["./ui/styles.css"]
+    }
+  },
+  "visual": {
+    "type": "ac-load",
+    "title": "Carga AC",
+    "className": "ac-load",
+    "body": "100 W",
+    "width": 190,
+    "height": 128,
+    "controls": [
+      { "type": "readout", "className": "ac-readout", "label": "Carga", "property": "activePowerW", "unit": "W", "activeProperty": "enabled", "inactiveText": "OFF" },
+      { "type": "string", "className": "component-text-row", "label": "Ligação", "property": "connection" },
+      { "type": "range", "className": "component-range-row", "label": "Potência", "property": "activePowerW" },
+      { "type": "range", "className": "component-range-row", "label": "FP", "property": "powerFactor" },
+      { "type": "checkbox", "className": "wifi-checkbox-row", "label": "Ativa", "property": "enabled" }
+    ],
+    "stateBindings": [
+      { "type": "class", "className": "is-off", "source": { "kind": "componentProperty", "property": "enabled" }, "when": false }
+    ],
+    "palette": {
+      "group": "Inputs",
+      "subgroup": "AC Energy",
+      "icon": "ac-load-icon",
+      "order": 71
+    },
+    "terminals": [
+      { "id": "env", "side": "left", "x": 0, "y": 68, "kind": "environment" }
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+.ac-mains-icon,
+.ac-load-icon,
+.zmpt101b-icon,
+.sct-icon {
+  background:
+    radial-gradient(circle at 72% 28%, #ffd280 0 9%, transparent 10%),
+    linear-gradient(135deg, #38577d, #1d2d3f);
+}
+
+.ac-mains-environment,
+.ac-load,
+.zmpt101b-voltage-sensor,
+.sct-current-transformer {
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 0.08) 0 8%, transparent 9% 91%, rgb(255 255 255 / 0.08) 92%),
+    linear-gradient(145deg, #2f4054, #19242f);
+}
+
+.ac-readout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: center;
+  min-height: 28px;
+  padding: 6px 8px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 8px;
+  color: #dce0e8;
+  font: 800 11px var(--mono);
+  background: rgb(0 0 0 / 0.18);
+}
+
+.ac-readout strong {
+  justify-self: end;
+  color: #ffcf70;
+}
+
+.ac-load.is-off {
+  opacity: 0.62;
+}
+
+.sct-current-transformer.inverted {
+  box-shadow: 0 0 0 2px rgb(255 122 69 / 0.36), 0 14px 34px rgb(0 0 0 / 0.26);
+}

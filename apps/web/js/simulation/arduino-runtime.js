@@ -209,6 +209,7 @@ export class ArduinoRuntime {
       type: 'data',
       baudRate: this.#serial.baudRate,
       data: `${value}${newline ? '\n' : ''}`,
+      lineComplete: newline,
       timeUs: this.clock.nowUs()
     });
   }
@@ -222,6 +223,7 @@ export class ArduinoRuntime {
       baudRate: this.#serial.baudRate,
       data: String.fromCharCode(byte),
       byte,
+      lineComplete: byte === 10,
       timeUs: this.clock.nowUs()
     });
   }

@@ -1,0 +1,64 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "environment.ac-mains",
+    "name": "AC Mains Environment",
+    "category": "environment",
+    "subCategory": "power"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "frequencyHz": { "type": "number", "default": 60, "minimum": 45, "maximum": 70, "unit": "Hz", "simulationUpdate": "rerun" },
+    "phaseNeutralVoltage": { "type": "number", "default": 127, "minimum": 90, "maximum": 150, "unit": "V RMS", "simulationUpdate": "rerun" },
+    "phasePhaseVoltage": { "type": "number", "default": 220, "minimum": 180, "maximum": 260, "unit": "V RMS", "simulationUpdate": "rerun" },
+    "threePhaseVoltage": { "type": "number", "default": 380, "minimum": 300, "maximum": 440, "unit": "V RMS", "simulationUpdate": "rerun" },
+    "phaseAOffsetDeg": { "type": "number", "default": 0, "minimum": -180, "maximum": 180, "unit": "deg", "simulationUpdate": "rerun" },
+    "phaseBOffsetDeg": { "type": "number", "default": -120, "minimum": -180, "maximum": 180, "unit": "deg", "simulationUpdate": "rerun" },
+    "phaseCOffsetDeg": { "type": "number", "default": 120, "minimum": -180, "maximum": 180, "unit": "deg", "simulationUpdate": "rerun" },
+    "voltageNoisePercent": { "type": "number", "default": 0, "minimum": 0, "maximum": 10, "unit": "%", "simulationUpdate": "rerun" },
+    "voltageSagPercent": { "type": "number", "default": 0, "minimum": 0, "maximum": 30, "unit": "%", "simulationUpdate": "rerun" }
+  },
+  "terminals": [
+    { "id": "env", "label": "AC Env", "type": "environment-output" }
+  ],
+  "behavior": {
+    "type": "ac-mains-environment",
+    "channel": "ac-mains",
+    "outputTerminal": "env"
+  },
+  "contributions": {
+    "simulationBehaviors": {
+      "modules": ["./simulation/behavior.js"]
+    },
+    "styles": {
+      "files": ["./ui/styles.css"]
+    }
+  },
+  "visual": {
+    "type": "ac-mains-environment",
+    "title": "Rede AC",
+    "className": "ac-mains-environment",
+    "body": "127/220/380 V",
+    "width": 220,
+    "height": 126,
+    "controls": [
+      { "type": "readout", "className": "ac-readout", "label": "Rede", "property": "phaseNeutralVoltage", "unit": "V RMS" },
+      { "type": "range", "className": "component-range-row", "label": "Frequência", "property": "frequencyHz" },
+      { "type": "range", "className": "component-range-row", "label": "Sag", "property": "voltageSagPercent" }
+    ],
+    "palette": {
+      "group": "Inputs",
+      "subgroup": "AC Energy",
+      "icon": "ac-mains-icon",
+      "order": 70
+    },
+    "terminals": [
+      { "id": "env", "side": "right", "x": 220, "y": 66, "kind": "environment" }
+    ]
+  }
+}

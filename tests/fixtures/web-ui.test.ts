@@ -69,8 +69,11 @@ test('web UI script defines the MVP components', () => {
   const bmp280Styles = readFileSync(join(root, 'components/official/bmp280/ui/styles.css'), 'utf8');
   const adcStyles = readFileSync(join(root, 'components/official/ads1015/ui/styles.css'), 'utf8');
   const microbitStyles = readFileSync(join(root, 'components/official/bbc-microbit-v2/ui/styles.css'), 'utf8');
+  const acStyles = readFileSync(join(root, 'components/official/ac-mains-environment/ui/styles.css'), 'utf8');
 
   for (const manifest of [
+    'components/official/ac-load/component.json',
+    'components/official/ac-mains-environment/component.json',
     'components/official/ads1015/component.json',
     'components/official/ads1115/component.json',
     'components/official/74hc595/component.json',
@@ -101,6 +104,8 @@ test('web UI script defines the MVP components', () => {
     'components/official/rain-toggle/component.json',
     'components/official/seven-segment-display/component.json',
     'components/official/servo-motor/component.json',
+    'components/official/sct-current-transformer/component.json',
+    'components/official/zmpt101b-voltage-sensor/component.json',
     'components/official/wifi-signal/component.json'
   ]) {
     const component = JSON.parse(readFileSync(join(root, manifest), 'utf8'));
@@ -166,6 +171,10 @@ test('web UI script defines the MVP components', () => {
   assert.match(css, /\.shift-register-74hc595/);
   assert.match(dhtStyles, /\.dht-sensor/);
   assert.match(css, /\.arduino-nano/);
+  assert.match(acStyles, /\.ac-mains-icon/);
+  assert.match(acStyles, /\.ac-load-icon/);
+  assert.match(acStyles, /\.zmpt101b-icon/);
+  assert.match(acStyles, /\.sct-icon/);
   assert.match(microbitStyles, /\.microbit-icon/);
   assert.match(microbitStyles, /\.bbc-microbit-v2/);
   assert.match(microbitStyles, /\.microbit-led-matrix/);
@@ -548,11 +557,14 @@ test('web UI exposes external ADC controls and runtime bindings', () => {
   assert.match(engine, /registerSensorBehaviorAdapters/);
   assert.match(sensorAdapters, /registry\.register\('adc-i2c'/);
   assert.match(sensorAdapters, /registry\.register\('adc-spi'/);
+  assert.match(sensorAdapters, /sourcesByChannel/);
+  assert.match(sensorAdapters, /sineAnalogVoltage/);
   assert.match(sensorAdapters, /resolveI2cBusConnected/);
   assert.match(sensorAdapters, /resolveSpiBusConnected/);
   assert.match(sensorAdapters, /runtime\.registerSpiDevice/);
   assert.match(sensorAdapters, /externalAdcRaw/);
   assert.match(environmentPayload, /channel === 'analog-voltage'/);
+  assert.match(environmentPayload, /\.\.\.value/);
   assert.match(runtime, /adcReadSingleEnded\(address, channel\)/);
   assert.match(runtime, /mcp3008Read\(chipSelectPin, channel\)/);
   assert.match(adapter, /updateAnalogVoltageValue\(componentId, value\)/);
@@ -730,7 +742,11 @@ test('web UI keeps Serial history append-only during runs and RX input', () => {
   assert.match(serialPanel, /scrollSerialToBottom\(\)/);
   assert.match(serialPanel, /requestAnimationFrame/);
   assert.match(serialPanel, /appendSerialEvents\(events\)/);
-  assert.match(serialPanel, /state\.serialHistory\.push\(\.\.\.events\)/);
+  assert.match(serialPanel, /appendSerialEvent\(event\)/);
+  assert.match(serialPanel, /lastOpenSerialTxLine\(event\)/);
+  assert.match(serialPanel, /canAppendToSerialTxLine\(last, event\)/);
+  assert.match(serialPanel, /last\.data \+= event\.data/);
+  assert.match(serialPanel, /last\.lineComplete = Boolean\(event\.lineComplete\)/);
   assert.match(serialPanel, /maxEvents = 1000/);
   assert.match(serialPanel, /if \(state\.serialAutoScroll\)/);
   assert.match(serialPanel, /#clearSerialHistory/);

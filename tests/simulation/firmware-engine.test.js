@@ -61,7 +61,9 @@ test('firmware engine supports Serial baud rates and RX/TX logs', () => {
     void loop() {
       if (Serial.available() > 0) {
         int byteValue = Serial.read();
+        Serial.print("value: ");
         Serial.print(byteValue);
+        Serial.println();
       }
     }
   `);
@@ -77,9 +79,33 @@ test('firmware engine supports Serial baud rates and RX/TX logs', () => {
   assert.equal(serial.baudRate, 9600);
   assert.ok(serial.supportedBaudRates.includes(115200));
   assert.equal(serial.events[0].baudRate, 57600);
-  assert.deepEqual(serial.events.map((event) => event.direction), ['RX', 'TX', 'TX', 'TX']);
+  assert.deepEqual(serial.events.map((event) => event.direction), ['RX', 'TX', 'TX', 'TX', 'TX', 'TX']);
   assert.equal(serial.events[2].data, 'ready\n');
-  assert.equal(serial.events[3].data, '65');
+  assert.equal(serial.events[3].data, 'value: ');
+  assert.equal(serial.events[4].data, '65');
+  assert.equal(serial.events[5].data, '\n');
+  assert.equal(serial.events[5].lineComplete, true);
+  assert.match(serial.events.map((event) => event.data).join(''), /value: 65\n/);
+});
+
+test('firmware engine emits Serial.print chunks and marks Serial.println as line completion', () => {
+  const clock = new VirtualClock();
+  const scheduler = new EventScheduler(clock);
+  const runtime = new ArduinoRuntime(clock, scheduler, { driveArduinoPin() {} });
+
+  runtime.serialBegin(115200);
+  runtime.serialPrint('phase ');
+  runtime.serialPrint('A');
+  assert.deepEqual(runtime.drainSerialEvents().events.map((event) => event.data), ['Serial.begin(115200)', 'phase ', 'A']);
+
+  runtime.serialPrint(': ');
+  runtime.serialPrint(127);
+  runtime.serialPrint('', true);
+
+  const serial = runtime.drainSerialEvents();
+
+  assert.deepEqual(serial.events.map((event) => event.data), [': ', '127', '\n']);
+  assert.deepEqual(serial.events.map((event) => event.lineComplete), [false, false, true]);
 });
 
 test('firmware engine supports ESP32 WiFi station and access point calls', () => {
@@ -1650,6 +1676,48 @@ test('BBC micro:bit V2 heart example lights built-in LED matrix through WASM', a
   assert.equal(result.builtInLedStates.get('microbit-1.px-4-2'), true);
 });
 
+test('ESP32 AC energy meter POC reads two phases through ADS1115 WASM', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-ac-energy-meter-poc/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const components = componentsFromProject(project);
+  const session = await createProjectWasmSimulationSession({
+    state: { components },
+    nets: [
+      ...project.connections.map((connection) => testNet(connection.id, connection.terminals)),
+      ...project.environmentConnections.map((connection, index) => testNet(`env-${index + 1}`, [connection.source, connection.target]))
+    ],
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const first = session.runFrame();
+  const text = serialText(first);
+
+  assert.equal(wasm.ok, true);
+  assert.match(text, /ESP32 AC energy meter ready/);
+  assert.match(text, /A: Vrms=/);
+  assert.match(text, /B: Vrms=/);
+  assert.match(text, /TOTAL: W=/);
+
+  const normalPower = phasePower(text, 'A');
+  const invertedComponents = componentsFromProject(project);
+  invertedComponents.get('sct-a').properties.orientation = 'inverted';
+  const invertedSession = await createProjectWasmSimulationSession({
+    state: { components: invertedComponents },
+    nets: [
+      ...project.connections.map((connection) => testNet(connection.id, connection.terminals)),
+      ...project.environmentConnections.map((connection, index) => testNet(`env-${index + 1}`, [connection.source, connection.target]))
+    ],
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+  const inverted = invertedSession.runFrame();
+
+  assert.ok(normalPower > 0);
+  assert.ok(phasePower(serialText(inverted), 'A') < 0);
+});
+
 test('Servo sweep example updates servo angle through Servo WASM shim', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const project = JSON.parse(readFileSync(join(root, 'examples/arduino-servo-sweep/project.json'), 'utf8'));
@@ -1842,6 +1910,44 @@ function officialComponent(id, type, properties) {
     propertySchema: manifest.properties ?? {},
     properties
   };
+}
+
+function componentsFromProject(project) {
+  return new Map(project.components.map((component) => {
+    const manifest = officialManifestByIdentity(component.componentId);
+    return [component.id, {
+      id: component.id,
+      type: manifest.visual.type,
+      behavior: manifest.behavior ?? {},
+      simulation: manifest.simulation ?? {},
+      electricalModel: manifest.electricalModel ?? null,
+      electricalPrimitive: manifest.electricalModel?.primitive ?? null,
+      propertySchema: manifest.properties ?? {},
+      properties: { ...component.properties }
+    }];
+  }));
+}
+
+function phasePower(text, phase) {
+  const match = text.match(new RegExp(`${phase}: .* W=([-0-9.]+)`));
+  return match ? Number(match[1]) : 0;
+}
+
+function officialManifestByIdentity(identityId) {
+  const manifestPath = {
+    'board.esp32.devkit': 'components/official/esp32-devkit/component.json',
+    'converter.adc.ads1115': 'components/official/ads1115/component.json',
+    'environment.ac-mains': 'components/official/ac-mains-environment/component.json',
+    'environment.ac-load': 'components/official/ac-load/component.json',
+    'sensor.voltage.zmpt101b': 'components/official/zmpt101b-voltage-sensor/component.json',
+    'sensor.current.sct': 'components/official/sct-current-transformer/component.json'
+  }[identityId];
+
+  if (!manifestPath) {
+    throw new Error(`Fixture sem manifest oficial por identidade: ${identityId}`);
+  }
+
+  return JSON.parse(readFileSync(join(root, manifestPath), 'utf8'));
 }
 
 function officialManifestByVisualType(type) {

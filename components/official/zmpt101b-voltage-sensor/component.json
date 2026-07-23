@@ -1,0 +1,69 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "sensor.voltage.zmpt101b",
+    "name": "ZMPT101B AC Voltage Sensor",
+    "category": "sensor",
+    "subCategory": "voltage"
+  },
+  "simulation": {
+    "kind": "behavioral-sensor",
+    "effects": ["environment", "firmware", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "phase": { "type": "string", "default": "A", "simulationUpdate": "rerun" },
+    "reference": { "type": "string", "default": "N", "simulationUpdate": "rerun" },
+    "inputVoltageVrms": { "type": "number", "default": 127, "minimum": 0, "maximum": 300, "unit": "V", "simulationUpdate": "rerun" },
+    "outputPeakToPeakV": { "type": "number", "default": 2, "minimum": 0.1, "maximum": 3.2, "unit": "Vpp", "simulationUpdate": "rerun" },
+    "adcBiasV": { "type": "number", "default": 1.65, "minimum": 0, "maximum": 3.3, "unit": "V", "simulationUpdate": "rerun" },
+    "gain": { "type": "number", "default": 1, "minimum": 0.1, "maximum": 2, "simulationUpdate": "rerun" },
+    "noisePercent": { "type": "number", "default": 0.5, "minimum": 0, "maximum": 10, "unit": "%", "simulationUpdate": "rerun" },
+    "phaseShiftDeg": { "type": "number", "default": 0, "minimum": -30, "maximum": 30, "unit": "deg", "simulationUpdate": "rerun" }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "out", "label": "OUT", "type": "analog-output" },
+    { "id": "env", "label": "AC Env", "type": "environment-input" }
+  ],
+  "behavior": {
+    "type": "ac-voltage-sensor",
+    "channel": "analog-voltage",
+    "outputTerminal": "out",
+    "environmentTerminal": "env"
+  },
+  "contributions": {
+    "simulationBehaviors": {
+      "modules": ["../ac-mains-environment/simulation/behavior.js"]
+    },
+    "styles": {
+      "files": ["./ui/styles.css"]
+    }
+  },
+  "visual": {
+    "type": "zmpt101b-voltage-sensor",
+    "title": "ZMPT101B",
+    "className": "zmpt101b-voltage-sensor",
+    "body": "AC voltage",
+    "width": 190,
+    "height": 126,
+    "controls": [
+      { "type": "readout", "className": "ac-readout", "label": "Fase", "property": "phase" },
+      { "type": "range", "className": "component-range-row", "label": "Vpp", "property": "outputPeakToPeakV" }
+    ],
+    "palette": {
+      "group": "Sensors",
+      "subgroup": "AC Energy",
+      "icon": "zmpt101b-icon",
+      "order": 72
+    },
+    "terminals": [
+      { "id": "vcc", "side": "left", "x": 0, "y": 30, "kind": "power" },
+      { "id": "gnd", "side": "bottom", "x": 76, "y": 126, "kind": "ground" },
+      { "id": "out", "side": "right", "x": 190, "y": 58, "kind": "signal" },
+      { "id": "env", "side": "left", "x": 0, "y": 82, "kind": "environment" }
+    ]
+  }
+}

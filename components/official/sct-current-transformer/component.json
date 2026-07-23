@@ -1,0 +1,73 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "sensor.current.sct",
+    "name": "SCT Current Transformer",
+    "category": "sensor",
+    "subCategory": "current"
+  },
+  "simulation": {
+    "kind": "behavioral-sensor",
+    "effects": ["environment", "firmware", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "phase": { "type": "string", "default": "A", "simulationUpdate": "rerun" },
+    "ratedCurrentA": { "type": "number", "default": 100, "minimum": 1, "maximum": 300, "unit": "A", "simulationUpdate": "rerun" },
+    "outputMode": { "type": "string", "default": "voltage", "simulationUpdate": "rerun" },
+    "outputVoltageVrmsAtRatedCurrent": { "type": "number", "default": 1, "minimum": 0.05, "maximum": 2, "unit": "V RMS", "simulationUpdate": "rerun" },
+    "burdenOhms": { "type": "number", "default": 0, "minimum": 0, "maximum": 200, "unit": "Ω", "simulationUpdate": "rerun" },
+    "orientation": { "type": "string", "default": "normal", "simulationUpdate": "rerun" },
+    "noisePercent": { "type": "number", "default": 0.5, "minimum": 0, "maximum": 10, "unit": "%", "simulationUpdate": "rerun" },
+    "phaseShiftDeg": { "type": "number", "default": 0, "minimum": -30, "maximum": 30, "unit": "deg", "simulationUpdate": "rerun" },
+    "adcBiasV": { "type": "number", "default": 1.65, "minimum": 0, "maximum": 3.3, "unit": "V", "simulationUpdate": "rerun" }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "out", "label": "OUT", "type": "analog-output" },
+    { "id": "env", "label": "Phase Env", "type": "environment-input" }
+  ],
+  "behavior": {
+    "type": "sct-current-transformer",
+    "channel": "analog-voltage",
+    "outputTerminal": "out",
+    "environmentTerminal": "env"
+  },
+  "contributions": {
+    "simulationBehaviors": {
+      "modules": ["../ac-mains-environment/simulation/behavior.js"]
+    },
+    "styles": {
+      "files": ["./ui/styles.css"]
+    }
+  },
+  "visual": {
+    "type": "sct-current-transformer",
+    "title": "SCT",
+    "className": "sct-current-transformer",
+    "body": "Current clamp",
+    "width": 190,
+    "height": 126,
+    "controls": [
+      { "type": "readout", "className": "ac-readout", "label": "Fase", "property": "phase" },
+      { "type": "readout", "className": "ac-readout", "label": "Orientação", "property": "orientation" }
+    ],
+    "stateBindings": [
+      { "type": "class", "className": "inverted", "source": { "kind": "componentProperty", "property": "orientation" }, "when": "inverted" }
+    ],
+    "palette": {
+      "group": "Sensors",
+      "subgroup": "AC Energy",
+      "icon": "sct-icon",
+      "order": 73
+    },
+    "terminals": [
+      { "id": "vcc", "side": "left", "x": 0, "y": 30, "kind": "power" },
+      { "id": "gnd", "side": "bottom", "x": 76, "y": 126, "kind": "ground" },
+      { "id": "out", "side": "right", "x": 190, "y": 58, "kind": "signal" },
+      { "id": "env", "side": "left", "x": 0, "y": 82, "kind": "environment" }
+    ]
+  }
+}

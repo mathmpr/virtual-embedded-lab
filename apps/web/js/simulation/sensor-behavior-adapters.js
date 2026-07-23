@@ -374,11 +374,13 @@ export function bindI2cAdcConverters({ graph, environment, runtime, diagnostics,
   for (const adc of components) {
     const model = adc.behavior?.model;
     const maxRaw = Number(adc.behavior?.maxRaw ?? (adc.electricalModel?.resolutionBits === 12 ? 2047 : 32767));
-    const inputTerminal = adc.behavior?.inputTerminals?.[0] ?? 'a0';
-    const source = analogSourceForTerminal(graph, { componentId: adc.id, terminalId: inputTerminal });
+    const inputTerminals = adc.behavior?.inputTerminals ?? ['a0'];
+    const sourcesByChannel = inputTerminals.map((terminalId) => {
+      return analogSourceForTerminal(graph, { componentId: adc.id, terminalId });
+    });
 
-    if (!source) {
-      diagnostics.push(`${adc.id}: canal A0 sem fonte analógica.`);
+    if (!sourcesByChannel.some(Boolean)) {
+      diagnostics.push(`${adc.id}: nenhum canal analógico conectado.`);
       continue;
     }
 
@@ -391,8 +393,10 @@ export function bindI2cAdcConverters({ graph, environment, runtime, diagnostics,
       type: model,
       componentId: adc.id,
       readChannel(channel) {
-        return channel === 0 ? externalAdcRaw({
-          voltage: analogVoltage(environment, source.id),
+        const source = sourcesByChannel[Number(channel)];
+
+        return source ? externalAdcRaw({
+          voltage: analogVoltage(environment, source.id, runtime),
           maxRaw,
           fullScaleVolts: gainToFullScaleVolts(adc.properties[adc.behavior?.gainProperty])
         }) : 0;
@@ -696,14 +700,39 @@ function normalizeWetEnvironmentValue(value) {
 }
 
 function analogSourceForTerminal(graph, terminal) {
-  return graph.findComponentsByBehaviorType('analog-voltage-source').find((source) => {
+  return [...graph.components.values()].find((source) => {
+    if (source.behavior?.channel !== 'analog-voltage' && source.behavior?.type !== 'analog-voltage-source') {
+      return false;
+    }
+
     return graph.areConnected({ componentId: source.id, terminalId: source.behavior?.outputTerminal ?? 'out' }, terminal);
   }) ?? null;
 }
 
-function analogVoltage(environment, sourceId) {
+function analogVoltage(environment, sourceId, runtime = null) {
   const value = normalizeEnvironmentValue('analog-voltage', environment.read(`${sourceId}.analog-voltage`));
-  return value.enabled ? value.voltageVolts : 0;
+
+  if (!value.enabled) {
+    return 0;
+  }
+
+  if (value.waveform?.type === 'sine') {
+    return sineAnalogVoltage(value.waveform, runtime);
+  }
+
+  return value.voltageVolts;
+}
+
+function sineAnalogVoltage(waveform, runtime) {
+  const timeSeconds = Number(runtime?.clock?.nowUs?.() ?? 0) / 1_000_000;
+  const radians = 2 * Math.PI * Number(waveform.frequencyHz ?? 60) * timeSeconds
+    + Number(waveform.phaseDeg ?? 0) * Math.PI / 180;
+  const bias = Number(waveform.biasV ?? 0);
+  const amplitude = Number(waveform.amplitudeV ?? 0);
+  const noiseAmplitude = amplitude * Number(waveform.noisePercent ?? 0) / 100;
+  const deterministicNoise = noiseAmplitude === 0 ? 0 : Math.sin(radians * 7.31 + 0.37) * noiseAmplitude;
+
+  return clamp(bias + Math.sin(radians) * amplitude + deterministicNoise, 0, 5);
 }
 
 function externalAdcRaw({ voltage, maxRaw, fullScaleVolts }) {

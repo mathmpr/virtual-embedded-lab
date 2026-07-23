@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "ESP32 AC Energy Meter POC",
+  "board": { "width": 1800, "height": 980, "gridSize": 10 },
+  "components": [
+    { "id": "esp32-1", "componentId": "board.esp32.devkit", "position": { "x": 180, "y": 250 }, "properties": { "logicVoltage": 3.3, "wifiMode": "idle", "bluetoothEnabled": true } },
+    { "id": "ads-1", "componentId": "converter.adc.ads1115", "position": { "x": 620, "y": 300 }, "properties": { "i2cAddress": 72, "gain": "4.096V", "sampleRateSps": 860, "mode": "single-shot" } },
+    { "id": "mains-1", "componentId": "environment.ac-mains", "position": { "x": 1130, "y": 90 }, "properties": { "frequencyHz": 60, "phaseNeutralVoltage": 127, "phasePhaseVoltage": 220, "threePhaseVoltage": 380, "phaseAOffsetDeg": 0, "phaseBOffsetDeg": -120, "phaseCOffsetDeg": 120, "voltageNoisePercent": 0, "voltageSagPercent": 0 } },
+    { "id": "load-a", "componentId": "environment.ac-load", "position": { "x": 1410, "y": 70 }, "properties": { "connection": "A_N", "loadType": "inductive", "activePowerW": 380, "powerFactor": 0.94, "enabled": true, "label": "A-N load" } },
+    { "id": "load-b", "componentId": "environment.ac-load", "position": { "x": 1410, "y": 230 }, "properties": { "connection": "B_N", "loadType": "electronic", "activePowerW": 250, "powerFactor": 0.92, "enabled": true, "label": "B-N load" } },
+    { "id": "load-ab", "componentId": "environment.ac-load", "position": { "x": 1410, "y": 390 }, "properties": { "connection": "A_B", "loadType": "resistive", "activePowerW": 1200, "powerFactor": 1, "enabled": true, "label": "A-B 220V load" } },
+    { "id": "zmpt-a", "componentId": "sensor.voltage.zmpt101b", "position": { "x": 910, "y": 230 }, "properties": { "phase": "A", "reference": "N", "inputVoltageVrms": 127, "outputPeakToPeakV": 2, "adcBiasV": 1.65, "gain": 1, "noisePercent": 0, "phaseShiftDeg": 0 } },
+    { "id": "sct-a", "componentId": "sensor.current.sct", "position": { "x": 910, "y": 380 }, "properties": { "phase": "A", "ratedCurrentA": 100, "outputMode": "voltage", "outputVoltageVrmsAtRatedCurrent": 1, "burdenOhms": 0, "orientation": "normal", "noisePercent": 0, "phaseShiftDeg": 0, "adcBiasV": 1.65 } },
+    { "id": "zmpt-b", "componentId": "sensor.voltage.zmpt101b", "position": { "x": 910, "y": 540 }, "properties": { "phase": "B", "reference": "N", "inputVoltageVrms": 127, "outputPeakToPeakV": 2, "adcBiasV": 1.65, "gain": 1, "noisePercent": 0, "phaseShiftDeg": 0 } },
+    { "id": "sct-b", "componentId": "sensor.current.sct", "position": { "x": 910, "y": 690 }, "properties": { "phase": "B", "ratedCurrentA": 100, "outputMode": "voltage", "outputVoltageVrmsAtRatedCurrent": 1, "burdenOhms": 0, "orientation": "normal", "noisePercent": 0, "phaseShiftDeg": 0, "adcBiasV": 1.65 } }
+  ],
+  "connections": [
+    { "id": "net-3v3", "color": "#f05252", "terminals": ["esp32-1.3v3", "ads-1.vdd", "zmpt-a.vcc", "sct-a.vcc", "zmpt-b.vcc", "sct-b.vcc"] },
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["esp32-1.gnd", "ads-1.gnd", "zmpt-a.gnd", "sct-a.gnd", "zmpt-b.gnd", "sct-b.gnd"] },
+    { "id": "net-i2c-sda", "color": "#45d6c4", "terminals": ["esp32-1.io21", "ads-1.sda"] },
+    { "id": "net-i2c-scl", "color": "#4c8dff", "terminals": ["esp32-1.io22", "ads-1.scl"] },
+    { "id": "net-v-a", "color": "#ff7a45", "terminals": ["zmpt-a.out", "ads-1.a0"] },
+    { "id": "net-i-a", "color": "#f2b84b", "terminals": ["sct-a.out", "ads-1.a1"] },
+    { "id": "net-v-b", "color": "#6fbf73", "terminals": ["zmpt-b.out", "ads-1.a2"] },
+    { "id": "net-i-b", "color": "#9b8cff", "terminals": ["sct-b.out", "ads-1.a3"] }
+  ],
+  "environmentConnections": [
+    { "source": "mains-1.env", "target": "zmpt-a.env", "color": "#ff7a45" },
+    { "source": "mains-1.env", "target": "sct-a.env", "color": "#ff7a45" },
+    { "source": "mains-1.env", "target": "load-a.env", "color": "#ff7a45" },
+    { "source": "mains-1.env", "target": "load-ab.env", "color": "#f2b84b" },
+    { "source": "mains-1.env", "target": "zmpt-b.env", "color": "#6fbf73" },
+    { "source": "mains-1.env", "target": "sct-b.env", "color": "#6fbf73" },
+    { "source": "mains-1.env", "target": "load-b.env", "color": "#6fbf73" }
+  ],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "#include <Wire.h>\\n#include <ADS1115.h>\\n\\nADS1115 adc;\\n\\nstruct PhaseMetrics {\\n    float vrms;\\n    float irms;\\n    float realPowerW;\\n    float apparentPowerVA;\\n    float powerFactor;\\n    double energyKwh;\\n};\\n\\nPhaseMetrics phaseA = {0, 0, 0, 0, 0, 0};\\nPhaseMetrics phaseB = {0, 0, 0, 0, 0, 0};\\nunsigned long lastPrintMs = 0;\\n\\nconst int SAMPLES = 240;\\nconst float ADC_FULL_SCALE = 4.096f;\\nconst float ADC_MAX_RAW = 32767.0f;\\nconst float VOLTAGE_BIAS = 1.65f;\\nconst float CURRENT_BIAS = 1.65f;\\nconst float VOLTAGE_CAL = 127.0f;\\nconst float CURRENT_CAL = 100.0f;\\n\\nfloat fastSqrt(float value)\\n{\\n    if (value <= 0) {\\n        return 0;\\n    }\\n\\n    float estimate = value > 1 ? value : 1;\\n\\n    for (int index = 0; index < 8; index++) {\\n        estimate = 0.5f * (estimate + value / estimate);\\n    }\\n\\n    return estimate;\\n}\\n\\nfloat rawToVolts(int raw)\\n{\\n    return ((float)raw / ADC_MAX_RAW) * ADC_FULL_SCALE;\\n}\\n\\nvoid samplePhase(PhaseMetrics *metrics, int voltageChannel, int currentChannel, unsigned long elapsedMs)\\n{\\n    double sumV2 = 0;\\n    double sumI2 = 0;\\n    double sumP = 0;\\n\\n    for (int index = 0; index < SAMPLES; index++) {\\n        float rawV = rawToVolts(adc.readADC_SingleEnded(voltageChannel));\\n        float rawI = rawToVolts(adc.readADC_SingleEnded(currentChannel));\\n        float v = (rawV - VOLTAGE_BIAS) * VOLTAGE_CAL;\\n        float i = (rawI - CURRENT_BIAS) * CURRENT_CAL;\\n\\n        sumV2 += v * v;\\n        sumI2 += i * i;\\n        sumP += v * i;\\n        delayMicroseconds(250);\\n    }\\n\\n    metrics->vrms = fastSqrt(sumV2 / SAMPLES);\\n    metrics->irms = fastSqrt(sumI2 / SAMPLES);\\n    metrics->realPowerW = sumP / SAMPLES;\\n    metrics->apparentPowerVA = metrics->vrms * metrics->irms;\\n    metrics->powerFactor = metrics->apparentPowerVA > 0.01f ? metrics->realPowerW / metrics->apparentPowerVA : 0;\\n    metrics->energyKwh += metrics->realPowerW * (double)elapsedMs / 3600000000.0;\\n}\\n\\nvoid printPhase(const char *label, PhaseMetrics metrics)\\n{\\n    Serial.print(label);\\n    Serial.print(\": Vrms=\");\\n    Serial.print(metrics.vrms);\\n    Serial.print(\" Irms=\");\\n    Serial.print(metrics.irms);\\n    Serial.print(\" W=\");\\n    Serial.print(metrics.realPowerW);\\n    Serial.print(\" VA=\");\\n    Serial.print(metrics.apparentPowerVA);\\n    Serial.print(\" PF=\");\\n    Serial.print(metrics.powerFactor);\\n    Serial.print(\" kWh=\");\\n    Serial.println(metrics.energyKwh);\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    Wire.begin();\\n    adc.begin(0x48);\\n    Serial.println(\"ESP32 AC energy meter ready\");\\n}\\n\\nvoid loop()\\n{\\n    unsigned long now = millis();\\n    unsigned long elapsed = lastPrintMs == 0 ? 1000 : now - lastPrintMs;\\n\\n    samplePhase(&phaseA, 0, 1, elapsed);\\n    samplePhase(&phaseB, 2, 3, elapsed);\\n\\n    if (now - lastPrintMs >= 1000 || lastPrintMs == 0) {\\n        float totalW = phaseA.realPowerW + phaseB.realPowerW;\\n        double totalKwh = phaseA.energyKwh + phaseB.energyKwh;\\n\\n        printPhase(\"A\", phaseA);\\n        printPhase(\"B\", phaseB);\\n        Serial.print(\"TOTAL: W=\");\\n        Serial.print(totalW);\\n        Serial.print(\" kWh=\");\\n        Serial.println(totalKwh);\\n        lastPrintMs = now;\\n    }\\n\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

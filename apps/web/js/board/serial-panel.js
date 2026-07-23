@@ -89,13 +89,51 @@ export function createSerialPanel({ document, state, serialMonitor }) {
 
   function appendSerialEvents(events) {
     const maxEvents = 1000;
-    state.serialHistory.push(...events);
+
+    for (const event of events) {
+      appendSerialEvent(event);
+    }
 
     if (state.serialHistory.length > maxEvents) {
       state.serialHistory.splice(0, state.serialHistory.length - maxEvents);
     }
 
     renderSerial();
+  }
+
+  function appendSerialEvent(event) {
+    const last = lastOpenSerialTxLine(event);
+
+    if (canAppendToSerialTxLine(last, event)) {
+      last.data += event.data;
+      last.lineComplete = Boolean(event.lineComplete);
+      return;
+    }
+
+    state.serialHistory.push({ ...event });
+  }
+
+  function lastOpenSerialTxLine(event) {
+    if (event.direction !== 'TX' || event.type !== 'data') {
+      return null;
+    }
+
+    return state.serialHistory.findLast((historyEvent) => {
+      return canAppendToSerialTxLine(historyEvent, event);
+    }) ?? null;
+  }
+
+  function canAppendToSerialTxLine(last, event) {
+    return Boolean(
+      last
+        && last.direction === 'TX'
+        && event.direction === 'TX'
+        && last.type === 'data'
+        && event.type === 'data'
+        && last.lineComplete !== true
+        && last.componentId === event.componentId
+        && last.baudRate === event.baudRate
+    );
   }
 
   function clearSerialHistory() {

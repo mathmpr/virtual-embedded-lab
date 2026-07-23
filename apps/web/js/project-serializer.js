@@ -86,12 +86,14 @@ export function projectToSnapshot(project) {
     return terminalReferencesToWires(connection.terminals, connection.id, connection.color);
   });
 
-  const environmentWires = (project.environmentConnections ?? []).map((connection, index) => ({
-    id: `env-${index + 1}`,
-    from: parseTerminalReference(connection.source),
-    to: parseTerminalReference(connection.target),
-    color: connection.color
-  }));
+  const environmentWires = (project.environmentConnections ?? [])
+    .filter((connection) => typeof connection?.source === 'string' && typeof connection?.target === 'string')
+    .map((connection, index) => ({
+      id: `env-${index + 1}`,
+      from: parseTerminalReference(connection.source),
+      to: parseTerminalReference(connection.target),
+      color: connection.color
+    }));
 
   return {
     components,
