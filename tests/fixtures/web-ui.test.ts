@@ -68,6 +68,7 @@ test('web UI script defines the MVP components', () => {
   const wifiStyles = readFileSync(join(root, 'components/official/wifi-signal/ui/styles.css'), 'utf8');
   const bmp280Styles = readFileSync(join(root, 'components/official/bmp280/ui/styles.css'), 'utf8');
   const adcStyles = readFileSync(join(root, 'components/official/ads1015/ui/styles.css'), 'utf8');
+  const microbitStyles = readFileSync(join(root, 'components/official/bbc-microbit-v2/ui/styles.css'), 'utf8');
 
   for (const manifest of [
     'components/official/ads1015/component.json',
@@ -76,6 +77,7 @@ test('web UI script defines the MVP components', () => {
     'components/official/analog-voltage-source/component.json',
     'components/official/arduino-nano/component.json',
     'components/official/arduino-uno/component.json',
+    'components/official/bbc-microbit-v2/component.json',
     'components/official/bmp280/component.json',
     'components/official/buzzer/component.json',
     'components/official/esp32-devkit/component.json',
@@ -164,6 +166,9 @@ test('web UI script defines the MVP components', () => {
   assert.match(css, /\.shift-register-74hc595/);
   assert.match(dhtStyles, /\.dht-sensor/);
   assert.match(css, /\.arduino-nano/);
+  assert.match(microbitStyles, /\.microbit-icon/);
+  assert.match(microbitStyles, /\.bbc-microbit-v2/);
+  assert.match(microbitStyles, /\.microbit-led-matrix/);
   assert.match(servoStyles, /\.servo-motor/);
   assert.match(servoStyles, /--servo-angle/);
   assert.match(css, /\.esp32-icon/);
@@ -315,6 +320,17 @@ test('component template renders LCD line binding attributes as real DOM attribu
 
   assert.match(html, /data-lcd-line="1"/);
   assert.doesNotMatch(html, /data-lcd-line=&quot;1&quot;/);
+});
+
+test('component template renders micro:bit matrix pixels as built-in LED targets', () => {
+  const manifest = JSON.parse(readFileSync(join(root, 'components/official/bbc-microbit-v2/component.json'), 'utf8'));
+  const definition = componentDefinitionFromManifest(manifest);
+  const html = renderComponentTemplate(definition, 'microbit-1', (_type, propertyName) => definition.variants?.[propertyName] ?? []);
+
+  assert.match(html, /class="microbit-led-matrix"/);
+  assert.match(html, /data-built-in-led="px-0-1"/);
+  assert.match(html, /data-built-in-led="px-4-2"/);
+  assert.doesNotMatch(html, /data-built-in-led=&quot;px-0-1&quot;/);
 });
 
 test('web UI renders editable properties from component schemas', () => {
@@ -576,6 +592,8 @@ test('web UI resolves distance controls dynamically and renders round terminals'
   assert.match(engine, /updateDistanceValue\(componentId, valueCm\)/);
   assert.match(environment, /write\(id, value\)/);
   assert.match(adapter, /wasmSimulationSession\?\.updateDistanceValue/);
+  assert.match(adapter, /animateLedEvents\(result\.ledEvents, result\.electrical\)/);
+  assert.match(adapter, /visibleLedEventValue\(event, electrical\)/);
   assert.match(componentState, /simulation\.updateDistanceValue\(component\.id, component\.properties\[definition\.behavior\.valueProperty\]\)/);
   assert.match(componentState, /propertySimulationUpdateMode/);
   const liveRuntimeUpdateBody = componentState.match(/function applyLiveRuntimeUpdate\(component, definition\) \{[\s\S]*?\n  \}/)?.[0] ?? '';

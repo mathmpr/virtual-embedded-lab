@@ -76,7 +76,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
       applyLedStates(result.ledStates);
       applyBuiltInLedStates(result.builtInLedStates);
       clearLedAnimation();
-      animateLedEvents(result.ledEvents);
+      animateLedEvents(result.ledEvents, result.electrical);
       animateBuiltInLedEvents(result.builtInLedEvents);
       onSimulationResult(result);
       consoleOutput.textContent = renderConsole(result);
@@ -204,7 +204,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     }
   }
 
-  function animateLedEvents(events = []) {
+  function animateLedEvents(events = [], electrical = {}) {
     if (events.length === 0) {
       return;
     }
@@ -215,11 +215,24 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     for (const event of events) {
       const timer = setTimeout(() => {
         const component = state.components.get(event.componentId);
-        component?.element?.classList.toggle('on', event.value);
+        component?.element?.classList.toggle('on', visibleLedEventValue(event, electrical));
       }, Math.max(0, (event.timeUs - firstTimeUs) / 1000 * timeScale));
 
       ledAnimationTimers.push(timer);
     }
+  }
+
+  function visibleLedEventValue(event, electrical = {}) {
+    if (event.value !== true) {
+      return false;
+    }
+
+    const reading = electrical.componentReadings?.get?.(event.componentId);
+    const diagnostics = electrical.diagnostics ?? [];
+    const hasElectricalProblem = diagnostics.some((diagnostic) => String(diagnostic).includes(`${event.componentId}:`)
+      || String(diagnostic).includes(`${event.componentId}/`));
+
+    return !(hasElectricalProblem && !['on', 'overcurrent'].includes(reading?.state));
   }
 
   function clearLedAnimation() {

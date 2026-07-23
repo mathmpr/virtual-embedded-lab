@@ -1,0 +1,78 @@
+.microbit-icon {
+  background:
+    radial-gradient(circle at 33% 42%, #2a3038 0 9%, transparent 10%),
+    radial-gradient(circle at 67% 42%, #2a3038 0 9%, transparent 10%),
+    radial-gradient(circle at 50% 58%, #ff4d3f 0 5%, transparent 6%),
+    linear-gradient(135deg, #54c6a6, #1f6d73);
+}
+
+.bbc-microbit-v2 {
+  background:
+    radial-gradient(circle at 18% 20%, rgb(255 255 255 / 0.12) 0 6%, transparent 7%),
+    radial-gradient(circle at 82% 20%, rgb(255 255 255 / 0.12) 0 6%, transparent 7%),
+    linear-gradient(145deg, #23766f, #12363f);
+}
+
+.microbit-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 186px;
+  padding-top: 22px;
+}
+
+.microbit-led-matrix {
+  display: grid;
+  grid-template-columns: repeat(5, 18px);
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 50%, rgb(255 255 255 / 0.06), transparent 62%),
+    linear-gradient(145deg, #16252b, #0c1519);
+  box-shadow: inset 0 0 22px rgb(0 0 0 / 0.36);
+}
+
+.microbit-pixel {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #351d23;
+  box-shadow: inset 0 0 6px rgb(0 0 0 / 0.6);
+}
+
+.microbit-pixel.on {
+  background: #ff4d3f;
+  box-shadow: 0 0 16px rgb(255 77 63 / 0.82), inset 0 0 4px rgb(255 255 255 / 0.28);
+}
+
+.microbit-button {
+  position: absolute;
+  top: 80px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #dce0e8;
+  font: 900 12px var(--mono);
+  background: radial-gradient(circle at 45% 35%, #4a5662, #182028 62%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14), 0 8px 18px rgb(0 0 0 / 0.22);
+}
+
+.microbit-button-a {
+  left: 38px;
+}
+
+.microbit-button-b {
+  right: 38px;
+}
+
+.microbit-label {
+  position: absolute;
+  bottom: 4px;
+  color: rgb(216 228 255 / 0.78);
+  font: 900 17px Georgia, serif;
+  letter-spacing: 0.02em;
+}

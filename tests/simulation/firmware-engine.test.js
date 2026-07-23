@@ -1622,6 +1622,34 @@ test('Arduino Nano blink button example uses board LED_BUILTIN and external LED 
   assert.equal(pressed.builtInLedStates.get('nano-1.led_builtin'), true);
 });
 
+test('BBC micro:bit V2 heart example lights built-in LED matrix through WASM', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/bbc-microbit-v2-heart/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const session = await createProjectWasmSimulationSession({
+    state: {
+      components: new Map([
+        ['microbit-1', officialComponent('microbit-1', 'bbc-microbit-v2', {
+          logicVoltage: 3.3,
+          displayBrightness: 100
+        })]
+      ])
+    },
+    nets: [],
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const result = session.runFrame();
+
+  assert.equal(wasm.ok, true);
+  assert.match(serialText(result), /micro:bit heart ready/);
+  assert.equal(result.builtInLedStates.get('microbit-1.px-0-1'), true);
+  assert.equal(result.builtInLedStates.get('microbit-1.px-0-2'), false);
+  assert.equal(result.builtInLedStates.get('microbit-1.px-2-2'), true);
+  assert.equal(result.builtInLedStates.get('microbit-1.px-4-2'), true);
+});
+
 test('Servo sweep example updates servo angle through Servo WASM shim', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const project = JSON.parse(readFileSync(join(root, 'examples/arduino-servo-sweep/project.json'), 'utf8'));
@@ -1823,6 +1851,7 @@ function officialManifestByVisualType(type) {
     'ads1115-adc': 'components/official/ads1115/component.json',
     'arduino': 'components/official/arduino-uno/component.json',
     'arduino-nano': 'components/official/arduino-nano/component.json',
+    'bbc-microbit-v2': 'components/official/bbc-microbit-v2/component.json',
     'esp32-devkit': 'components/official/esp32-devkit/component.json',
     'bmp280-sensor': 'components/official/bmp280/component.json',
     'buzzer': 'components/official/buzzer/component.json',

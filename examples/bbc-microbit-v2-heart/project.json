@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "BBC micro:bit V2 Heart",
+  "board": {
+    "width": 1300,
+    "height": 760,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "microbit-1",
+      "componentId": "board.bbc.microbit.v2",
+      "position": { "x": 480, "y": 180 },
+      "properties": {
+        "logicVoltage": 3.3,
+        "displayBrightness": 100
+      }
+    }
+  ],
+  "connections": [],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "const int MATRIX_FIRST_PIN = 100;\\nconst int MATRIX_PIXELS = 25;\\nint HEART_PIXELS[] = {\\n    101, 103,\\n    105, 106, 107, 108, 109,\\n    110, 111, 112, 113, 114,\\n    116, 117, 118,\\n    122\\n};\\n\\nvoid clearDisplay()\\n{\\n    for (int pin = MATRIX_FIRST_PIN; pin < MATRIX_FIRST_PIN + MATRIX_PIXELS; pin++) {\\n        digitalWrite(pin, LOW);\\n    }\\n}\\n\\nvoid drawHeart()\\n{\\n    clearDisplay();\\n\\n    for (unsigned int index = 0; index < sizeof(HEART_PIXELS) / sizeof(HEART_PIXELS[0]); index++) {\\n        digitalWrite(HEART_PIXELS[index], HIGH);\\n    }\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n\\n    for (int pin = MATRIX_FIRST_PIN; pin < MATRIX_FIRST_PIN + MATRIX_PIXELS; pin++) {\\n        pinMode(pin, OUTPUT);\\n    }\\n\\n    drawHeart();\\n    Serial.println(\"micro:bit heart ready\");\\n}\\n\\nvoid loop()\\n{\\n    drawHeart();\\n    delay(1000);\\n}\\n"
+    }
+  }
+}

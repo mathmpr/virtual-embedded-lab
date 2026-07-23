@@ -16,6 +16,7 @@ const jsonFiles = [
   'components/official/analog-voltage-source/component.json',
   'components/official/arduino-nano/component.json',
   'components/official/arduino-uno/component.json',
+  'components/official/bbc-microbit-v2/component.json',
   'components/official/bmp280/component.json',
   'components/official/buzzer/component.json',
   'components/official/resistor/component.json',
@@ -43,6 +44,7 @@ const jsonFiles = [
   'components/official/wifi-signal/component.json',
   'examples/arduino-74hc595-seven-segment-counter/project.json',
   'examples/arduino-nano-blink-button/project.json',
+  'examples/bbc-microbit-v2-heart/project.json',
   'examples/bmp280-weather-i2c/project.json',
   'examples/ads1015-single-ended/project.json',
   'examples/ads1115-single-ended/project.json',
@@ -289,6 +291,38 @@ test('ESP32 DevKit manifest exposes documented header pins and wireless capabili
   assert.equal(esp32.behavior.builtInLeds[1].pin, 2);
   assert.equal(esp32.behavior.builtInLeds[1].terminalId, 'io2');
   assert.match(esp32.behavior.notes[1], /GPIO2/);
+});
+
+test('BBC micro:bit V2 manifest exposes edge connector pins and simulated LED matrix', () => {
+  const microbit = JSON.parse(
+    readFileSync(join(root, 'components/official/bbc-microbit-v2/component.json'), 'utf8')
+  );
+  const project = JSON.parse(
+    readFileSync(join(root, 'examples/bbc-microbit-v2-heart/project.json'), 'utf8')
+  );
+  const terminalIds = microbit.terminals.map((terminal: { id: string }) => terminal.id);
+  const visualTerminalIds = microbit.visual.terminals.map((terminal: { id: string }) => terminal.id);
+  const matrixPixels = microbit.behavior.builtInLeds.filter((led: { id: string }) => led.id.startsWith('px-'));
+
+  for (const id of ['p0', 'p1', 'p2', '3v', 'gnd', 'p5', 'p11', 'p13', 'p14', 'p15', 'p19', 'p20']) {
+    assert.ok(terminalIds.includes(id));
+    assert.ok(visualTerminalIds.includes(id));
+  }
+
+  assert.equal(microbit.identity.id, 'board.bbc.microbit.v2');
+  assert.equal(microbit.simulation.kind, 'microcontroller');
+  assert.equal(microbit.electricalModel.logicVoltage, 3.3);
+  assert.equal(microbit.behavior.pinMap.p0.analogNumber, 0);
+  assert.ok(microbit.behavior.pinMap.p19.capabilities.includes('i2c-scl'));
+  assert.ok(microbit.behavior.pinMap.p20.capabilities.includes('i2c-sda'));
+  assert.equal(microbit.behavior.buses.i2c[0].sda, 'p20');
+  assert.equal(microbit.behavior.buses.spi[0].sck, 'p13');
+  assert.equal(matrixPixels.length, 25);
+  assert.equal(matrixPixels[0].pin, 100);
+  assert.equal(matrixPixels[24].pin, 124);
+  assert.match(JSON.stringify(microbit.visual.controls), /data-built-in-led=\\"px-2-2\\"/);
+  assert.deepEqual(project.components.map((component: { componentId: string }) => component.componentId), ['board.bbc.microbit.v2']);
+  assert.match(project.code.files['main.ino'], /HEART_PIXELS/);
 });
 
 test('Wi-Fi signal component exposes connection and signal strength properties', () => {

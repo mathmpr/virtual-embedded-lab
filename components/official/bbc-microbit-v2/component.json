@@ -1,0 +1,213 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "board.bbc.microbit.v2",
+    "name": "BBC micro:bit V2",
+    "category": "microcontroller",
+    "subCategory": "microbit"
+  },
+  "simulation": {
+    "kind": "microcontroller",
+    "effects": ["firmware", "electrical", "visual-state"],
+    "implemented": true,
+    "notes": [
+      "The edge connector follows the micro:bit V2 pinout.",
+      "The 5x5 LED matrix is exposed as simulated built-in pixel pins 100..124 for deterministic firmware examples; real hardware drives it by row/column multiplexing."
+    ]
+  },
+  "properties": {
+    "logicVoltage": {
+      "type": "number",
+      "default": 3.3,
+      "unit": "V",
+      "simulationUpdate": "rerun"
+    },
+    "displayBrightness": {
+      "type": "number",
+      "default": 100,
+      "minimum": 0,
+      "maximum": 100,
+      "unit": "%",
+      "simulationUpdate": "none"
+    }
+  },
+  "terminals": [
+    { "id": "p0", "label": "P0", "type": "analog-input" },
+    { "id": "p1", "label": "P1", "type": "analog-input" },
+    { "id": "p2", "label": "P2", "type": "analog-input" },
+    { "id": "3v", "label": "3V", "type": "power-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "p3", "label": "P3", "type": "analog-input" },
+    { "id": "p4", "label": "P4", "type": "analog-input" },
+    { "id": "p5", "label": "P5/A", "type": "digital-input" },
+    { "id": "p6", "label": "P6", "type": "digital-io" },
+    { "id": "p7", "label": "P7", "type": "digital-io" },
+    { "id": "p8", "label": "P8", "type": "digital-io" },
+    { "id": "p9", "label": "P9", "type": "digital-io" },
+    { "id": "p10", "label": "P10", "type": "analog-input" },
+    { "id": "p11", "label": "P11/B", "type": "digital-input" },
+    { "id": "p12", "label": "P12", "type": "digital-io" },
+    { "id": "p13", "label": "P13/SCK", "type": "spi-sck" },
+    { "id": "p14", "label": "P14/MISO", "type": "spi-miso" },
+    { "id": "p15", "label": "P15/MOSI", "type": "spi-mosi" },
+    { "id": "p16", "label": "P16", "type": "digital-io" },
+    { "id": "p19", "label": "P19/SCL", "type": "i2c-scl" },
+    { "id": "p20", "label": "P20/SDA", "type": "i2c-sda" }
+  ],
+  "electricalModel": {
+    "type": "microcontroller",
+    "logicVoltage": 3.3,
+    "recommendedPinCurrentAmps": 0.005
+  },
+  "behavior": {
+    "type": "microcontroller",
+    "runtime": "arduino-compatible",
+    "pinMap": {
+      "p0": { "number": 0, "analogNumber": 0, "name": "P0", "capabilities": ["digital", "analog", "pwm", "touch"] },
+      "p1": { "number": 1, "analogNumber": 1, "name": "P1", "capabilities": ["digital", "analog", "pwm", "touch"] },
+      "p2": { "number": 2, "analogNumber": 2, "name": "P2", "capabilities": ["digital", "analog", "pwm", "touch"] },
+      "p3": { "number": 3, "analogNumber": 3, "name": "P3/COL3", "capabilities": ["digital", "analog", "led-column"] },
+      "p4": { "number": 4, "analogNumber": 4, "name": "P4/COL1", "capabilities": ["digital", "analog", "led-column"] },
+      "p5": { "number": 5, "name": "P5/BTN_A", "capabilities": ["digital", "button"] },
+      "p6": { "number": 6, "name": "P6/COL4", "capabilities": ["digital", "led-column"] },
+      "p7": { "number": 7, "name": "P7/COL2", "capabilities": ["digital", "led-column"] },
+      "p8": { "number": 8, "name": "P8", "capabilities": ["digital"] },
+      "p9": { "number": 9, "name": "P9", "capabilities": ["digital"] },
+      "p10": { "number": 10, "analogNumber": 10, "name": "P10/COL5", "capabilities": ["digital", "analog", "led-column"] },
+      "p11": { "number": 11, "name": "P11/BTN_B", "capabilities": ["digital", "button"] },
+      "p12": { "number": 12, "name": "P12", "capabilities": ["digital"] },
+      "p13": { "number": 13, "name": "P13/SCK", "capabilities": ["digital", "spi-sck"] },
+      "p14": { "number": 14, "name": "P14/MISO", "capabilities": ["digital", "spi-miso"] },
+      "p15": { "number": 15, "name": "P15/MOSI", "capabilities": ["digital", "spi-mosi"] },
+      "p16": { "number": 16, "name": "P16", "capabilities": ["digital"] },
+      "p19": { "number": 19, "name": "P19/SCL", "capabilities": ["digital", "i2c-scl"] },
+      "p20": { "number": 20, "name": "P20/SDA", "capabilities": ["digital", "i2c-sda"] }
+    },
+    "buses": {
+      "i2c": [
+        { "id": "wire", "sda": "p20", "scl": "p19" }
+      ],
+      "spi": [
+        { "id": "spi", "sck": "p13", "miso": "p14", "mosi": "p15" }
+      ]
+    },
+    "builtInLeds": [
+      { "id": "px-0-0", "label": "0,0", "pin": 100, "activeHigh": true, "color": "red" },
+      { "id": "px-0-1", "label": "0,1", "pin": 101, "activeHigh": true, "color": "red" },
+      { "id": "px-0-2", "label": "0,2", "pin": 102, "activeHigh": true, "color": "red" },
+      { "id": "px-0-3", "label": "0,3", "pin": 103, "activeHigh": true, "color": "red" },
+      { "id": "px-0-4", "label": "0,4", "pin": 104, "activeHigh": true, "color": "red" },
+      { "id": "px-1-0", "label": "1,0", "pin": 105, "activeHigh": true, "color": "red" },
+      { "id": "px-1-1", "label": "1,1", "pin": 106, "activeHigh": true, "color": "red" },
+      { "id": "px-1-2", "label": "1,2", "pin": 107, "activeHigh": true, "color": "red" },
+      { "id": "px-1-3", "label": "1,3", "pin": 108, "activeHigh": true, "color": "red" },
+      { "id": "px-1-4", "label": "1,4", "pin": 109, "activeHigh": true, "color": "red" },
+      { "id": "px-2-0", "label": "2,0", "pin": 110, "activeHigh": true, "color": "red" },
+      { "id": "px-2-1", "label": "2,1", "pin": 111, "activeHigh": true, "color": "red" },
+      { "id": "px-2-2", "label": "2,2", "pin": 112, "activeHigh": true, "color": "red" },
+      { "id": "px-2-3", "label": "2,3", "pin": 113, "activeHigh": true, "color": "red" },
+      { "id": "px-2-4", "label": "2,4", "pin": 114, "activeHigh": true, "color": "red" },
+      { "id": "px-3-0", "label": "3,0", "pin": 115, "activeHigh": true, "color": "red" },
+      { "id": "px-3-1", "label": "3,1", "pin": 116, "activeHigh": true, "color": "red" },
+      { "id": "px-3-2", "label": "3,2", "pin": 117, "activeHigh": true, "color": "red" },
+      { "id": "px-3-3", "label": "3,3", "pin": 118, "activeHigh": true, "color": "red" },
+      { "id": "px-3-4", "label": "3,4", "pin": 119, "activeHigh": true, "color": "red" },
+      { "id": "px-4-0", "label": "4,0", "pin": 120, "activeHigh": true, "color": "red" },
+      { "id": "px-4-1", "label": "4,1", "pin": 121, "activeHigh": true, "color": "red" },
+      { "id": "px-4-2", "label": "4,2", "pin": 122, "activeHigh": true, "color": "red" },
+      { "id": "px-4-3", "label": "4,3", "pin": 123, "activeHigh": true, "color": "red" },
+      { "id": "px-4-4", "label": "4,4", "pin": 124, "activeHigh": true, "color": "red" }
+    ],
+    "notes": [
+      "P0, P1 and P2 are large analog-capable ring pads.",
+      "P5 and P11 are shared with buttons A and B.",
+      "P19/P20 expose the external I2C bus.",
+      "The simulated LED matrix uses one logical pin per pixel to avoid adding board-specific multiplexing to the core."
+    ]
+  },
+  "contributions": {
+    "styles": {
+      "files": ["./ui/styles.css"]
+    }
+  },
+  "visual": {
+    "type": "bbc-microbit-v2",
+    "title": "BBC micro:bit V2",
+    "className": "bbc-microbit-v2",
+    "body": "3.3V logic / 5x5 LED matrix",
+    "width": 330,
+    "height": 300,
+    "controls": [
+      {
+        "type": "container",
+        "className": "microbit-face",
+        "children": [
+          { "type": "element", "tag": "span", "className": "microbit-button microbit-button-a", "text": "A" },
+          {
+            "type": "container",
+            "className": "microbit-led-matrix",
+            "children": [
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-0-0\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-0-1\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-0-2\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-0-3\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-0-4\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-1-0\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-1-1\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-1-2\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-1-3\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-1-4\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-2-0\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-2-1\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-2-2\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-2-3\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-2-4\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-3-0\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-3-1\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-3-2\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-3-3\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-3-4\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-4-0\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-4-1\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-4-2\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-4-3\"" },
+              { "type": "element", "tag": "span", "className": "microbit-pixel", "dataAttribute": "data-built-in-led=\"px-4-4\"" }
+            ]
+          },
+          { "type": "element", "tag": "span", "className": "microbit-button microbit-button-b", "text": "B" },
+          { "type": "element", "tag": "span", "className": "microbit-label", "text": "micro:bit" }
+        ]
+      }
+    ],
+    "palette": {
+      "group": "Boards",
+      "subgroup": "micro:bit",
+      "icon": "microbit-icon",
+      "order": 14
+    },
+    "terminals": [
+      { "id": "p0", "side": "bottom", "x": 42, "y": 300, "kind": "signal" },
+      { "id": "p1", "side": "bottom", "x": 86, "y": 300, "kind": "signal" },
+      { "id": "p2", "side": "bottom", "x": 130, "y": 300, "kind": "signal" },
+      { "id": "3v", "side": "bottom", "x": 202, "y": 300, "kind": "power" },
+      { "id": "gnd", "side": "bottom", "x": 276, "y": 300, "kind": "ground" },
+      { "id": "p3", "side": "left", "x": 0, "y": 52, "kind": "signal" },
+      { "id": "p4", "side": "left", "x": 0, "y": 72, "kind": "signal" },
+      { "id": "p5", "side": "left", "x": 0, "y": 92, "kind": "signal" },
+      { "id": "p6", "side": "left", "x": 0, "y": 112, "kind": "signal" },
+      { "id": "p7", "side": "left", "x": 0, "y": 132, "kind": "signal" },
+      { "id": "p8", "side": "left", "x": 0, "y": 152, "kind": "signal" },
+      { "id": "p9", "side": "left", "x": 0, "y": 172, "kind": "signal" },
+      { "id": "p10", "side": "left", "x": 0, "y": 192, "kind": "signal" },
+      { "id": "p11", "side": "right", "x": 330, "y": 72, "kind": "signal" },
+      { "id": "p12", "side": "right", "x": 330, "y": 92, "kind": "signal" },
+      { "id": "p13", "side": "right", "x": 330, "y": 112, "kind": "signal" },
+      { "id": "p14", "side": "right", "x": 330, "y": 132, "kind": "signal" },
+      { "id": "p15", "side": "right", "x": 330, "y": 152, "kind": "signal" },
+      { "id": "p16", "side": "right", "x": 330, "y": 172, "kind": "signal" },
+      { "id": "p19", "side": "right", "x": 330, "y": 192, "kind": "signal" },
+      { "id": "p20", "side": "right", "x": 330, "y": 212, "kind": "signal" }
+    ]
+  }
+}
