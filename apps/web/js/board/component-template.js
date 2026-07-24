@@ -1,4 +1,5 @@
 import { stateText, t } from '../i18n.js';
+import { formatDisplayNumber } from './formatters.js';
 
 export function renderComponentTemplate(definition, componentId, variantsForProperty) {
   const body = renderComponentBody(definition, variantsForProperty);
@@ -62,6 +63,7 @@ function renderPulseButton(control) {
   return `
     <button class="${escapeHtml(control.className ?? 'component-pulse-button')}" type="button"
       ${renderPropertyAttribute(control.property)}
+      ${renderKeyboardKeyPropertyAttribute(control.keyProperty)}
       data-pulse-duration-ms="${escapeHtml(control.durationMs ?? 160)}">
       ${escapeHtml(control.label ?? t('Press'))}
     </button>
@@ -154,7 +156,7 @@ function formatControlValue(control, definition) {
   }
 
   if (control.format === 'percent') {
-    return `${value}%`;
+    return `${formatDisplayNumber(value)}%`;
   }
 
   if (control.format === 'hex8') {
@@ -162,10 +164,10 @@ function formatControlValue(control, definition) {
   }
 
   if (control.unit) {
-    return `${value} ${control.unit}`;
+    return `${formatDisplayNumber(value)} ${control.unit}`;
   }
 
-  return value;
+  return typeof value === 'number' ? formatDisplayNumber(value) : value;
 }
 
 function renderBuiltInLeds(definition) {
@@ -217,6 +219,10 @@ function renderDataAttribute(dataAttribute) {
 
 function renderPropertyAttribute(propertyName) {
   return propertyName ? `data-property="${escapeHtml(propertyName)}"` : '';
+}
+
+function renderKeyboardKeyPropertyAttribute(propertyName) {
+  return propertyName ? `data-key-property="${escapeHtml(propertyName)}"` : '';
 }
 
 function renderOutputAttribute(control) {

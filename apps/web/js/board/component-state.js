@@ -1,5 +1,6 @@
 import { environmentPayloadForComponent } from '../simulation/environment-payload.js';
 import { stateText, t } from '../i18n.js';
+import { formatDisplayNumber } from './formatters.js';
 
 export function createComponentState({
   state,
@@ -52,6 +53,13 @@ export function createComponentState({
     if (binding.type === 'style') {
       bindingTargets(component, binding).forEach((target) => {
         target.style.setProperty(binding.styleProperty, formatStyleBindingValue(value, binding));
+      });
+      return;
+    }
+
+    if (binding.type === 'pixelImage') {
+      bindingTargets(component, binding).forEach((target) => {
+        applyPixelImageBinding(target, value, binding);
       });
     }
   }
@@ -130,7 +138,7 @@ export function createComponentState({
     }
 
     if (updateMode === 'rerun') {
-      simulation.runSimulation();
+      return;
     }
   }
 
@@ -223,7 +231,7 @@ export function createComponentState({
     }
 
     if (control.format === 'percent') {
-      return `${value}%`;
+      return `${formatDisplayNumber(value)}%`;
     }
 
     if (control.format === 'hex8') {
@@ -231,10 +239,10 @@ export function createComponentState({
     }
 
     if (control.unit) {
-      return `${value} ${control.unit}`;
+      return `${formatDisplayNumber(value)} ${control.unit}`;
     }
 
-    return String(value);
+    return typeof value === 'number' ? formatDisplayNumber(value) : String(value);
   }
 
   function derivedBindingValue(component, source = {}) {
@@ -347,6 +355,62 @@ export function createComponentState({
     }
 
     return String(Number(value ?? 0));
+  }
+
+  function applyPixelImageBinding(target, value, binding) {
+    const image = pixelImageDataUrl(value, binding);
+
+    target.style.setProperty('background-image', image ? `url("${image}")` : 'none');
+    target.style.setProperty('image-rendering', 'pixelated');
+  }
+
+  function pixelImageDataUrl(value, binding) {
+    const parsed = parsePixelFramebuffer(value, binding);
+
+    if (!parsed) {
+      return '';
+    }
+
+    const pixels = parsed.colors.map((color, index) => {
+      const x = index % parsed.width;
+      const y = Math.floor(index / parsed.width);
+      return color === parsed.offColor ? '' : `<rect x="${x}" y="${y}" width="1" height="1" fill="${color}"/>`;
+    }).join('');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${parsed.width} ${parsed.height}" shape-rendering="crispEdges"><rect width="${parsed.width}" height="${parsed.height}" fill="${parsed.offColor}"/>${pixels}</svg>`;
+
+    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  }
+
+  function parsePixelFramebuffer(value, binding) {
+    const [size, payload = ''] = String(value ?? '').split('|');
+    const sizeMatch = size.match(/^(\d+)x(\d+)$/);
+    const width = Number(sizeMatch?.[1] ?? binding.width);
+    const height = Number(sizeMatch?.[2] ?? binding.height);
+
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
+      return null;
+    }
+
+    const offColor = normalizeColor(binding.offColor ?? '#05070b');
+    const colors = payload.split(',').map((color) => normalizeColor(color || offColor));
+    const expectedPixels = width * height;
+
+    while (colors.length < expectedPixels) {
+      colors.push(offColor);
+    }
+
+    return {
+      width,
+      height,
+      offColor,
+      colors: colors.slice(0, expectedPixels)
+    };
+  }
+
+  function normalizeColor(value) {
+    const color = String(value ?? '').trim();
+
+    return /^#[0-9a-f]{6}$/i.test(color) ? color : '#000000';
   }
 
   function matchesBindingWhen(value, expected) {

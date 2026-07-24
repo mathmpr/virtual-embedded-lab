@@ -21,7 +21,7 @@ export function createBuzzerAudioController({ maxGain = 0.08 } = {}) {
     return enabled ? (disable(), false) : enable().then(() => true);
   }
 
-  function sync(components) {
+  function sync(components, events = []) {
     if (!enabled || !audioContext) {
       stopAll();
       return;
@@ -50,6 +50,8 @@ export function createBuzzerAudioController({ maxGain = 0.08 } = {}) {
         stop(id);
       }
     }
+
+    playTransientEvents(events);
   }
 
   function startOrUpdate(component) {
@@ -93,6 +95,31 @@ export function createBuzzerAudioController({ maxGain = 0.08 } = {}) {
   function stopAll() {
     for (const id of [...voices.keys()]) {
       stop(id);
+    }
+  }
+
+  function playTransientEvents(events) {
+    for (const event of events ?? []) {
+      if (event.active !== true) {
+        continue;
+      }
+
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const frequency = clamp(Number(event.frequencyHz ?? 2000), 20, 20000);
+      const volume = clamp(Number(event.volumePercent ?? 60) / 100, 0, 1) * maxGain;
+      const durationSeconds = clamp(Number(event.durationMs ?? 80), 20, 250) / 1000;
+      const now = audioContext.currentTime;
+
+      oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(frequency, now);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume, now + 0.006);
+      gain.gain.setTargetAtTime(0, now + durationSeconds, 0.012);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start(now);
+      oscillator.stop(now + durationSeconds + 0.05);
     }
   }
 

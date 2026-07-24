@@ -43,14 +43,24 @@ export function normalizePropertySignal(key, value) {
 
 export function formatPropertySignal(key, value) {
   if (key.toLowerCase().includes('percent')) {
-    return `${value}%`;
+    return `${formatDisplayNumber(value)}%`;
   }
 
   if (key.toLowerCase().includes('ohms')) {
-    return `${value} Ω`;
+    return `${formatDisplayNumber(value)} Ω`;
   }
 
-  return String(value);
+  return formatDisplayNumber(value);
+}
+
+export function formatDisplayNumber(value, maxFractionDigits = 3) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return String(value);
+  }
+
+  return String(Number(numericValue.toFixed(maxFractionDigits)));
 }
 
 export function labelFromPropertyName(key) {

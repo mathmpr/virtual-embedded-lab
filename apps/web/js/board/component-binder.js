@@ -16,7 +16,7 @@ export function createComponentBinder({
     let originY = 0;
 
     element.addEventListener('pointerdown', (event) => {
-      if (state.viewport.isSpacePanning) {
+      if (state.viewport.isSpacePanning || state.boardLocked) {
         return;
       }
 
@@ -100,6 +100,7 @@ export function createComponentBinder({
           event.preventDefault();
           pulseProperty(input, model);
         });
+        bindKeyboardPulseControl(input, model);
         return;
       }
 
@@ -122,10 +123,46 @@ export function createComponentBinder({
   function pulseProperty(input, model) {
     const durationMs = Math.max(20, Number(input.dataset.pulseDurationMs) || 160);
 
-    componentState.updateComponentProperty(model, input.dataset.property, true, true);
+    if (model.properties[input.dataset.property] === true) {
+      return;
+    }
+
+    componentState.updateComponentProperty(model, input.dataset.property, true);
     window.setTimeout(() => {
-      componentState.updateComponentProperty(model, input.dataset.property, false, true);
+      componentState.updateComponentProperty(model, input.dataset.property, false);
     }, durationMs);
+  }
+
+  function bindKeyboardPulseControl(input, model) {
+    if (!input.dataset.keyProperty) {
+      return;
+    }
+
+    window.addEventListener('keydown', (event) => {
+      const key = model.properties[input.dataset.keyProperty];
+
+      if (!state.components.has(model.id) || !key || event.repeat || shouldIgnoreKeyboardShortcut(event)) {
+        return;
+      }
+
+      if (!keyboardKeyMatches(event, key)) {
+        return;
+      }
+
+      event.preventDefault();
+      pulseProperty(input, model);
+    });
+  }
+
+  function keyboardKeyMatches(event, configuredKey) {
+    const normalized = String(configuredKey ?? '').trim().toLowerCase();
+
+    return normalized === event.key.toLowerCase()
+      || normalized === event.code.toLowerCase();
+  }
+
+  function shouldIgnoreKeyboardShortcut(event) {
+    return Boolean(event.target?.closest?.('.cm-editor, input, textarea, select, button'));
   }
 
   function inputValue(input) {

@@ -1,6 +1,6 @@
 import { terminalReference } from '../components.js';
 import { stateText, t } from '../i18n.js';
-import { escapeHtml, formatCurrent, formatPower, formatVoltage, labelFromPropertyName } from './formatters.js';
+import { escapeHtml, formatCurrent, formatDisplayNumber, formatPower, formatVoltage, labelFromPropertyName } from './formatters.js';
 
 export function createInspectorPanel({
   state,
@@ -197,6 +197,12 @@ export function createInspectorPanel({
   function formatInspectorPropertyValue(propertyName, value, propertySchema) {
     if (propertySchema?.type === 'boolean') {
       return value ? stateText('ON') : stateText('OFF');
+    }
+
+    if (propertySchema?.type === 'number') {
+      const formattedValue = formatDisplayNumber(value);
+
+      return propertySchema?.unit ? `${formattedValue} ${propertySchema.unit}` : formattedValue;
     }
 
     if (propertySchema?.unit) {

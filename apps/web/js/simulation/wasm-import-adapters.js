@@ -24,8 +24,21 @@ const arduinoCoreImportAdapter = {
   id: 'arduino-core',
   libraries: ['Arduino'],
   capabilities: ['gpio', 'analog-input', 'time', 'pulse'],
-  imports({ runtime }) {
+  imports({ runtime, getMemory }) {
     return {
+      memmove(destination, source, count) {
+        memoryBytes(getMemory()).copyWithin(Number(destination), Number(source), Number(source) + Number(count));
+        return Number(destination);
+      },
+      memcpy(destination, source, count) {
+        const memory = memoryBytes(getMemory());
+        memory.set(memory.slice(Number(source), Number(source) + Number(count)), Number(destination));
+        return Number(destination);
+      },
+      memset(destination, value, count) {
+        memoryBytes(getMemory()).fill(Number(value) & 0xff, Number(destination), Number(destination) + Number(count));
+        return Number(destination);
+      },
       __vl_pinMode(pin, mode) {
         runtime.pinMode(Number(pin), mode === 1 ? 'OUTPUT' : 'INPUT');
       },
@@ -156,4 +169,12 @@ function formatFirmwareFloat(value) {
   }
 
   return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, '');
+}
+
+function memoryBytes(memory) {
+  if (!memory) {
+    return new Uint8Array();
+  }
+
+  return new Uint8Array(memory.buffer);
 }

@@ -43,6 +43,7 @@ export function createBoardEditor(document) {
   const serialMonitor = document.querySelector('#serialMonitor');
   const problemList = document.querySelector('#problemList');
   const toggleAudioButton = document.querySelector('#toggleAudio');
+  const lockBoardButton = document.querySelector('#lockBoard');
 
   const state = createInitialBoardState();
   const buzzerAudio = createBuzzerAudioController();
@@ -259,6 +260,7 @@ export function createBoardEditor(document) {
     renderPalette();
     bindPalette();
     syncAudioButton();
+    syncBoardLockButton();
     rerenderBoardComponents();
     renderInspector();
     renderSignals();
@@ -300,7 +302,10 @@ export function createBoardEditor(document) {
   }
 
   function bindToolbar() {
-    document.querySelector('#startSimulation').addEventListener('click', simulation.runSimulation);
+    document.querySelector('#startSimulation').addEventListener('click', () => {
+      setBoardLocked(true);
+      simulation.runSimulation();
+    });
     document.querySelector('#pauseSimulation').addEventListener('click', () => {
       simulation.pauseSimulation();
       buzzerAudio.stopAll();
@@ -317,6 +322,7 @@ export function createBoardEditor(document) {
     document.querySelector('#clearBoard').addEventListener('click', clearBoard);
     document.querySelector('#openExamples').addEventListener('click', openExamplesDialog);
     document.querySelector('#undoBoard').addEventListener('click', undoBoard);
+    lockBoardButton.addEventListener('click', () => setBoardLocked(!state.boardLocked));
     document.querySelector('#redoBoard').addEventListener('click', redoBoard);
     document.querySelector('#saveProject').addEventListener('click', saveProjectToLocalStorage);
     document.querySelector('#loadSavedProject').addEventListener('click', loadProjectFromLocalStorage);
@@ -325,12 +331,26 @@ export function createBoardEditor(document) {
       document.querySelector('#projectFileInput').click();
     });
     document.querySelector('#projectFileInput').addEventListener('change', importProjectFile);
+    syncBoardLockButton();
   }
 
   function syncAudioButton(enabled = buzzerAudio.enabled) {
     toggleAudioButton.textContent = enabled ? t('Audio On') : t('Audio Off');
     toggleAudioButton.classList.toggle('active', enabled);
     toggleAudioButton.setAttribute('aria-pressed', String(enabled));
+  }
+
+  function setBoardLocked(locked) {
+    state.boardLocked = Boolean(locked);
+    syncBoardLockButton();
+  }
+
+  function syncBoardLockButton() {
+    lockBoardButton.textContent = t('Lock');
+    lockBoardButton.classList.toggle('active', state.boardLocked);
+    lockBoardButton.setAttribute('aria-pressed', String(state.boardLocked));
+    lockBoardButton.setAttribute('title', state.boardLocked ? t('Board locked') : t('Board unlocked'));
+    board.classList.toggle('locked', state.boardLocked);
   }
 
   async function openExamplesDialog() {
@@ -704,8 +724,15 @@ export function createBoardEditor(document) {
     };
     syncRuntimeUpdatedComponentControls();
     applyVisualStateBindings();
-    buzzerAudio.sync(state.components.values());
-    renderInspector();
+    buzzerAudio.sync(state.components.values(), result.buzzerEvents ?? []);
+
+    if (!inspectorHasActivePropertyEditor()) {
+      renderInspector();
+    }
+  }
+
+  function inspectorHasActivePropertyEditor() {
+    return Boolean(document.activeElement?.matches?.('#inspectorContent [data-property]'));
   }
 
   function syncRuntimeUpdatedComponentControls() {

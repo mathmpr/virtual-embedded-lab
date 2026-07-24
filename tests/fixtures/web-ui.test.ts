@@ -42,6 +42,7 @@ test('web UI entrypoint contains required workspace regions', () => {
   assert.match(html, /id="examplesDialog"/);
   assert.match(html, /id="examplesList"/);
   assert.match(html, /id="undoBoard"/);
+  assert.match(html, /id="lockBoard"/);
   assert.match(html, /id="redoBoard"/);
   assert.match(html, /id="saveProject"/);
   assert.match(html, /id="loadSavedProject"/);
@@ -70,12 +71,14 @@ test('web UI script defines the MVP components', () => {
   const adcStyles = readFileSync(join(root, 'components/official/ads1015/ui/styles.css'), 'utf8');
   const microbitStyles = readFileSync(join(root, 'components/official/bbc-microbit-v2/ui/styles.css'), 'utf8');
   const acStyles = readFileSync(join(root, 'components/official/ac-mains-environment/ui/styles.css'), 'utf8');
+  const hub75Styles = readFileSync(join(root, 'components/official/hub75-rgb-matrix-64x32/ui/styles.css'), 'utf8');
 
   for (const manifest of [
     'components/official/ac-load/component.json',
     'components/official/ac-mains-environment/component.json',
     'components/official/ads1015/component.json',
     'components/official/ads1115/component.json',
+    'components/official/74ahct245/component.json',
     'components/official/74hc595/component.json',
     'components/official/analog-voltage-source/component.json',
     'components/official/arduino-nano/component.json',
@@ -83,10 +86,13 @@ test('web UI script defines the MVP components', () => {
     'components/official/bbc-microbit-v2/component.json',
     'components/official/bmp280/component.json',
     'components/official/buzzer/component.json',
+    'components/official/dc-power-supply-5v/component.json',
+    'components/official/esp32-s3-devkit/component.json',
     'components/official/esp32-devkit/component.json',
     'components/official/esp8266-nodemcu/component.json',
     'components/official/hc-sr04/component.json',
     'components/official/fc-37-rain-sensor/component.json',
+    'components/official/hub75-rgb-matrix-64x32/component.json',
     'components/official/ldr-light-sensor/component.json',
     'components/official/resistor/component.json',
     'components/official/capacitor/component.json',
@@ -178,6 +184,8 @@ test('web UI script defines the MVP components', () => {
   assert.match(microbitStyles, /\.microbit-icon/);
   assert.match(microbitStyles, /\.bbc-microbit-v2/);
   assert.match(microbitStyles, /\.microbit-led-matrix/);
+  assert.match(hub75Styles, /\.hub75-framebuffer/);
+  assert.match(hub75Styles, /\.rgb-matrix-icon/);
   assert.match(servoStyles, /\.servo-motor/);
   assert.match(servoStyles, /--servo-angle/);
   assert.match(css, /\.esp32-icon/);
@@ -199,6 +207,7 @@ test('web UI defaults visible product text to Portuguese', () => {
   assert.match(html, />Pausar<\/button>/);
   assert.match(html, />Reiniciar<\/button>/);
   assert.match(html, />Desfazer<\/button>/);
+  assert.match(html, />Travar<\/button>/);
   assert.match(html, />Refazer<\/button>/);
   assert.match(html, /Arraste componentes aqui/);
   assert.doesNotMatch(html, />Run<\/button>|>Pause<\/button>|>Reset<\/button>|>Undo<\/button>|>Redo<\/button>|>Drag components here<\/div>/);
@@ -266,8 +275,13 @@ test('web UI prevents known interaction regressions', () => {
 
   assert.match(script, /nextComponentId\(type\)/);
   assert.match(script, /syncComponentCounter\(componentId\)/);
+  assert.match(script, /setBoardLocked\(true\)/);
+  assert.match(script, /syncBoardLockButton\(\)/);
+  assert.match(script, /inspectorHasActivePropertyEditor\(\)/);
+  assert.match(script, /if \(!inspectorHasActivePropertyEditor\(\)\) \{\s*renderInspector\(\);/);
   assert.match(solver, /solveElectricalState\(\{ graph, runtime, runtimesByComponent = null \}\)/);
   assert.match(solver, /findDrivenHighPins\(\{ graph, runtime, arduino, runtimesByComponent \}\)/);
+  assert.match(componentBinder, /state\.boardLocked/);
   assert.match(componentBinder, /closest\('/);
   assert.match(componentBinder, /input, textarea, select/);
   assert.match(componentTemplate, /data-delete-component/);
@@ -277,8 +291,10 @@ test('web UI prevents known interaction regressions', () => {
 test('web UI exposes editable distance, resistor and capacitor properties', () => {
   const script = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
   const componentTemplate = readFileSync(join(root, 'apps/web/js/board/component-template.js'), 'utf8');
+  const componentBinder = readFileSync(join(root, 'apps/web/js/board/component-binder.js'), 'utf8');
   const inspector = readFileSync(join(root, 'apps/web/js/board/inspector-panel.js'), 'utf8');
   const componentState = readFileSync(join(root, 'apps/web/js/board/component-state.js'), 'utf8');
+  const formatters = readFileSync(join(root, 'apps/web/js/board/formatters.js'), 'utf8');
   const components = readFileSync(join(root, 'apps/web/js/components.js'), 'utf8');
   const resistor = readFileSync(join(root, 'components/official/resistor/component.json'), 'utf8');
   const capacitor = readFileSync(join(root, 'components/official/capacitor/component.json'), 'utf8');
@@ -294,6 +310,12 @@ test('web UI exposes editable distance, resistor and capacitor properties', () =
   assert.match(componentTemplate, /case 'number'/);
   assert.match(componentTemplate, /case 'string'/);
   assert.match(componentTemplate, /case 'variant'/);
+  assert.match(componentTemplate, /data-key-property=/);
+  assert.match(componentState, /binding\.type === 'pixelImage'/);
+  assert.match(componentState, /pixelImageDataUrl\(value, binding\)/);
+  assert.match(componentBinder, /bindKeyboardPulseControl\(input, model\)/);
+  assert.match(componentBinder, /keyboardKeyMatches\(event, key\)/);
+  assert.match(componentBinder, /shouldIgnoreKeyboardShortcut\(event\)/);
   assert.doesNotMatch(componentTemplate, /definition\.className/);
   assert.match(componentTemplate, /data-property=/);
   assert.doesNotMatch(resistor, /data-resistor-select/);
@@ -302,10 +324,16 @@ test('web UI exposes editable distance, resistor and capacitor properties', () =
   assert.match(inspector, /data-property/);
   assert.match(inspector, /renderInspectorPropertyControl/);
   assert.match(inspector, /updateComponentProperty/);
+  assert.match(inspector, /formatDisplayNumber\(value\)/);
+  assert.match(componentTemplate, /formatDisplayNumber\(value\)/);
+  assert.match(componentState, /formatDisplayNumber\(value\)/);
+  assert.match(formatters, /export function formatDisplayNumber\(value, maxFractionDigits = 3\)/);
+  assert.match(formatters, /numericValue\.toFixed\(maxFractionDigits\)/);
   assert.doesNotMatch(inspector, /data-inspector-resistor/);
   assert.doesNotMatch(inspector, /data-inspector-capacitor/);
   assert.doesNotMatch(inspector, /data-inspector-distance/);
   assert.match(componentState, /function updateComponentProperty\(component, propertyName, value/);
+  assert.doesNotMatch(componentState, /simulation\.runSimulation\(\)/);
   assert.match(componentState, /function bindingTargets\(component, binding\)/);
   assert.doesNotMatch(componentState, /function updateResistorValue/);
   assert.doesNotMatch(componentState, /function updateCapacitorValue/);
@@ -757,6 +785,22 @@ test('web UI keeps Serial history append-only during runs and RX input', () => {
   assert.doesNotMatch(css, /\.serial-clear-button\s*\{[\s\S]*position: absolute;/);
   assert.match(adapter, /appendSerialEvents\(result\.serial\.events\.filter/);
   assert.match(adapter, /clearSerialHistory\(\)/);
+});
+
+test('web UI keyboard-bound pulse buttons do not force extra simulation frames', () => {
+  const binder = readFileSync(join(root, 'apps/web/js/board/component-binder.js'), 'utf8');
+  const simulation = readFileSync(join(root, 'apps/web/js/visual-simulation.js'), 'utf8');
+  const editor = readFileSync(join(root, 'apps/web/js/board-editor.js'), 'utf8');
+  const audio = readFileSync(join(root, 'apps/web/js/audio/buzzer-audio.js'), 'utf8');
+
+  assert.match(binder, /bindKeyboardPulseControl\(input, model\)/);
+  assert.match(binder, /event\.repeat/);
+  assert.match(binder, /componentState\.updateComponentProperty\(model, input\.dataset\.property, true\)/);
+  assert.match(binder, /componentState\.updateComponentProperty\(model, input\.dataset\.property, false\)/);
+  assert.doesNotMatch(binder, /updateComponentProperty\(model, input\.dataset\.property, true, true\)/);
+  assert.doesNotMatch(simulation, /simulationTimer = setTimeout\(runSimulationFrame, 0\)/);
+  assert.match(editor, /buzzerAudio\.sync\(state\.components\.values\(\), result\.buzzerEvents \?\? \[\]\)/);
+  assert.match(audio, /playTransientEvents\(events\)/);
 });
 
 test('web UI renders contextual signals in the inspector', () => {

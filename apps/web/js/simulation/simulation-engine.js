@@ -297,6 +297,7 @@ function finalizeMultiSimulationResult({ clock, graph, environment, runtimesByCo
     signalsByNet: signalSnapshot.signalsByNet,
     ledStates: electrical.ledStates,
     ledEvents: externalLedEvents({ graph, pinEvents }),
+    buzzerEvents: buzzerEvents({ graph, pinEvents }),
     builtInLedStates: builtInLedStates({ graph, runtime: primaryRuntime, runtimesByComponent }),
     builtInLedEvents: builtInLedEvents({ graph, pinEvents }),
     electrical,
@@ -408,6 +409,7 @@ export function finalizeSimulationResult({ clock, graph, runtime, environment, f
     signalsByNet: signalSnapshot.signalsByNet,
     ledStates: electrical.ledStates,
     ledEvents: externalLedEvents({ graph, pinEvents: firmwareResult.pinEvents }),
+    buzzerEvents: buzzerEvents({ graph, pinEvents: firmwareResult.pinEvents }),
     builtInLedStates: builtInLedStates({ graph, runtime }),
     builtInLedEvents: builtInLedEvents({ graph, pinEvents: firmwareResult.pinEvents }),
     electrical,
@@ -499,6 +501,54 @@ function externalLedEvents({ graph, pinEvents }) {
   }
 
   return events.sort((left, right) => left.timeUs - right.timeUs);
+}
+
+function buzzerEvents({ graph, pinEvents }) {
+  const events = [];
+
+  for (const event of pinEvents) {
+    const board = boardForPinEvent(graph, event);
+    const terminalId = board ? terminalIdForPin(board, event.pin) : null;
+    const pinNet = terminalId ? graph.findTerminalNet(board.id, terminalId) : null;
+
+    if (!pinNet) {
+      continue;
+    }
+
+    for (const buzzer of graph.findComponentsByBehaviorType('buzzer')) {
+      const inputTerminal = buzzer.behavior?.inputTerminal ?? 'sig';
+
+      if (!pinNet.terminals.some((terminal) => terminal.componentId === buzzer.id && terminal.terminalId === inputTerminal)) {
+        continue;
+      }
+
+      const activeHigh = buzzer.properties[buzzer.behavior?.activeHighProperty ?? 'activeHigh'] !== false;
+      const active = activeHigh ? event.value === 'HIGH' : event.value === 'LOW';
+
+      events.push({
+        componentId: buzzer.id,
+        active,
+        frequencyHz: Number(event.frequencyHz || buzzer.properties.frequencyHz || 2000),
+        volumePercent: Number(buzzer.properties.volumePercent ?? 60),
+        timeUs: event.timeUs
+      });
+    }
+  }
+
+  return events.sort((left, right) => left.timeUs - right.timeUs).map((event, index, sorted) => ({
+    ...event,
+    durationMs: event.active ? buzzerEventDurationMs(event, sorted.slice(index + 1)) : 0
+  }));
+}
+
+function buzzerEventDurationMs(event, nextEvents) {
+  const endEvent = nextEvents.find((item) => item.componentId === event.componentId && item.active === false);
+
+  if (!endEvent) {
+    return 80;
+  }
+
+  return Math.max(20, Math.min(250, (endEvent.timeUs - event.timeUs) / 1000));
 }
 
 function boardForPinEvent(graph, event) {

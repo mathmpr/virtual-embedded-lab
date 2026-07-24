@@ -59,6 +59,7 @@ async function createImports(runtime, getMemory) {
   return {
     env: registry.createImports({
       runtime,
+      getMemory,
       readCString(pointer) {
         return readCString(getMemory(), pointer);
       },

@@ -1,0 +1,144 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "board.esp32s3.devkit",
+    "name": "ESP32-S3 DevKit",
+    "category": "microcontroller",
+    "subCategory": "esp32"
+  },
+  "simulation": {
+    "kind": "microcontroller",
+    "effects": ["firmware", "electrical", "environment", "visual-state"],
+    "implemented": true,
+    "notes": [
+      "Generic ESP32-S3 DevKit pinout focused on GPIO, ADC, I2C, SPI and HUB75 examples.",
+      "USB, native RGB LCD and board-specific strapping details are intentionally simplified."
+    ]
+  },
+  "properties": {
+    "logicVoltage": { "type": "number", "default": 3.3, "unit": "V", "simulationUpdate": "rerun" },
+    "wifiMode": { "type": "string", "default": "idle", "simulationUpdate": "rerun" },
+    "usbSerialEnabled": { "type": "boolean", "default": true, "simulationUpdate": "none" }
+  },
+  "terminals": [
+    { "id": "5v", "label": "5V", "type": "power-input" },
+    { "id": "3v3", "label": "3V3", "type": "power-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "gnd2", "label": "GND", "type": "ground" },
+    { "id": "io1", "label": "IO1", "type": "analog-input" },
+    { "id": "io2", "label": "IO2", "type": "analog-input" },
+    { "id": "io4", "label": "IO4", "type": "analog-input" },
+    { "id": "io5", "label": "IO5", "type": "analog-input" },
+    { "id": "io6", "label": "IO6", "type": "digital-io" },
+    { "id": "io7", "label": "IO7", "type": "digital-io" },
+    { "id": "io8", "label": "IO8", "type": "digital-io" },
+    { "id": "io9", "label": "IO9", "type": "digital-io" },
+    { "id": "io10", "label": "IO10", "type": "digital-io" },
+    { "id": "io11", "label": "IO11", "type": "digital-io" },
+    { "id": "io12", "label": "IO12", "type": "digital-io" },
+    { "id": "io13", "label": "IO13", "type": "digital-io" },
+    { "id": "io14", "label": "IO14", "type": "digital-io" },
+    { "id": "io15", "label": "IO15", "type": "digital-io" },
+    { "id": "io16", "label": "IO16", "type": "digital-io" },
+    { "id": "io17", "label": "IO17", "type": "digital-io" },
+    { "id": "io18", "label": "IO18", "type": "digital-io" },
+    { "id": "io21", "label": "IO21", "type": "digital-io" },
+    { "id": "io38", "label": "IO38", "type": "digital-io" },
+    { "id": "io39", "label": "IO39", "type": "digital-io" },
+    { "id": "io40", "label": "IO40", "type": "digital-io" },
+    { "id": "io41", "label": "IO41", "type": "digital-io" },
+    { "id": "io42", "label": "IO42", "type": "digital-io" },
+    { "id": "io47", "label": "IO47", "type": "digital-io" },
+    { "id": "io48", "label": "IO48", "type": "digital-io" }
+  ],
+  "electricalModel": {
+    "type": "microcontroller",
+    "logicVoltage": 3.3,
+    "recommendedPinCurrentAmps": 0.012
+  },
+  "behavior": {
+    "type": "microcontroller",
+    "runtime": "arduino-compatible",
+    "wireless": ["wifi", "bluetooth"],
+    "pinMap": {
+      "io1": { "number": 1, "analogNumber": 1, "name": "GPIO1/ADC1", "capabilities": ["digital", "analog", "adc1", "touch"] },
+      "io2": { "number": 2, "analogNumber": 2, "name": "GPIO2/ADC1", "capabilities": ["digital", "analog", "adc1", "touch"] },
+      "io4": { "number": 4, "analogNumber": 4, "name": "GPIO4/ADC1", "capabilities": ["digital", "analog", "adc1", "touch"] },
+      "io5": { "number": 5, "analogNumber": 5, "name": "GPIO5/ADC1", "capabilities": ["digital", "analog", "adc1", "touch"] },
+      "io6": { "number": 6, "name": "GPIO6", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io7": { "number": 7, "name": "GPIO7", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io8": { "number": 8, "name": "GPIO8", "capabilities": ["digital", "pwm", "interrupt", "i2c-sda"] },
+      "io9": { "number": 9, "name": "GPIO9", "capabilities": ["digital", "pwm", "interrupt", "i2c-scl"] },
+      "io10": { "number": 10, "name": "GPIO10", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io11": { "number": 11, "name": "GPIO11", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io12": { "number": 12, "name": "GPIO12", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io13": { "number": 13, "name": "GPIO13", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io14": { "number": 14, "name": "GPIO14", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io15": { "number": 15, "name": "GPIO15", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io16": { "number": 16, "name": "GPIO16", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io17": { "number": 17, "name": "GPIO17", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io18": { "number": 18, "name": "GPIO18", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io21": { "number": 21, "name": "GPIO21", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io38": { "number": 38, "name": "GPIO38", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io39": { "number": 39, "name": "GPIO39", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io40": { "number": 40, "name": "GPIO40", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io41": { "number": 41, "name": "GPIO41", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io42": { "number": 42, "name": "GPIO42", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io47": { "number": 47, "name": "GPIO47", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io48": { "number": 48, "name": "GPIO48/RGB LED", "capabilities": ["digital", "pwm", "interrupt", "led"] }
+    },
+    "buses": {
+      "i2c": [{ "id": "wire", "sda": "io8", "scl": "io9" }],
+      "spi": [{ "id": "spi", "sck": "io12", "miso": "io13", "mosi": "io11", "defaultCs": "io10" }]
+    },
+    "builtInLeds": [
+      { "id": "rgb", "label": "RGB", "pin": 48, "terminalId": "io48", "activeHigh": true, "color": "blue" }
+    ]
+  },
+  "contributions": {
+    "wasmImports": {
+      "modules": ["../esp32-devkit/firmware/wasm-imports.js"]
+    }
+  },
+  "visual": {
+    "type": "esp32-s3-devkit",
+    "title": "ESP32-S3 DevKit",
+    "className": "esp32-devkit esp32-s3-devkit",
+    "body": "3.3V logic / Wi-Fi / USB",
+    "width": 330,
+    "height": 390,
+    "palette": { "group": "Boards", "subgroup": "ESP32", "icon": "esp32-icon", "order": 13 },
+    "terminals": [
+      { "id": "5v", "side": "top", "x": 70, "y": 0, "kind": "power" },
+      { "id": "3v3", "side": "top", "x": 130, "y": 0, "kind": "power" },
+      { "id": "gnd", "side": "bottom", "x": 92, "y": 390, "kind": "ground" },
+      { "id": "gnd2", "side": "bottom", "x": 146, "y": 390, "kind": "ground" },
+      { "id": "io1", "side": "left", "x": 0, "y": 34, "kind": "signal" },
+      { "id": "io2", "side": "left", "x": 0, "y": 56, "kind": "signal" },
+      { "id": "io4", "side": "left", "x": 0, "y": 78, "kind": "signal" },
+      { "id": "io5", "side": "left", "x": 0, "y": 100, "kind": "signal" },
+      { "id": "io6", "side": "left", "x": 0, "y": 122, "kind": "signal" },
+      { "id": "io7", "side": "left", "x": 0, "y": 144, "kind": "signal" },
+      { "id": "io8", "side": "left", "x": 0, "y": 166, "kind": "signal" },
+      { "id": "io9", "side": "left", "x": 0, "y": 188, "kind": "signal" },
+      { "id": "io10", "side": "left", "x": 0, "y": 210, "kind": "signal" },
+      { "id": "io11", "side": "left", "x": 0, "y": 232, "kind": "signal" },
+      { "id": "io12", "side": "left", "x": 0, "y": 254, "kind": "signal" },
+      { "id": "io13", "side": "left", "x": 0, "y": 276, "kind": "signal" },
+      { "id": "io14", "side": "left", "x": 0, "y": 298, "kind": "signal" },
+      { "id": "io15", "side": "right", "x": 330, "y": 34, "kind": "signal" },
+      { "id": "io16", "side": "right", "x": 330, "y": 56, "kind": "signal" },
+      { "id": "io17", "side": "right", "x": 330, "y": 78, "kind": "signal" },
+      { "id": "io18", "side": "right", "x": 330, "y": 100, "kind": "signal" },
+      { "id": "io21", "side": "right", "x": 330, "y": 122, "kind": "signal" },
+      { "id": "io38", "side": "right", "x": 330, "y": 144, "kind": "signal" },
+      { "id": "io39", "side": "right", "x": 330, "y": 166, "kind": "signal" },
+      { "id": "io40", "side": "right", "x": 330, "y": 188, "kind": "signal" },
+      { "id": "io41", "side": "right", "x": 330, "y": 210, "kind": "signal" },
+      { "id": "io42", "side": "right", "x": 330, "y": 232, "kind": "signal" },
+      { "id": "io47", "side": "right", "x": 330, "y": 254, "kind": "signal" },
+      { "id": "io48", "side": "right", "x": 330, "y": 276, "kind": "signal" }
+    ]
+  }
+}

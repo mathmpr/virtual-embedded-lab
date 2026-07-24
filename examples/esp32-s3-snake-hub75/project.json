@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "ESP32-S3 HUB75 Snake Game",
+  "board": { "width": 1900, "height": 1080, "gridSize": 10 },
+  "components": [
+    { "id": "esp32s3-1", "componentId": "board.esp32s3.devkit", "position": { "x": 170, "y": 310 }, "properties": { "logicVoltage": 3.3, "wifiMode": "idle", "usbSerialEnabled": true } },
+    { "id": "matrix-1", "componentId": "display.rgb-matrix.hub75.64x32", "position": { "x": 930, "y": 80 }, "properties": { "widthPixels": 64, "heightPixels": 32, "brightnessPercent": 35, "maxPowerWatts": 20, "framebuffer": "64x32|" } },
+    { "id": "psu-1", "componentId": "power.dc.supply.5v", "position": { "x": 590, "y": 740 }, "properties": { "voltageVolts": 5, "maxCurrentAmps": 10, "enabled": true } },
+    { "id": "btn-up", "componentId": "input.button.pull-up", "position": { "x": 620, "y": 250 }, "properties": { "pressed": false, "activeHigh": true, "keyboardKey": "ArrowUp" } },
+    { "id": "btn-left", "componentId": "input.button.pull-up", "position": { "x": 470, "y": 390 }, "properties": { "pressed": false, "activeHigh": true, "keyboardKey": "ArrowLeft" } },
+    { "id": "btn-right", "componentId": "input.button.pull-up", "position": { "x": 770, "y": 390 }, "properties": { "pressed": false, "activeHigh": true, "keyboardKey": "ArrowRight" } },
+    { "id": "btn-down", "componentId": "input.button.pull-up", "position": { "x": 620, "y": 530 }, "properties": { "pressed": false, "activeHigh": true, "keyboardKey": "ArrowDown" } },
+    { "id": "start-1", "componentId": "input.button.pull-up", "position": { "x": 790, "y": 120 }, "properties": { "pressed": false, "activeHigh": true } },
+    { "id": "buzzer-1", "componentId": "actuator.buzzer", "position": { "x": 520, "y": 120 }, "properties": { "activeHigh": true, "frequencyHz": 1600, "volumePercent": 45, "activeType": "active" } },
+    { "id": "buffer-1", "componentId": "logic.buffer.74ahct245", "position": { "x": 610, "y": 880 }, "properties": { "directionAToB": true, "outputEnabled": true } }
+  ],
+  "connections": [
+    { "id": "net-5v", "color": "#f05252", "terminals": ["psu-1.vout", "esp32s3-1.5v", "matrix-1.vcc", "buffer-1.vcc", "buzzer-1.vcc"] },
+    { "id": "net-3v3", "color": "#ff9f43", "terminals": ["esp32s3-1.3v3", "btn-up.vcc", "btn-down.vcc", "btn-left.vcc", "btn-right.vcc", "start-1.vcc"] },
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["psu-1.gnd", "esp32s3-1.gnd", "matrix-1.gnd", "btn-up.gnd", "btn-down.gnd", "btn-left.gnd", "btn-right.gnd", "start-1.gnd", "buzzer-1.gnd", "buffer-1.gnd"] },
+    { "id": "net-btn-up", "color": "#4c8dff", "terminals": ["btn-up.out", "esp32s3-1.io1"] },
+    { "id": "net-btn-down", "color": "#6fbf73", "terminals": ["btn-down.out", "esp32s3-1.io2"] },
+    { "id": "net-btn-left", "color": "#f2b84b", "terminals": ["btn-left.out", "esp32s3-1.io4"] },
+    { "id": "net-btn-right", "color": "#ff7a45", "terminals": ["btn-right.out", "esp32s3-1.io5"] },
+    { "id": "net-start", "color": "#ec4899", "terminals": ["start-1.out", "esp32s3-1.io39"] },
+    { "id": "net-buzzer", "color": "#c084fc", "terminals": ["buzzer-1.sig", "esp32s3-1.io21"] },
+    { "id": "net-r1-a", "color": "#ef4444", "terminals": ["esp32s3-1.io6", "buffer-1.a1"] },
+    { "id": "net-g1-a", "color": "#22c55e", "terminals": ["esp32s3-1.io7", "buffer-1.a2"] },
+    { "id": "net-b1-a", "color": "#3b82f6", "terminals": ["esp32s3-1.io8", "buffer-1.a3"] },
+    { "id": "net-r2-a", "color": "#ef4444", "terminals": ["esp32s3-1.io9", "buffer-1.a4"] },
+    { "id": "net-g2-a", "color": "#22c55e", "terminals": ["esp32s3-1.io10", "buffer-1.a5"] },
+    { "id": "net-b2-a", "color": "#3b82f6", "terminals": ["esp32s3-1.io11", "buffer-1.a6"] },
+    { "id": "net-r1-b", "color": "#ef4444", "terminals": ["buffer-1.b1", "matrix-1.r1"] },
+    { "id": "net-g1-b", "color": "#22c55e", "terminals": ["buffer-1.b2", "matrix-1.g1"] },
+    { "id": "net-b1-b", "color": "#3b82f6", "terminals": ["buffer-1.b3", "matrix-1.b1"] },
+    { "id": "net-r2-b", "color": "#ef4444", "terminals": ["buffer-1.b4", "matrix-1.r2"] },
+    { "id": "net-g2-b", "color": "#22c55e", "terminals": ["buffer-1.b5", "matrix-1.g2"] },
+    { "id": "net-b2-b", "color": "#3b82f6", "terminals": ["buffer-1.b6", "matrix-1.b2"] },
+    { "id": "net-row-a", "color": "#94a3b8", "terminals": ["esp32s3-1.io12", "matrix-1.a"] },
+    { "id": "net-row-b", "color": "#94a3b8", "terminals": ["esp32s3-1.io13", "matrix-1.b"] },
+    { "id": "net-row-c", "color": "#94a3b8", "terminals": ["esp32s3-1.io14", "matrix-1.c"] },
+    { "id": "net-row-d", "color": "#94a3b8", "terminals": ["esp32s3-1.io15", "matrix-1.d"] },
+    { "id": "net-row-e", "color": "#94a3b8", "terminals": ["esp32s3-1.io16", "matrix-1.e"] },
+    { "id": "net-clk", "color": "#f97316", "terminals": ["esp32s3-1.io17", "matrix-1.clk"] },
+    { "id": "net-lat", "color": "#f97316", "terminals": ["esp32s3-1.io18", "matrix-1.lat"] },
+    { "id": "net-oe", "color": "#f97316", "terminals": ["esp32s3-1.io38", "matrix-1.oe"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": "#include <RGBmatrixPanel.h>\\n\\nconst int BUTTON_UP = 1;\\nconst int BUTTON_DOWN = 2;\\nconst int BUTTON_LEFT = 4;\\nconst int BUTTON_RIGHT = 5;\\nconst int START_BUTTON = 39;\\nconst int BUZZER_PIN = 21;\\n\\nRGBmatrixPanel matrix(12, 13, 14, 15, 16, 17, 18, 38, false, 64);\\n\\nconst int GAME_SIZE = 32;\\nconst int MAX_SNAKE = 128;\\nint snakeX[MAX_SNAKE];\\nint snakeY[MAX_SNAKE];\\nint snakeLength = 4;\\nint dirX = 1;\\nint dirY = 0;\\nint foodX = 20;\\nint foodY = 12;\\nint score = 0;\\nint level = 1;\\nbool paused = false;\\nbool gameOver = false;\\nunsigned long seedValue = 17;\\n\\nunsigned int BLACK;\\nunsigned int GREEN;\\nunsigned int BLUE;\\nunsigned int RED;\\nunsigned int ORANGE;\\nunsigned int WHITE;\\n\\nunsigned long nextRandom()\\n{\\n    seedValue = seedValue * 1103515245 + 12345;\\n    return (seedValue / 65536) % 32768;\\n}\\n\\nvoid placeFood()\\n{\\n    foodX = 1 + (nextRandom() % 30);\\n    foodY = 1 + (nextRandom() % 30);\\n}\\n\\nvoid resetGame()\\n{\\n    snakeLength = 4;\\n    for (int index = 0; index < snakeLength; index++) {\\n        snakeX[index] = 10 - index;\\n        snakeY[index] = 16;\\n    }\\n    dirX = 1;\\n    dirY = 0;\\n    score = 0;\\n    level = 1;\\n    paused = false;\\n    gameOver = false;\\n    placeFood();\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    pinMode(BUTTON_UP, INPUT);\\n    pinMode(BUTTON_DOWN, INPUT);\\n    pinMode(BUTTON_LEFT, INPUT);\\n    pinMode(BUTTON_RIGHT, INPUT);\\n    pinMode(START_BUTTON, INPUT);\\n    pinMode(BUZZER_PIN, OUTPUT);\\n    matrix.begin();\\n    BLACK = matrix.color565(0, 0, 0);\\n    GREEN = matrix.color565(40, 220, 80);\\n    BLUE = matrix.color565(60, 130, 255);\\n    RED = matrix.color565(255, 60, 40);\\n    ORANGE = matrix.color565(255, 160, 30);\\n    WHITE = matrix.color565(220, 235, 255);\\n    resetGame();\\n    Serial.println(\"ESP32-S3 HUB75 Snake ready\");\\n}\\n\\nvoid readControls()\\n{\\n    if (digitalRead(BUTTON_LEFT) == HIGH && dirX != 1) { dirX = -1; dirY = 0; }\\n    if (digitalRead(BUTTON_RIGHT) == HIGH && dirX != -1) { dirX = 1; dirY = 0; }\\n    if (digitalRead(BUTTON_UP) == HIGH && dirY != 1) { dirX = 0; dirY = -1; }\\n    if (digitalRead(BUTTON_DOWN) == HIGH && dirY != -1) { dirX = 0; dirY = 1; }\\n\\n    if (digitalRead(START_BUTTON) == HIGH) {\\n        paused = !paused;\\n        delay(180);\\n    }\\n}\\n\\nvoid stepSnake()\\n{\\n    int nextX = snakeX[0] + dirX;\\n    int nextY = snakeY[0] + dirY;\\n\\n    if (nextX < 0 || nextY < 0 || nextX >= GAME_SIZE || nextY >= GAME_SIZE) {\\n        gameOver = true;\\n    }\\n\\n    for (int index = 0; index < snakeLength; index++) {\\n        if (snakeX[index] == nextX && snakeY[index] == nextY) {\\n            gameOver = true;\\n        }\\n    }\\n\\n    if (gameOver) {\\n        tone(BUZZER_PIN, 220);\\n        Serial.print(\"Game over score: \");\\n        Serial.println(score);\\n        resetGame();\\n        noTone(BUZZER_PIN);\\n        return;\\n    }\\n\\n    for (int index = snakeLength; index > 0; index--) {\\n        snakeX[index] = snakeX[index - 1];\\n        snakeY[index] = snakeY[index - 1];\\n    }\\n\\n    snakeX[0] = nextX;\\n    snakeY[0] = nextY;\\n\\n    if (nextX == foodX && nextY == foodY) {\\n        if (snakeLength < MAX_SNAKE - 1) { snakeLength++; }\\n        score += 10;\\n        level = 1 + score / 50;\\n        placeFood();\\n        tone(BUZZER_PIN, 1200);\\n        delay(30);\\n        noTone(BUZZER_PIN);\\n    }\\n}\\n\\nvoid drawGame()\\n{\\n    matrix.fillScreen(BLACK);\\n\\n    for (int y = 0; y < GAME_SIZE; y++) {\\n        matrix.drawPixel(32, y, BLUE);\\n    }\\n\\n    matrix.drawPixel(foodX, foodY, RED);\\n\\n    for (int index = 0; index < snakeLength; index++) {\\n        matrix.drawPixel(snakeX[index], snakeY[index], index == 0 ? ORANGE : GREEN);\\n    }\\n\\n    matrix.printText(36, 2, \"SCORE\", WHITE);\\n    matrix.printText(36, 8, \"000\", BLUE);\\n    if (score >= 100) { matrix.printText(36, 8, \"100\", BLUE); }\\n    if (score >= 10 && score < 100) { matrix.printText(40, 8, \"10\", BLUE); }\\n    matrix.printText(36, 18, \"LEVEL\", WHITE);\\n    if (level == 1) { matrix.printText(44, 24, \"01\", GREEN); }\\n    if (level == 2) { matrix.printText(44, 24, \"02\", GREEN); }\\n    if (level >= 3) { matrix.printText(44, 24, \"03\", GREEN); }\\n}\\n\\nvoid loop()\\n{\\n    readControls();\\n\\n    if (!paused) {\\n        stepSnake();\\n    }\\n\\n    drawGame();\\n    Serial.print(\"Score: \");\\n    Serial.print(score);\\n    Serial.print(\" Level: \");\\n    Serial.println(level);\\n    delay(180);\\n}\\n"
+    }
+  }
+}

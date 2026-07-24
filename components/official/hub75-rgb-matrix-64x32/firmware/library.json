@@ -1,0 +1,7 @@
+{
+  "id": "rgb-matrix-panel",
+  "headers": ["RGBmatrixPanel"],
+  "identifiers": ["RGBmatrixPanel", "color565"],
+  "imports": ["rgbMatrixBegin", "rgbMatrixFillScreen", "rgbMatrixDrawPixel", "rgbMatrixPrintText"],
+  "apis": ["RGBmatrixPanel.begin", "RGBmatrixPanel.fillScreen", "RGBmatrixPanel.drawPixel", "RGBmatrixPanel.printText", "RGBmatrixPanel.color565"]
+}

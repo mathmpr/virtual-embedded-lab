@@ -23,6 +23,7 @@ export function createInitialBoardState() {
     history: [],
     redoStack: [],
     isRestoring: false,
+    boardLocked: false,
     viewport: {
       x: 0,
       y: 0,

@@ -1,0 +1,111 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "display.rgb-matrix.hub75.64x32",
+    "name": "P5 RGB HUB75 Matrix 64x32",
+    "category": "display",
+    "subCategory": "rgb-matrix"
+  },
+  "simulation": {
+    "kind": "behavioral-sensor",
+    "effects": ["firmware", "electrical", "visual-state"],
+    "implemented": true,
+    "notes": [
+      "Simplified HUB75 simulation: firmware writes a logical RGB framebuffer through a component-provided matrix API.",
+      "The electrical model approximates worst-case 5 V panel current for validation."
+    ]
+  },
+  "properties": {
+    "widthPixels": { "type": "number", "default": 64, "minimum": 1, "maximum": 128, "unit": "px", "simulationUpdate": "rerun" },
+    "heightPixels": { "type": "number", "default": 32, "minimum": 1, "maximum": 64, "unit": "px", "simulationUpdate": "rerun" },
+    "brightnessPercent": { "type": "number", "default": 35, "minimum": 0, "maximum": 100, "unit": "%", "simulationUpdate": "rerun" },
+    "maxPowerWatts": { "type": "number", "default": 20, "minimum": 0, "maximum": 120, "unit": "W", "simulationUpdate": "rerun" },
+    "framebuffer": { "type": "string", "default": "64x32|", "simulationUpdate": "none" }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "5V", "type": "power-input" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "r1", "label": "R1", "type": "digital-input" },
+    { "id": "g1", "label": "G1", "type": "digital-input" },
+    { "id": "b1", "label": "B1", "type": "digital-input" },
+    { "id": "r2", "label": "R2", "type": "digital-input" },
+    { "id": "g2", "label": "G2", "type": "digital-input" },
+    { "id": "b2", "label": "B2", "type": "digital-input" },
+    { "id": "a", "label": "A", "type": "digital-input" },
+    { "id": "b", "label": "B", "type": "digital-input" },
+    { "id": "c", "label": "C", "type": "digital-input" },
+    { "id": "d", "label": "D", "type": "digital-input" },
+    { "id": "e", "label": "E", "type": "digital-input" },
+    { "id": "clk", "label": "CLK", "type": "digital-input" },
+    { "id": "lat", "label": "LAT", "type": "digital-input" },
+    { "id": "oe", "label": "OE", "type": "digital-input" }
+  ],
+  "behavior": {
+    "type": "hub75-rgb-matrix",
+    "displayId": "default",
+    "widthProperty": "widthPixels",
+    "heightProperty": "heightPixels",
+    "framebufferProperty": "framebuffer"
+  },
+  "contributions": {
+    "wasmImports": { "modules": ["./firmware/wasm-imports.js"] },
+    "simulationBehaviors": { "modules": ["./simulation/behavior.js"] },
+    "styles": { "files": ["./ui/styles.css"] }
+  },
+  "electricalModel": {
+    "type": "load",
+    "primitive": "high-current-display",
+    "recommendedVoltageMin": 4.75,
+    "recommendedVoltageMax": 5.25,
+    "currentProperty": "maxPowerWatts",
+    "notes": "Current is approximated as maxPowerWatts / 5 V."
+  },
+  "visual": {
+    "type": "hub75-rgb-matrix-64x32",
+    "title": "P5 HUB75 64x32",
+    "className": "hub75-rgb-matrix",
+    "body": "",
+    "width": 560,
+    "height": 250,
+    "controls": [
+      {
+        "type": "container",
+        "className": "hub75-shell",
+        "children": [
+          { "type": "element", "className": "hub75-framebuffer", "dataAttribute": "data-hub75-framebuffer" },
+          { "type": "element", "tag": "span", "className": "hub75-caption", "text": "64x32 RGB HUB75 - approx. 32 x 16 cm" }
+        ]
+      }
+    ],
+    "stateBindings": [
+      {
+        "type": "pixelImage",
+        "selector": "[data-hub75-framebuffer]",
+        "source": { "kind": "componentProperty", "property": "framebuffer" },
+        "width": 64,
+        "height": 32,
+        "offColor": "#05070b"
+      }
+    ],
+    "palette": { "group": "Displays", "subgroup": "RGB Matrix", "icon": "rgb-matrix-icon", "order": 58 },
+    "terminals": [
+      { "id": "vcc", "label": "5V", "side": "left", "x": 0, "y": 40, "kind": "power" },
+      { "id": "gnd", "label": "GND", "side": "left", "x": 0, "y": 72, "kind": "ground" },
+      { "id": "r1", "label": "R1", "side": "top", "x": 92, "y": 0, "kind": "signal" },
+      { "id": "g1", "label": "G1", "side": "top", "x": 122, "y": 0, "kind": "signal" },
+      { "id": "b1", "label": "B1", "side": "top", "x": 152, "y": 0, "kind": "signal" },
+      { "id": "r2", "label": "R2", "side": "top", "x": 202, "y": 0, "kind": "signal" },
+      { "id": "g2", "label": "G2", "side": "top", "x": 232, "y": 0, "kind": "signal" },
+      { "id": "b2", "label": "B2", "side": "top", "x": 262, "y": 0, "kind": "signal" },
+      { "id": "a", "label": "A", "side": "right", "x": 560, "y": 50, "kind": "signal" },
+      { "id": "b", "label": "B", "side": "right", "x": 560, "y": 74, "kind": "signal" },
+      { "id": "c", "label": "C", "side": "right", "x": 560, "y": 98, "kind": "signal" },
+      { "id": "d", "label": "D", "side": "right", "x": 560, "y": 122, "kind": "signal" },
+      { "id": "e", "label": "E", "side": "right", "x": 560, "y": 146, "kind": "signal" },
+      { "id": "clk", "label": "CLK", "side": "bottom", "x": 180, "y": 250, "kind": "signal" },
+      { "id": "lat", "label": "LAT", "side": "bottom", "x": 240, "y": 250, "kind": "signal" },
+      { "id": "oe", "label": "OE", "side": "bottom", "x": 300, "y": 250, "kind": "signal" }
+    ]
+  }
+}

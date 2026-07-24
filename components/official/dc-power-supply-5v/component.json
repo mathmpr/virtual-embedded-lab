@@ -1,0 +1,54 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "power.dc.supply.5v",
+    "name": "5V DC Power Supply",
+    "category": "power",
+    "subCategory": "dc-supply"
+  },
+  "simulation": {
+    "kind": "passive-electrical",
+    "effects": ["electrical"],
+    "implemented": true
+  },
+  "properties": {
+    "voltageVolts": { "type": "number", "default": 5, "minimum": 0, "maximum": 24, "unit": "V", "simulationUpdate": "rerun" },
+    "maxCurrentAmps": { "type": "number", "default": 10, "minimum": 0, "maximum": 40, "unit": "A", "simulationUpdate": "rerun" },
+    "enabled": { "type": "boolean", "default": true, "simulationUpdate": "rerun" }
+  },
+  "terminals": [
+    { "id": "vout", "label": "+5V", "type": "power-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" }
+  ],
+  "electricalModel": {
+    "type": "voltage-source",
+    "outputVoltageProperty": "voltageVolts",
+    "enabledProperty": "enabled",
+    "maximumCurrentProperty": "maxCurrentAmps"
+  },
+  "behavior": {
+    "type": "dc-voltage-source",
+    "outputTerminal": "vout",
+    "activeProperty": "enabled",
+    "voltageProperty": "voltageVolts"
+  },
+  "visual": {
+    "type": "dc-power-supply-5v",
+    "title": "5V PSU",
+    "className": "dc-power-supply-5v",
+    "body": "5 V / 10 A",
+    "width": 190,
+    "height": 112,
+    "controls": [
+      { "type": "readout", "className": "analog-readout", "label": "Fonte", "property": "maxCurrentAmps", "unit": "A" },
+      { "type": "range", "property": "maxCurrentAmps", "label": "A" },
+      { "type": "checkbox", "className": "wifi-checkbox-row", "label": "Ligada", "property": "enabled" }
+    ],
+    "palette": { "group": "Power", "subgroup": "DC", "icon": "power-supply-icon", "order": 22 },
+    "terminals": [
+      { "id": "vout", "label": "+5V", "side": "right", "x": 190, "y": 42, "kind": "power" },
+      { "id": "gnd", "label": "GND", "side": "right", "x": 190, "y": 78, "kind": "ground" }
+    ]
+  }
+}

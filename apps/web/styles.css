@@ -484,6 +484,10 @@ button.active {
   cursor: grabbing;
 }
 
+.board.locked .component {
+  cursor: default;
+}
+
 .board-viewport {
   position: absolute;
   left: 0;

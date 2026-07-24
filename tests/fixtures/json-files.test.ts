@@ -14,6 +14,7 @@ const jsonFiles = [
   'components/official/ac-mains-environment/component.json',
   'components/official/ads1015/component.json',
   'components/official/ads1115/component.json',
+  'components/official/74ahct245/component.json',
   'components/official/74hc595/component.json',
   'components/official/analog-voltage-source/component.json',
   'components/official/arduino-nano/component.json',
@@ -21,12 +22,15 @@ const jsonFiles = [
   'components/official/bbc-microbit-v2/component.json',
   'components/official/bmp280/component.json',
   'components/official/buzzer/component.json',
+  'components/official/dc-power-supply-5v/component.json',
   'components/official/resistor/component.json',
   'components/official/capacitor/component.json',
   'components/official/climate/component.json',
   'components/official/esp32-devkit/component.json',
+  'components/official/esp32-s3-devkit/component.json',
   'components/official/esp8266-nodemcu/component.json',
   'components/official/fc-37-rain-sensor/component.json',
+  'components/official/hub75-rgb-matrix-64x32/component.json',
   'components/official/ldr-light-sensor/component.json',
   'components/official/led-red/component.json',
   'components/official/led-green/component.json',
@@ -56,6 +60,7 @@ const jsonFiles = [
   'examples/arduino-serial-led/project.json',
   'examples/esp32-counter-blink/project.json',
   'examples/esp32-ac-energy-meter-poc/project.json',
+  'examples/esp32-s3-snake-hub75/project.json',
   'examples/esp32-simon-says/project.json',
   'examples/esp32-wifi-failover/project.json',
   'examples/esp32-wifi-signal/project.json',
@@ -353,6 +358,34 @@ test('AC energy metering package exposes mains, loads, sensors and POC example',
   assert.ok(project.environmentConnections.some((connection: { target: string }) => connection.target === 'load-ab.env'));
   assert.match(project.code.files['main.ino'], /Vrms/);
   assert.match(project.code.files['main.ino'], /TOTAL: W=/);
+});
+
+test('ESP32-S3 HUB75 Snake package exposes board, matrix, buttons and example', () => {
+  const board = readJson('components/official/esp32-s3-devkit/component.json');
+  const matrix = readJson('components/official/hub75-rgb-matrix-64x32/component.json');
+  const supply = readJson('components/official/dc-power-supply-5v/component.json');
+  const buffer = readJson('components/official/74ahct245/component.json');
+  const project = readJson('examples/esp32-s3-snake-hub75/project.json');
+
+  assert.equal(board.identity.id, 'board.esp32s3.devkit');
+  assert.equal(board.behavior.type, 'microcontroller');
+  assert.ok(board.behavior.pinMap.io1.capabilities.includes('analog'));
+  assert.equal(matrix.behavior.type, 'hub75-rgb-matrix');
+  assert.equal(matrix.properties.widthPixels.default, 64);
+  assert.equal(matrix.properties.heightPixels.default, 32);
+  assert.equal(supply.behavior.outputTerminal, 'vout');
+  assert.equal(buffer.identity.id, 'logic.buffer.74ahct245');
+  assert.ok(project.components.some((component: { componentId: string }) => component.componentId === 'board.esp32s3.devkit'));
+  assert.ok(project.components.some((component: { componentId: string }) => component.componentId === 'display.rgb-matrix.hub75.64x32'));
+  assert.equal(project.components.filter((component: { componentId: string }) => component.componentId === 'input.button.pull-up').length, 5);
+  assert.ok(project.components.some((component: { id: string, properties: { keyboardKey?: string } }) => component.id === 'btn-up' && component.properties.keyboardKey === 'ArrowUp'));
+  assert.ok(project.components.some((component: { id: string, properties: { keyboardKey?: string } }) => component.id === 'btn-down' && component.properties.keyboardKey === 'ArrowDown'));
+  assert.ok(project.components.some((component: { id: string, properties: { keyboardKey?: string } }) => component.id === 'btn-left' && component.properties.keyboardKey === 'ArrowLeft'));
+  assert.ok(project.components.some((component: { id: string, properties: { keyboardKey?: string } }) => component.id === 'btn-right' && component.properties.keyboardKey === 'ArrowRight'));
+  assert.ok(project.components.some((component: { componentId: string }) => component.componentId === 'power.dc.supply.5v'));
+  assert.match(project.code.files['main.ino'], /RGBmatrixPanel/);
+  assert.match(project.code.files['main.ino'], /BUTTON_UP/);
+  assert.match(project.code.files['main.ino'], /matrix\.drawPixel/);
 });
 
 test('Wi-Fi signal component exposes connection and signal strength properties', () => {

@@ -22,6 +22,11 @@
       "type": "boolean",
       "default": true,
       "simulationUpdate": "rerun"
+    },
+    "keyboardKey": {
+      "type": "string",
+      "default": "",
+      "simulationUpdate": "none"
     }
   },
   "terminals": [
@@ -51,7 +56,7 @@
     "height": 112,
     "controls": [
       { "type": "readout", "className": "button-readout", "label": "BTN", "property": "pressed", "format": "onOff" },
-      { "type": "pulse", "className": "button-pulse-control", "label": "Press", "property": "pressed", "durationMs": 180 }
+      { "type": "pulse", "className": "button-pulse-control", "label": "Press", "property": "pressed", "durationMs": 180, "keyProperty": "keyboardKey" }
     ],
     "stateBindings": [
       {

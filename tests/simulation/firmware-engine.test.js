@@ -1718,6 +1718,45 @@ test('ESP32 AC energy meter POC reads two phases through ADS1115 WASM', async ()
   assert.ok(phasePower(serialText(inverted), 'A') < 0);
 });
 
+test('ESP32-S3 HUB75 Snake example draws matrix framebuffer through WASM', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-s3-snake-hub75/project.json'), 'utf8'));
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const components = componentsFromProject(project);
+  const session = await createProjectWasmSimulationSession({
+    state: { components },
+    nets: project.connections.map((connection) => testNet(connection.id, connection.terminals)),
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const first = session.runFrame();
+  const matrix = components.get('matrix-1');
+
+  assert.equal(wasm.ok, true);
+  assert.match(serialText(first), /ESP32-S3 HUB75 Snake ready/);
+  assert.match(matrix.properties.framebuffer, /^64x32\|/);
+  assert.match(matrix.properties.framebuffer, /#29df52|#ffa219|#ff3c42|#3a82ff/i);
+
+  session.updateDigitalInputValue('btn-up', true);
+  session.runFrame();
+  session.updateDigitalInputValue('btn-up', false);
+
+  let gameOver = null;
+
+  for (let index = 0; index < 40; index++) {
+    const frame = session.runFrame();
+
+    if (serialText(frame).includes('Game over score:')) {
+      gameOver = frame;
+      break;
+    }
+  }
+
+  assert.ok(gameOver);
+  assert.ok(gameOver.buzzerEvents.some((event) => event.componentId === 'buzzer-1' && event.active === true && event.frequencyHz === 220));
+});
+
 test('Servo sweep example updates servo angle through Servo WASM shim', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const project = JSON.parse(readFileSync(join(root, 'examples/arduino-servo-sweep/project.json'), 'utf8'));
@@ -1937,6 +1976,12 @@ function officialManifestByIdentity(identityId) {
   const manifestPath = {
     'board.esp32.devkit': 'components/official/esp32-devkit/component.json',
     'converter.adc.ads1115': 'components/official/ads1115/component.json',
+    'board.esp32s3.devkit': 'components/official/esp32-s3-devkit/component.json',
+    'display.rgb-matrix.hub75.64x32': 'components/official/hub75-rgb-matrix-64x32/component.json',
+    'power.dc.supply.5v': 'components/official/dc-power-supply-5v/component.json',
+    'logic.buffer.74ahct245': 'components/official/74ahct245/component.json',
+    'input.button.pull-up': 'components/official/pull-up-button/component.json',
+    'actuator.buzzer': 'components/official/buzzer/component.json',
     'environment.ac-mains': 'components/official/ac-mains-environment/component.json',
     'environment.ac-load': 'components/official/ac-load/component.json',
     'sensor.voltage.zmpt101b': 'components/official/zmpt101b-voltage-sensor/component.json',

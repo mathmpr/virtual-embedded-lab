@@ -160,11 +160,6 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
 
   function updateDigitalInputValue(componentId, value) {
     wasmSimulationSession?.updateDigitalInputValue?.(componentId, value);
-
-    if (state.running && wasmSimulationSession && !runningFrame) {
-      stopSimulationTimer();
-      simulationTimer = setTimeout(runSimulationFrame, 0);
-    }
   }
 
   function applyLedStates(ledStates) {

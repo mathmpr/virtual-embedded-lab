@@ -25,6 +25,7 @@ export class ArduinoRuntime {
     devices: new Map()
   };
   #servos = new Map();
+  #rgbMatrixDisplays = new Map();
   #wifi = {
     environment: {
       ssid: 'VirtualLab',
@@ -368,6 +369,99 @@ export class ArduinoRuntime {
   #lcdDisplay(address) {
     const device = this.#i2c.devices.get(Number(address));
     return device?.type === 'lcd-16x2-i2c' ? device : null;
+  }
+
+  registerRgbMatrixDisplay(displayId, display) {
+    const width = Math.max(1, Number(display.width) || 64);
+    const height = Math.max(1, Number(display.height) || 32);
+
+    this.#rgbMatrixDisplays.set(String(displayId), {
+      ...display,
+      id: String(displayId),
+      width,
+      height,
+      framebuffer: new Array(width * height).fill('#000000')
+    });
+    this.rgbMatrixSync(String(displayId));
+  }
+
+  rgbMatrixBegin(displayId, width, height) {
+    const display = this.#rgbMatrixDisplay(displayId);
+
+    if (!display) {
+      return false;
+    }
+
+    display.width = Math.max(1, Number(width) || display.width);
+    display.height = Math.max(1, Number(height) || display.height);
+    display.framebuffer = new Array(display.width * display.height).fill('#000000');
+    this.rgbMatrixSync(display.id);
+    return true;
+  }
+
+  rgbMatrixFillScreen(displayId, color) {
+    const display = this.#rgbMatrixDisplay(displayId);
+
+    if (!display) {
+      return;
+    }
+
+    display.framebuffer.fill(normalizeRgb565Color(color));
+    this.rgbMatrixSync(display.id);
+  }
+
+  rgbMatrixDrawPixel(displayId, x, y, color) {
+    const display = this.#rgbMatrixDisplay(displayId);
+
+    if (!display) {
+      return;
+    }
+
+    const column = Math.trunc(Number(x));
+    const row = Math.trunc(Number(y));
+
+    if (column < 0 || row < 0 || column >= display.width || row >= display.height) {
+      return;
+    }
+
+    display.framebuffer[row * display.width + column] = normalizeRgb565Color(color);
+    this.rgbMatrixSync(display.id);
+  }
+
+  rgbMatrixPrintText(displayId, x, y, text, color) {
+    const display = this.#rgbMatrixDisplay(displayId);
+
+    if (!display) {
+      return;
+    }
+
+    const textColor = normalizeRgb565Color(color);
+    let cursorX = Math.trunc(Number(x));
+    const cursorY = Math.trunc(Number(y));
+
+    for (const char of String(text ?? '').toUpperCase()) {
+      drawMatrixGlyph(display, cursorX, cursorY, char, textColor);
+      cursorX += 4;
+    }
+
+    this.rgbMatrixSync(display.id);
+  }
+
+  rgbMatrixSync(displayId) {
+    const display = this.#rgbMatrixDisplay(displayId);
+
+    if (!display) {
+      return;
+    }
+
+    display.component.properties[display.framebufferProperty ?? 'framebuffer'] = [
+      `${display.width}x${display.height}`,
+      display.framebuffer.join(',')
+    ].join('|');
+  }
+
+  #rgbMatrixDisplay(displayId) {
+    return this.#rgbMatrixDisplays.get(String(displayId));
   }
 
   bmp280Begin(address) {
@@ -899,6 +993,61 @@ function postMqttBridge(action, payload) {
 
 function lcdBuffer(display) {
   return Array.from({ length: display.rows }, () => Array.from({ length: display.columns }, () => ' '));
+}
+
+const matrixGlyphs = {
+  '0': ['111', '101', '101', '101', '111'],
+  '1': ['010', '110', '010', '010', '111'],
+  '2': ['111', '001', '111', '100', '111'],
+  '3': ['111', '001', '111', '001', '111'],
+  '4': ['101', '101', '111', '001', '001'],
+  '5': ['111', '100', '111', '001', '111'],
+  '6': ['111', '100', '111', '101', '111'],
+  '7': ['111', '001', '010', '010', '010'],
+  '8': ['111', '101', '111', '101', '111'],
+  '9': ['111', '101', '111', '001', '111'],
+  'A': ['010', '101', '111', '101', '101'],
+  'C': ['111', '100', '100', '100', '111'],
+  'E': ['111', '100', '111', '100', '111'],
+  'L': ['100', '100', '100', '100', '111'],
+  'O': ['111', '101', '101', '101', '111'],
+  'R': ['110', '101', '110', '101', '101'],
+  'S': ['111', '100', '111', '001', '111'],
+  'V': ['101', '101', '101', '101', '010'],
+  ':': ['000', '010', '000', '010', '000'],
+  ' ': ['000', '000', '000', '000', '000']
+};
+
+function drawMatrixGlyph(display, x, y, char, color) {
+  const glyph = matrixGlyphs[char] ?? matrixGlyphs[' '];
+
+  for (let row = 0; row < glyph.length; row++) {
+    for (let column = 0; column < glyph[row].length; column++) {
+      if (glyph[row][column] !== '1') {
+        continue;
+      }
+
+      const pixelX = x + column;
+      const pixelY = y + row;
+
+      if (pixelX >= 0 && pixelY >= 0 && pixelX < display.width && pixelY < display.height) {
+        display.framebuffer[pixelY * display.width + pixelX] = color;
+      }
+    }
+  }
+}
+
+function normalizeRgb565Color(value) {
+  const color = Number(value) & 0xffff;
+  const red = Math.round(((color >> 11) & 0x1f) * 255 / 31);
+  const green = Math.round(((color >> 5) & 0x3f) * 255 / 63);
+  const blue = Math.round((color & 0x1f) * 255 / 31);
+
+  return `#${hexByte(red)}${hexByte(green)}${hexByte(blue)}`;
+}
+
+function hexByte(value) {
+  return Math.max(0, Math.min(255, Number(value) || 0)).toString(16).padStart(2, '0');
 }
 
 function syncLcdDisplayComponent(display) {
