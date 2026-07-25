@@ -53,6 +53,10 @@ export function boardToProject({ state, board, codeEditor, nets, terminalKind })
     }
   };
 
+  if (isShareKey(state.project?.shareKey)) {
+    project.shareKey = state.project.shareKey;
+  }
+
   if (firmwares.size > 0) {
     project.firmwares = Object.fromEntries(firmwares.entries());
   }
@@ -120,7 +124,8 @@ export function projectToSnapshot(project) {
 export function projectMetadata(project = {}) {
   return {
     name: normalizeProjectName(project.name),
-    description: typeof project.description === 'string' ? project.description : ''
+    description: typeof project.description === 'string' ? project.description : '',
+    shareKey: isShareKey(project.shareKey) ? project.shareKey : null
   };
 }
 
@@ -158,6 +163,10 @@ function validateProjectShape(project) {
 
 function normalizeProjectName(name) {
   return typeof name === 'string' && name.trim() ? name.trim() : 'Virtual Embedded Lab Project';
+}
+
+function isShareKey(value) {
+  return typeof value === 'string' && /^[a-f0-9]{32}$/.test(value);
 }
 
 function projectFirmwaresFromState(state, codeEditor) {

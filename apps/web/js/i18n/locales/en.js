@@ -6,7 +6,13 @@ export const messages = {
   'Simulation notice light': 'Fast light spikes and variations that can affect sensors, power, or microcontroller behavior are not simulated.',
   'Simulation notice magnetism': 'Electromagnetic interference, external magnetic fields, inductive/capacitive coupling, and physical layout problems are also not simulated.',
   'Simulation notice safety': 'For projects involving power, motors, relays, batteries, or real loads, validate the physical circuit with instruments and safe practices before building it.',
-  'I understand': 'I understand'
+  'I understand': 'I understand',
+  'We are compiling your code and it will run in a few moments.': 'We are compiling your code and it will run in a few moments.',
+  'Compiling...': 'Compiling...',
+  Share: 'Share',
+  'Sharing...': 'Sharing...',
+  'Project shared': 'Project shared',
+  'Failed to share project': 'Failed to share project'
 };
 
 export const propertyMessages = {};

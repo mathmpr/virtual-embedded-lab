@@ -2,14 +2,13 @@ import {
   createProjectMultiWasmSimulationSession,
   createProjectWasmSimulationSession
 } from './simulation/simulation-engine.js';
-import { analyzeFirmwareWithBackend, compileFirmwareWasmWithBackend } from './simulation/firmware-analysis-client.js';
+import { compileFirmwareWasmWithBackend } from './simulation/firmware-analysis-client.js';
 import { t } from './i18n.js';
 import { normalizeProjectCode } from './project-serializer.js';
 
 export function createVisualSimulation({ state, renderSignals, renderSerial, renderProblems, consoleOutput, getNets, terminalKind, codeEditor, consumeSerialRx, clearSerialRx, appendSerialEvents, clearSerialHistory, onSimulationResult, onSimulationStopped = () => {} }) {
   let ledAnimationTimers = [];
   let simulationTimer = null;
-  let firmwareAnalysisCache = null;
   let firmwareWasmCache = null;
   let multiFirmwareWasmCache = null;
   let wasmSimulationSession = null;
@@ -22,7 +21,6 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     }
 
     state.running = true;
-    firmwareAnalysisCache = null;
     firmwareWasmCache = null;
     multiFirmwareWasmCache = null;
     wasmSimulationSession = null;
@@ -38,9 +36,8 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     runningFrame = true;
 
     try {
-      const firmwareAnalysis = firmwareAnalysisCache ?? await analyzeFirmwareWithBackend(codeEditor.value);
-      firmwareAnalysisCache = firmwareAnalysis;
       const multiFirmwareSources = firmwareSourcesByComponent();
+      consoleOutput.textContent = t('We are compiling your code and it will run in a few moments.');
       const firmwareWasm = multiFirmwareSources.size > 1
         ? await compileMultiFirmwareWasm(multiFirmwareSources)
         : firmwareWasmCache ?? await compileFirmwareWasmWithBackend(codeEditor.value, {
@@ -49,14 +46,6 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
 
       if (multiFirmwareSources.size <= 1) {
         firmwareWasmCache = firmwareWasm;
-      }
-
-      if (firmwareAnalysis.available && firmwareAnalysis.ok === false) {
-        state.running = false;
-        onSimulationStopped();
-        renderProblems(firmwareAnalysis.diagnostics.map(formatDiagnostic));
-        consoleOutput.textContent = t('Simulation blocked: Clang found a firmware error.');
-        return;
       }
 
       if (firmwareWasm.ok !== true) {
@@ -111,7 +100,6 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     state.running = false;
     stopSimulationTimer();
     onSimulationStopped();
-    firmwareAnalysisCache = null;
     firmwareWasmCache = null;
     multiFirmwareWasmCache = null;
     wasmSimulationSession = null;
@@ -326,12 +314,16 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     const diagnosticsByComponentId = new Map();
     let ok = true;
 
-    for (const [componentId, code] of sourcesByComponentId) {
+    const compiledEntries = await Promise.all([...sourcesByComponentId.entries()].map(async ([componentId, code]) => {
       const component = state.components.get(componentId);
       const result = await compileFirmwareWasmWithBackend(code, {
         constants: firmwareConstantsForBoard(component)
       });
 
+      return [componentId, result];
+    }));
+
+    for (const [componentId, result] of compiledEntries) {
       byComponentId.set(componentId, result);
       diagnosticsByComponentId.set(componentId, result.diagnostics ?? []);
       ok = ok && result.ok === true;

@@ -60,6 +60,7 @@ test('web UI entrypoint contains required workspace regions', () => {
   assert.match(html, /id="redoBoard"/);
   assert.match(html, /id="saveProject"/);
   assert.match(html, /id="loadSavedProject"/);
+  assert.match(html, /id="shareProject"/);
   assert.match(html, /id="exportProject"/);
   assert.match(html, /id="importProject"/);
   assert.match(html, /id="projectFileInput"/);
@@ -271,7 +272,10 @@ test('web server exposes official component and example catalog APIs', () => {
 
   assert.match(server, /url\.pathname === '\/api\/components'/);
   assert.match(server, /url\.pathname === '\/api\/firmware\/compile-wasm'/);
+  assert.match(server, /url\.pathname\.startsWith\('\/api\/firmware\/compile-wasm\/'\)/);
   assert.match(server, /url\.pathname === '\/api\/examples'/);
+  assert.match(server, /url\.pathname === '\/api\/shared-projects'/);
+  assert.match(server, /url\.pathname\.startsWith\('\/api\/shared-projects\/'\)/);
   assert.match(server, /url\.pathname\.startsWith\('\/api\/examples\/'\)/);
   assert.match(server, /components', 'official'/);
   assert.match(server, /examples', exampleId, 'project\.json'/);
@@ -282,7 +286,14 @@ test('web server exposes official component and example catalog APIs', () => {
   assert.match(server, /componentNamesForProject/);
   assert.match(server, /boardNamesForProject/);
   assert.match(server, /entry\.name === 'component\.json'/);
-  assert.match(server, /compileFirmwareWasmWithClang/);
+  assert.match(server, /enqueueFirmwareWasmCompile/);
+  assert.match(server, /getFirmwareWasmCompileJob/);
+  assert.match(server, /response\.writeHead\(202/);
+  assert.match(server, /sharedProjectsRoot = join\(root, 'shared'\)/);
+  assert.match(server, /isSharedProjectPath\(url\.pathname\)/);
+  assert.match(server, /writeSharedProject/);
+  assert.match(server, /readSharedProject/);
+  assert.match(server, /randomBytes\(16\)\.toString\('hex'\)/);
 });
 
 test('web UI prevents known interaction regressions', () => {
@@ -323,6 +334,16 @@ test('web UI prevents known interaction regressions', () => {
   assert.match(componentBinder, /input, textarea, select/);
   assert.match(componentTemplate, /data-delete-component/);
   assert.match(componentBinder, /input\.addEventListener\('pointerdown'/);
+  assert.match(script, /setRunButtonCompiling\(true\)/);
+  assert.match(script, /setRunButtonCompiling\(false\)/);
+  assert.match(script, /is-compiling/);
+  assert.match(script, /Compiling\.\.\./);
+  assert.match(script, /setShareButtonLoading\(true\)/);
+  assert.match(script, /setShareButtonLoading\(false\)/);
+  assert.match(script, /shareProject\(\{ silent: true \}\)/);
+  assert.match(script, /sharedProjectKeyFromLocation\(\)/);
+  assert.match(script, /url\.pathname\.slice\(1\)/);
+  assert.match(script, /loadSharedProject\(shareKey, false\)/);
 });
 
 test('web UI exposes editable distance, resistor and capacitor properties', () => {
@@ -695,6 +716,7 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   const wasmRunner = readFileSync(join(root, 'apps/web/js/simulation/wasm-firmware-runner.js'), 'utf8');
   const wasmImportAdapters = readFileSync(join(root, 'apps/web/js/simulation/wasm-import-adapters.js'), 'utf8');
   const runtime = readFileSync(join(root, 'apps/web/js/simulation/arduino-runtime.js'), 'utf8');
+  const firmwareClient = readFileSync(join(root, 'apps/web/js/simulation/firmware-analysis-client.js'), 'utf8');
 
   assert.doesNotMatch(adapter, /runProjectSimulation/);
   assert.doesNotMatch(engine, /firmware-engine\.js/);
@@ -746,7 +768,6 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   assert.doesNotMatch(adapter, /result\.timeUs \/ 1000 \* 0\.12/);
   assert.match(adapter, /frameTimeUs \/ 1000/);
   assert.match(adapter, /stopSimulationTimer/);
-  assert.match(adapter, /firmwareAnalysisCache/);
   assert.match(adapter, /wasmSimulationSession/);
   assert.match(adapter, /createProjectWasmSimulationSession/);
   assert.match(adapter, /compileFirmwareWasmWithBackend/);
@@ -762,6 +783,13 @@ test('web UI simulation is routed through a generic kernel adapter', () => {
   assert.doesNotMatch(adapter, /pulseIn\\s\*\\\(/);
   assert.doesNotMatch(adapter, /component\.type === 'hcsr04'/);
   assert.match(adapter, /setTimeout/);
+  assert.match(adapter, /We are compiling your code and it will run in a few moments\./);
+  assert.doesNotMatch(adapter, /analyzeFirmwareWithBackend/);
+  assert.match(firmwareClient, /waitForWasmCompileJob/);
+  assert.match(firmwareClient, /setInterval/);
+  assert.match(firmwareClient, /minDelayMs: options\.minDelayMs \?\? 3000/);
+  assert.match(firmwareClient, /\/api\/firmware\/compile-wasm\/\$\{encodeURIComponent\(jobId\)\}/);
+  assert.match(firmwareClient, /polling \|\| settled/);
 });
 
 test('web UI exposes electrical solver readings to simulation and inspector', () => {
@@ -885,7 +913,19 @@ test('web UI serializes board state to project JSON with separated connection ki
   assert.match(projectActions, /loadProjectFromLocalStorage\(\)/);
   assert.match(projectActions, /exportProjectFile\(\)/);
   assert.match(projectActions, /importProjectFile\(event\)/);
+  assert.match(projectActions, /shareProject\(\{ silent = false \} = \{\}\)/);
+  assert.match(projectActions, /loadSharedProject\(shareKey, shouldRecord = false\)/);
+  assert.match(projectActions, /\/api\/shared-projects/);
+  assert.match(projectActions, /history\.replaceState/);
+  assert.match(projectActions, /url\.pathname = `\/\$\{shareKey\}`/);
+  assert.match(projectActions, /url\.search = ''/);
+  assert.match(projectActions, /navigator\.clipboard\.writeText/);
+  assert.match(projectActions, /virtualEmbeddedLabOwnedSharedProjects/);
+  assert.match(projectActions, /isOwnedSharedProject\(currentShareKey\)/);
+  assert.match(projectActions, /rememberOwnedSharedProject\(shared\.shareKey\)/);
   assert.match(serializer, /partitionNetsByKind\(nets\)/);
+  assert.match(serializer, /project\.shareKey = state\.project\.shareKey/);
+  assert.match(serializer, /shareKey: isShareKey\(project\.shareKey\) \? project\.shareKey : null/);
   assert.match(serializer, /connections: electricalNets\.map/);
   assert.match(serializer, /colorForNet\(net, state\.wires, terminalKind\)/);
   assert.match(serializer, /colorForEnvironmentWire\(source, target, state\.wires\)/);

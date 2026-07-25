@@ -245,6 +245,57 @@ export function createProjectActions({
     consoleOutput.textContent = t('Project exported as JSON.');
   }
 
+  async function shareProject({ silent = false } = {}) {
+    saveActiveFirmware();
+    const project = currentProject();
+    const currentShareKey = project.shareKey ?? state.project?.shareKey;
+    const shareKey = isOwnedSharedProject(currentShareKey) ? currentShareKey : null;
+    const response = await fetch(shareKey ? `/api/shared-projects/${encodeURIComponent(shareKey)}` : '/api/shared-projects', {
+      method: shareKey ? 'PUT' : 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ project })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const shared = await response.json();
+    const sharedUrl = sharedProjectUrl(shared.shareKey);
+
+    state.project = {
+      ...(state.project ?? projectMetadata(project)),
+      shareKey: shared.shareKey
+    };
+    rememberOwnedSharedProject(shared.shareKey);
+    updateSharedUrl(shared.shareKey);
+
+    if (!silent) {
+      await copySharedUrl(sharedUrl);
+      consoleOutput.textContent = `${t('Project shared')}: ${sharedUrl}`;
+    }
+
+    return {
+      shareKey: shared.shareKey,
+      url: sharedUrl
+    };
+  }
+
+  async function loadSharedProject(shareKey, shouldRecord = false) {
+    const response = await fetch(`/api/shared-projects/${encodeURIComponent(shareKey)}`);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const shared = await response.json();
+    restoreProject(shared.project, shouldRecord);
+    updateSharedUrl(shared.shareKey);
+    return shared.project;
+  }
+
   async function importProjectFile(event) {
     const [file] = event.target.files;
     event.target.value = '';
@@ -324,8 +375,75 @@ export function createProjectActions({
     loadProjectFromLocalStorage,
     exportProjectFile,
     importProjectFile,
+    shareProject,
+    loadSharedProject,
     createNewProject,
     restoreProject,
     currentProject
   };
+}
+
+function sharedProjectUrl(shareKey) {
+  const url = new URL(globalThis.location?.href ?? 'http://localhost/');
+  url.pathname = `/${shareKey}`;
+  url.search = '';
+  url.hash = '';
+  return url.href;
+}
+
+function updateSharedUrl(shareKey) {
+  if (!globalThis.history?.replaceState || !globalThis.location) {
+    return;
+  }
+
+  const url = new URL(globalThis.location.href);
+  url.pathname = `/${shareKey}`;
+  url.search = '';
+  url.hash = '';
+  globalThis.history.replaceState(null, '', url);
+}
+
+async function copySharedUrl(url) {
+  if (!globalThis.navigator?.clipboard?.writeText) {
+    return;
+  }
+
+  try {
+    await globalThis.navigator.clipboard.writeText(url);
+  } catch {
+    // Some browsers block clipboard writes outside trusted contexts; the URL is still shown in the console.
+  }
+}
+
+const ownedSharedProjectsStorageKey = 'virtualEmbeddedLabOwnedSharedProjects';
+
+function isOwnedSharedProject(shareKey) {
+  if (!isShareKey(shareKey)) {
+    return false;
+  }
+
+  try {
+    const owned = JSON.parse(globalThis.localStorage?.getItem(ownedSharedProjectsStorageKey) ?? '[]');
+    return Array.isArray(owned) && owned.includes(shareKey);
+  } catch {
+    return false;
+  }
+}
+
+function rememberOwnedSharedProject(shareKey) {
+  if (!isShareKey(shareKey)) {
+    return;
+  }
+
+  try {
+    const owned = JSON.parse(globalThis.localStorage?.getItem(ownedSharedProjectsStorageKey) ?? '[]');
+    const next = Array.isArray(owned) ? [...new Set([...owned, shareKey])] : [shareKey];
+    globalThis.localStorage?.setItem(ownedSharedProjectsStorageKey, JSON.stringify(next));
+  } catch {
+    // Ownership only controls browser-side convenience; sharing still works without it.
+  }
+}
+
+function isShareKey(value) {
+  return typeof value === 'string' && /^[a-f0-9]{32}$/.test(value);
 }

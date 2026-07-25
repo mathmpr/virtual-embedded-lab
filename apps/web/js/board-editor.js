@@ -43,6 +43,8 @@ export function createBoardEditor(document) {
   const serialMonitor = document.querySelector('#serialMonitor');
   const problemList = document.querySelector('#problemList');
   const currentProjectTitle = document.querySelector('#currentProjectTitle');
+  const startSimulationButton = document.querySelector('#startSimulation');
+  const shareProjectButton = document.querySelector('#shareProject');
   const toggleAudioButton = document.querySelector('#toggleAudio');
   const lockBoardButton = document.querySelector('#lockBoard');
 
@@ -130,6 +132,8 @@ export function createBoardEditor(document) {
     loadProjectFromLocalStorage,
     exportProjectFile,
     importProjectFile,
+    shareProject,
+    loadSharedProject,
     createNewProject,
     restoreProject,
     currentProject
@@ -344,9 +348,25 @@ export function createBoardEditor(document) {
   }
 
   function bindToolbar() {
-    document.querySelector('#startSimulation').addEventListener('click', () => {
+    startSimulationButton.addEventListener('click', async () => {
+      if (startSimulationButton.disabled) {
+        return;
+      }
+
+      setRunButtonCompiling(true);
       setBoardLocked(true);
-      simulation.runSimulation();
+
+      try {
+        try {
+          await shareProject({ silent: true });
+        } catch {
+          // Sharing is opportunistic on Run; simulation must remain usable offline/local.
+        }
+
+        await simulation.runSimulation();
+      } finally {
+        setRunButtonCompiling(false);
+      }
     });
     document.querySelector('#pauseSimulation').addEventListener('click', () => {
       simulation.pauseSimulation();
@@ -369,6 +389,21 @@ export function createBoardEditor(document) {
     document.querySelector('#redoBoard').addEventListener('click', redoBoard);
     document.querySelector('#saveProject').addEventListener('click', saveProjectToLocalStorage);
     document.querySelector('#loadSavedProject').addEventListener('click', loadProjectFromLocalStorage);
+    shareProjectButton.addEventListener('click', async () => {
+      if (shareProjectButton.disabled) {
+        return;
+      }
+
+      setShareButtonLoading(true);
+
+      try {
+        await shareProject();
+      } catch (error) {
+        renderProblems([`${t('Failed to share project')}: ${error.message}`]);
+      } finally {
+        setShareButtonLoading(false);
+      }
+    });
     document.querySelector('#exportProject').addEventListener('click', exportProjectFile);
     document.querySelector('#importProject').addEventListener('click', () => {
       document.querySelector('#projectFileInput').click();
@@ -376,6 +411,18 @@ export function createBoardEditor(document) {
     document.querySelector('#projectFileInput').addEventListener('change', importProjectFile);
     syncBoardLockButton();
     syncProjectTitle();
+  }
+
+  function setRunButtonCompiling(compiling) {
+    startSimulationButton.disabled = Boolean(compiling);
+    startSimulationButton.classList.toggle('is-compiling', compiling);
+    startSimulationButton.textContent = compiling ? t('Compiling...') : t('Run');
+  }
+
+  function setShareButtonLoading(loading) {
+    shareProjectButton.disabled = Boolean(loading);
+    shareProjectButton.classList.toggle('is-compiling', loading);
+    shareProjectButton.textContent = loading ? t('Sharing...') : t('Share');
   }
 
   function syncProjectTitle() {
@@ -841,6 +888,13 @@ export function createBoardEditor(document) {
 
   async function loadDefaultExample() {
     try {
+      const shareKey = sharedProjectKeyFromLocation();
+
+      if (shareKey) {
+        await loadSharedProject(shareKey, false);
+        return;
+      }
+
       await loadExampleById('esp32-s3-snake-hub75', false);
     } catch (error) {
       codeEditor.value = '';
@@ -917,6 +971,16 @@ export function createBoardEditor(document) {
 
     codeEditor.value = normalizeProjectCode(firmware.files?.[firmware.entry] ?? '');
     currentFirmwareName.textContent = firmware.entry;
+  }
+
+  function sharedProjectKeyFromLocation() {
+    const url = new URL(window.location.href);
+    const pathShareKey = url.pathname.slice(1);
+    const shareKey = /^[a-f0-9]{32}$/.test(pathShareKey)
+      ? pathShareKey
+      : url.searchParams.get('shared');
+
+    return /^[a-f0-9]{32}$/.test(shareKey ?? '') ? shareKey : null;
   }
 
   function ensureFirmwareEntries(boards) {

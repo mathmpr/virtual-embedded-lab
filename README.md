@@ -45,7 +45,7 @@ Opcionais por cenário:
 - Broker MQTT TCP acessível pela rede quando um projeto usa `network.mqtt.mode: "real"`.
 - Para o exemplo `ESP Water Control Pump Reservoir`, o fluxo real depende do contrato MQTT/backend do projeto externo `https://github.com/mathmpr/water-control`.
 
-A UI usa WASM como caminho único de execução de firmware. Portanto, `clang++` e `wasm-ld` são necessários para rodar simulações de firmware localmente. Sem `clang++`, o servidor retorna `CLANG_UNAVAILABLE`. Sem `wasm-ld`, `/api/firmware/compile-wasm` retorna `WASM_TOOLCHAIN_UNAVAILABLE`.
+A UI usa WASM como caminho único de execução de firmware. Portanto, `clang++` e `wasm-ld` são necessários para rodar simulações de firmware localmente. Sem `clang++`, o servidor retorna `CLANG_UNAVAILABLE`. Sem `wasm-ld`, o job de `/api/firmware/compile-wasm` termina com `WASM_TOOLCHAIN_UNAVAILABLE`.
 
 Para uso público, não execute compilação de firmware diretamente no host sem isolamento. O compilador WASM suporta sandbox por container via `WASM_COMPILER_SANDBOX=docker` ou `WASM_COMPILER_SANDBOX=podman`.
 
@@ -176,7 +176,9 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 - O solver atual cobre caminho série simples LED/resistor, corrente, potência, sobrecorrente, resistência excessiva, tensão insuficiente e curtos básicos.
 - A UI executa firmware pelo caminho WASM; falha de compilação WASM bloqueia a simulação e exibe diagnósticos, sem fallback para IR.
 - A IR JavaScript ainda existe no código como legado/testes, mas está depreciada como caminho de execução de firmware, isolada em `legacy-ir-simulation.js` e não deve receber novas features.
-- O servidor possui o endpoint `POST /api/firmware/compile-wasm`, que compila firmware C/C++ freestanding para WASM quando `clang++` e `lld/wasm-ld` estão disponíveis.
+- O servidor possui uma fila em memória para compilação WASM. `POST /api/firmware/compile-wasm` cria um job e responde `202` com `jobId`; `GET /api/firmware/compile-wasm/:jobId` retorna o status e, quando terminar, o WASM pronto. No máximo duas compilações rodam simultaneamente.
+- O botão Run mostra um loader, fica desabilitado durante a compilação e mantém a animação por no mínimo 3 segundos para evitar flicker visual em compilações muito rápidas.
+- O compartilhamento público inicial não usa conta nem banco de dados. `POST /api/shared-projects` cria um identificador opaco de 32 caracteres, salva o projeto em `shared/<id>/project.json` e a URL da UI passa a usar `/<id>` sem refresh. `PUT /api/shared-projects/:id` atualiza o mesmo projeto e `GET /api/shared-projects/:id` carrega o projeto público.
 - Builds WASM bem-sucedidos são cacheados em memória por hash do código, constantes e configuração de toolchain/sandbox.
 - O suporte ESP32/ESP8266/Wi-Fi cobre `WiFi.mode`, `WiFi.begin`, `WiFi.status`, `WiFi.softAP`, `WiFi.scanNetworks`, `WiFi.RSSI`, `WiFi.RSSI(ssid)`, `WiFi.internetAvailable()`, `WiFiClient` TCP/HTTP virtual e `AsyncMqttClient` MQTT virtual ou real via imports WASM conectados ao `ArduinoRuntime`.
 - Projetos multi-board podem manter firmwares separados por microcontrolador; o seletor de firmware permite alternar o código ativo no editor e o runtime executa uma sessão WASM por placa.

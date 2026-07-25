@@ -17,6 +17,11 @@ import {
   supportedFirmwareLibraryDocs
 } from '../../apps/web/firmware/library-resolver.mjs';
 import { clearFirmwareWasmBuildCache, compileFirmwareWasmWithClang } from '../../apps/web/firmware/wasm-compiler.mjs';
+import {
+  _resetFirmwareWasmCompileQueueForTests,
+  enqueueFirmwareWasmCompile,
+  getFirmwareWasmCompileJob
+} from '../../apps/web/firmware/wasm-compile-queue.mjs';
 
 const root = new URL('../..', import.meta.url).pathname;
 const referenceCode = normalizeProjectCode(readExampleProject('examples/hc-sr04-led-distance/project.json').code.files['main.ino']);
@@ -443,6 +448,74 @@ test('clang wasm compiler reports unavailable command without throwing', async (
   assert.equal(result.diagnostics[0].code, 'WASM_TOOLCHAIN_UNAVAILABLE');
 });
 
+test('clang wasm compile queue limits concurrent builds to two jobs', async () => {
+  clearFirmwareWasmBuildCache();
+  _resetFirmwareWasmCompileQueueForTests();
+  const previousClangxx = process.env.CLANGXX;
+  const dir = await mkdtemp(join(tmpdir(), 'virtual-lab-fake-wasm-queue-'));
+  const fakeClang = join(dir, 'clang++');
+  const runningFile = join(dir, 'running.txt');
+  const maxFile = join(dir, 'max.txt');
+  const lockDir = join(dir, 'lock');
+
+  await writeFile(fakeClang, `#!/usr/bin/env sh
+lock_dir="${lockDir}"
+while ! mkdir "$lock_dir" 2>/dev/null; do
+  sleep 0.01
+done
+running_file="${runningFile}"
+max_file="${maxFile}"
+running="$(cat "$running_file" 2>/dev/null || printf 0)"
+running="$((running + 1))"
+printf '%s' "$running" > "$running_file"
+max="$(cat "$max_file" 2>/dev/null || printf 0)"
+if [ "$running" -gt "$max" ]; then
+  printf '%s' "$running" > "$max_file"
+fi
+rmdir "$lock_dir"
+sleep 0.2
+out=""
+prev=""
+for arg in "$@"; do
+  if [ "$prev" = "-o" ]; then
+    out="$arg"
+  fi
+  prev="$arg"
+done
+printf '\\000\\141\\163\\155\\001\\000\\000\\000' > "$out"
+while ! mkdir "$lock_dir" 2>/dev/null; do
+  sleep 0.01
+done
+running="$(cat "$running_file" 2>/dev/null || printf 0)"
+running="$((running - 1))"
+printf '%s' "$running" > "$running_file"
+rmdir "$lock_dir"
+exit 0
+`, 'utf8');
+  await chmod(fakeClang, 0o755);
+
+  try {
+    process.env.CLANGXX = fakeClang;
+    const jobs = [0, 1, 2, 3].map((index) => enqueueFirmwareWasmCompile({
+      code: `void setup() {}\nvoid loop() {}\n// queue-test-${index}`
+    }));
+    const results = await Promise.all(jobs.map((job) => waitForCompileQueueJob(job.jobId)));
+
+    assert.ok(results.every((job) => job.status === 'done'));
+    assert.ok(results.every((job) => job.result?.ok === true));
+    assert.equal(Number(readFileSync(maxFile, 'utf8')), 2);
+  } finally {
+    if (previousClangxx === undefined) {
+      delete process.env.CLANGXX;
+    } else {
+      process.env.CLANGXX = previousClangxx;
+    }
+    clearFirmwareWasmBuildCache();
+    _resetFirmwareWasmCompileQueueForTests();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('clang wasm compiler injects board LED_BUILTIN constants before compilation', async () => {
   const result = await compileFirmwareWasmWithClang(`
     void setup() {
@@ -595,3 +668,19 @@ test('clang wasm compiler supports external ADC examples', async () => {
     assert.equal(result.diagnostics.length, 0, examplePath);
   }
 });
+
+async function waitForCompileQueueJob(jobId) {
+  const deadline = Date.now() + 5000;
+
+  while (Date.now() < deadline) {
+    const job = getFirmwareWasmCompileJob(jobId);
+
+    if (job?.status === 'done' || job?.status === 'failed') {
+      return job;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+
+  assert.fail(`Compile queue job ${jobId} did not finish before timeout.`);
+}
