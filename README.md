@@ -6,6 +6,30 @@ O projeto já possui um protótipo web funcional com board visual, catálogo ofi
 
 A arquitetura atual trata componentes como pacotes: cada componente oficial descreve seu manifest e pode carregar CSS, behavior de simulação, bibliotecas de firmware, shims C++ e imports WASM a partir da própria pasta.
 
+## Licença
+
+Este projeto é open source sob a licença GNU Affero General Public License v3.0 ou posterior (`AGPL-3.0-or-later`).
+
+Em termos práticos:
+
+- Você pode usar, estudar, modificar e redistribuir o código.
+- Se você modificar o projeto e oferecer essa versão modificada como serviço de rede, deve disponibilizar o código-fonte correspondente aos usuários desse serviço, conforme a AGPLv3.
+- O projeto é fornecido sem garantias. Simulações são ferramentas educacionais e não substituem validação física, medições reais ou boas práticas de segurança.
+
+Consulte [LICENSE](./LICENSE) e [NOTICE](./NOTICE).
+
+## Marca e identidade
+
+O nome "Virtual Embedded Lab", logo, identidade visual e marcas confundíveis não são concedidos para uso de forma que sugira que uma versão, fork, hospedagem ou distribuição não oficial seja o projeto oficial.
+
+Você pode usar o nome para atribuição verdadeira, referência ao projeto original, compatibilidade e cumprimento da licença. Ao redistribuir ou hospedar uma versão modificada, deixe claro que se trata de uma versão não oficial, salvo autorização explícita dos mantenedores.
+
+## Contribuindo
+
+Contribuições são bem-vindas. Leia [CONTRIBUTING.md](./CONTRIBUTING.md) antes de enviar mudanças.
+
+Ao contribuir, você concorda que sua contribuição seja distribuída sob a mesma licença do projeto: `AGPL-3.0-or-later`.
+
 ## Requirements
 
 Obrigatórios:
