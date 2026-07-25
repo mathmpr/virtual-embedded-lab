@@ -1,0 +1,125 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "board.esp32c3.devkit",
+    "name": "ESP32-C3 DevKit",
+    "category": "microcontroller",
+    "subCategory": "esp32"
+  },
+  "simulation": {
+    "kind": "microcontroller",
+    "effects": ["firmware", "electrical", "environment", "visual-state"],
+    "implemented": true,
+    "notes": [
+      "Generic ESP32-C3 DevKit pinout focused on GPIO, ADC, I2C, SPI, UART and Wi-Fi examples.",
+      "USB serial, strapping details and board-specific onboard RGB LED wiring are intentionally simplified."
+    ]
+  },
+  "properties": {
+    "logicVoltage": { "type": "number", "default": 3.3, "unit": "V", "simulationUpdate": "rerun" },
+    "wifiMode": { "type": "string", "default": "idle", "simulationUpdate": "rerun" },
+    "usbSerialEnabled": { "type": "boolean", "default": true, "simulationUpdate": "none" }
+  },
+  "terminals": [
+    { "id": "5v", "label": "5V", "type": "power-input" },
+    { "id": "3v3", "label": "3V3", "type": "power-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" },
+    { "id": "gnd2", "label": "GND", "type": "ground" },
+    { "id": "en", "label": "EN", "type": "reset-input" },
+    { "id": "io0", "label": "IO0", "type": "analog-input" },
+    { "id": "io1", "label": "IO1", "type": "analog-input" },
+    { "id": "io2", "label": "IO2", "type": "analog-input" },
+    { "id": "io3", "label": "IO3", "type": "analog-input" },
+    { "id": "io4", "label": "IO4", "type": "analog-input" },
+    { "id": "io5", "label": "IO5", "type": "analog-input" },
+    { "id": "io6", "label": "IO6", "type": "digital-io" },
+    { "id": "io7", "label": "IO7", "type": "digital-io" },
+    { "id": "io8", "label": "IO8", "type": "digital-io" },
+    { "id": "io9", "label": "IO9", "type": "digital-io" },
+    { "id": "io10", "label": "IO10", "type": "digital-io" },
+    { "id": "io18", "label": "IO18", "type": "digital-io" },
+    { "id": "io19", "label": "IO19", "type": "digital-io" },
+    { "id": "io20", "label": "IO20/RX", "type": "uart-io" },
+    { "id": "io21", "label": "IO21/TX", "type": "uart-io" }
+  ],
+  "electricalModel": {
+    "type": "microcontroller",
+    "logicVoltage": 3.3,
+    "recommendedPinCurrentAmps": 0.012
+  },
+  "behavior": {
+    "type": "microcontroller",
+    "runtime": "arduino-compatible",
+    "wireless": ["wifi", "bluetooth-le"],
+    "pinMap": {
+      "io0": { "number": 0, "analogNumber": 0, "name": "GPIO0/ADC1", "capabilities": ["digital", "analog", "adc1", "pwm", "interrupt"] },
+      "io1": { "number": 1, "analogNumber": 1, "name": "GPIO1/ADC1", "capabilities": ["digital", "analog", "adc1", "pwm", "interrupt"] },
+      "io2": { "number": 2, "analogNumber": 2, "name": "GPIO2/ADC1", "capabilities": ["digital", "analog", "adc1", "pwm", "interrupt", "strapping"] },
+      "io3": { "number": 3, "analogNumber": 3, "name": "GPIO3/ADC1", "capabilities": ["digital", "analog", "adc1", "pwm", "interrupt"] },
+      "io4": { "number": 4, "analogNumber": 4, "name": "GPIO4/ADC1", "capabilities": ["digital", "analog", "adc1", "pwm", "interrupt", "spi-sck"] },
+      "io5": { "number": 5, "analogNumber": 5, "name": "GPIO5/ADC2", "capabilities": ["digital", "analog", "adc2", "pwm", "interrupt", "spi-miso"] },
+      "io6": { "number": 6, "name": "GPIO6", "capabilities": ["digital", "pwm", "interrupt", "spi-mosi"] },
+      "io7": { "number": 7, "name": "GPIO7", "capabilities": ["digital", "pwm", "interrupt", "spi-cs"] },
+      "io8": { "number": 8, "name": "GPIO8", "capabilities": ["digital", "pwm", "interrupt", "i2c-sda", "led", "strapping"] },
+      "io9": { "number": 9, "name": "GPIO9", "capabilities": ["digital", "pwm", "interrupt", "i2c-scl", "strapping"] },
+      "io10": { "number": 10, "name": "GPIO10", "capabilities": ["digital", "pwm", "interrupt"] },
+      "io18": { "number": 18, "name": "GPIO18/USB D-", "capabilities": ["digital", "pwm", "interrupt", "usb"] },
+      "io19": { "number": 19, "name": "GPIO19/USB D+", "capabilities": ["digital", "pwm", "interrupt", "usb"] },
+      "io20": { "number": 20, "name": "GPIO20/RX0", "capabilities": ["digital", "uart-rx"] },
+      "io21": { "number": 21, "name": "GPIO21/TX0", "capabilities": ["digital", "uart-tx"] }
+    },
+    "buses": {
+      "i2c": [{ "id": "wire", "sda": "io8", "scl": "io9" }],
+      "spi": [{ "id": "spi", "sck": "io4", "miso": "io5", "mosi": "io6", "defaultCs": "io7" }],
+      "uart": [{ "id": "uart0", "rx": "io20", "tx": "io21" }],
+      "pwm": [{ "id": "ledc", "channels": 6 }],
+      "timers": [{ "id": "timer-group-0", "channels": 2 }]
+    },
+    "builtInLeds": [
+      { "id": "power", "label": "PWR", "pin": null, "active": true, "color": "green", "description": "LED de alimentacao; nao e controlado por GPIO." },
+      { "id": "rgb", "label": "RGB", "pin": 8, "terminalId": "io8", "activeHigh": true, "color": "blue", "description": "LED RGB onboard simplificado como LED digital em GPIO8." }
+    ],
+    "notes": [
+      "GPIO8/GPIO9 podem ser strapping pins dependendo da placa.",
+      "GPIO18/GPIO19 normalmente sao usados pelo USB nativo em placas ESP32-C3.",
+      "O LED RGB onboard varia por fabricante; no simulador ele e representado de forma simplificada em GPIO8."
+    ]
+  },
+  "contributions": {
+    "wasmImports": {
+      "modules": ["../esp32-devkit/firmware/wasm-imports.js"]
+    }
+  },
+  "visual": {
+    "type": "esp32-c3-devkit",
+    "title": "ESP32-C3 DevKit",
+    "className": "esp32-devkit esp32-c3-devkit",
+    "body": "3.3V logic / Wi-Fi / BLE / USB",
+    "width": 260,
+    "height": 320,
+    "palette": { "group": "Boards", "subgroup": "ESP32", "icon": "esp32-icon", "order": 14 },
+    "terminals": [
+      { "id": "5v", "side": "top", "x": 64, "y": 0, "kind": "power" },
+      { "id": "3v3", "side": "top", "x": 116, "y": 0, "kind": "power" },
+      { "id": "en", "side": "top", "x": 168, "y": 0, "kind": "signal" },
+      { "id": "gnd", "side": "bottom", "x": 90, "y": 320, "kind": "ground" },
+      { "id": "gnd2", "side": "bottom", "x": 142, "y": 320, "kind": "ground" },
+      { "id": "io0", "side": "left", "x": 0, "y": 38, "kind": "signal" },
+      { "id": "io1", "side": "left", "x": 0, "y": 62, "kind": "signal" },
+      { "id": "io2", "side": "left", "x": 0, "y": 86, "kind": "signal" },
+      { "id": "io3", "side": "left", "x": 0, "y": 110, "kind": "signal" },
+      { "id": "io4", "side": "left", "x": 0, "y": 134, "kind": "signal" },
+      { "id": "io5", "side": "left", "x": 0, "y": 158, "kind": "signal" },
+      { "id": "io6", "side": "left", "x": 0, "y": 182, "kind": "signal" },
+      { "id": "io7", "side": "left", "x": 0, "y": 206, "kind": "signal" },
+      { "id": "io8", "side": "right", "x": 260, "y": 38, "kind": "signal" },
+      { "id": "io9", "side": "right", "x": 260, "y": 62, "kind": "signal" },
+      { "id": "io10", "side": "right", "x": 260, "y": 86, "kind": "signal" },
+      { "id": "io18", "side": "right", "x": 260, "y": 110, "kind": "signal" },
+      { "id": "io19", "side": "right", "x": 260, "y": 134, "kind": "signal" },
+      { "id": "io20", "side": "right", "x": 260, "y": 158, "kind": "signal" },
+      { "id": "io21", "side": "right", "x": 260, "y": 182, "kind": "signal" }
+    ]
+  }
+}

@@ -29,6 +29,7 @@ const jsonFiles = [
   'components/official/capacitor/component.json',
   'components/official/climate/component.json',
   'components/official/esp32-devkit/component.json',
+  'components/official/esp32-c3-devkit/component.json',
   'components/official/esp32-s3-devkit/component.json',
   'components/official/esp8266-nodemcu/component.json',
   'components/official/fc-37-rain-sensor/component.json',
@@ -61,6 +62,7 @@ const jsonFiles = [
   'examples/arduino-serial-bridge-led/project.json',
   'examples/arduino-serial-led/project.json',
   'examples/esp32-counter-blink/project.json',
+  'examples/esp32-c3-led-blink/project.json',
   'examples/esp32-ac-energy-meter-poc/project.json',
   'examples/esp32-s3-snake-hub75/project.json',
   'examples/esp32-simon-says/project.json',
@@ -331,6 +333,32 @@ test('ESP32 DevKit manifest exposes documented header pins and wireless capabili
   assert.equal(esp32.behavior.builtInLeds[1].pin, 2);
   assert.equal(esp32.behavior.builtInLeds[1].terminalId, 'io2');
   assert.match(esp32.behavior.notes[1], /GPIO2/);
+});
+
+test('ESP32-C3 DevKit manifest exposes compact RISC-V board pins and wireless capability', () => {
+  const esp32c3 = JSON.parse(
+    readFileSync(join(root, 'components/official/esp32-c3-devkit/component.json'), 'utf8')
+  );
+  const project = readJson('examples/esp32-c3-led-blink/project.json');
+  const terminalIds = esp32c3.terminals.map((terminal: { id: string }) => terminal.id);
+  const visualTerminalIds = esp32c3.visual.terminals.map((terminal: { id: string }) => terminal.id);
+
+  for (const id of ['5v', '3v3', 'gnd', 'gnd2', 'en', 'io0', 'io4', 'io8', 'io9', 'io18', 'io19', 'io20', 'io21']) {
+    assert.ok(terminalIds.includes(id));
+    assert.ok(visualTerminalIds.includes(id));
+  }
+
+  assert.equal(esp32c3.identity.id, 'board.esp32c3.devkit');
+  assert.equal(esp32c3.electricalModel.logicVoltage, 3.3);
+  assert.deepEqual(esp32c3.behavior.wireless, ['wifi', 'bluetooth-le']);
+  assert.equal(esp32c3.behavior.pinMap.io4.number, 4);
+  assert.equal(esp32c3.behavior.pinMap.io4.analogNumber, 4);
+  assert.ok(esp32c3.behavior.pinMap.io8.capabilities.includes('i2c-sda'));
+  assert.ok(esp32c3.behavior.pinMap.io9.capabilities.includes('i2c-scl'));
+  assert.equal(esp32c3.behavior.buses.spi[0].sck, 'io4');
+  assert.equal(esp32c3.behavior.builtInLeds[1].terminalId, 'io8');
+  assert.ok(project.components.some((component: { componentId: string }) => component.componentId === 'board.esp32c3.devkit'));
+  assert.match(project.code.files['main.ino'], /LED_PIN = 4/);
 });
 
 test('BBC micro:bit V2 manifest exposes edge connector pins and simulated LED matrix', () => {
@@ -625,4 +653,20 @@ test('ESP32 counter blink example exercises WASM-supported C++ state', () => {
   assert.match(code, /counter\+\+/);
   assert.match(code, /counter % 10 == 0/);
   assert.match(code, /delay\(4000\)/);
+});
+
+test('ESP32-C3 LED blink example uses external LED with current limiting resistor', () => {
+  const project = readJson('examples/esp32-c3-led-blink/project.json');
+  const code = project.code.files['main.ino'];
+
+  assert.deepEqual(project.components.map((component: { componentId: string }) => component.componentId), [
+    'board.esp32c3.devkit',
+    'electronic.resistor',
+    'electronic.led.red'
+  ]);
+  assert.ok(project.connections.some((connection: { terminals: string[] }) => connection.terminals.includes('esp32c3-1.io4')));
+  assert.ok(project.connections.some((connection: { terminals: string[] }) => connection.terminals.includes('esp32c3-1.gnd')));
+  assert.match(code, /const int LED_PIN = 4/);
+  assert.match(code, /ESP32-C3 LED blink ready/);
+  assert.match(code, /delay\(500\)/);
 });

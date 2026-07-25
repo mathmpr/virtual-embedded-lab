@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "ESP32-C3 LED Blink",
+  "description": "Pisca um LED vermelho externo ligado ao GPIO4 do ESP32-C3 DevKit por meio de um resistor limitador de corrente.",
+  "descriptionI18n": {
+    "pt-BR": "Pisca um LED vermelho externo ligado ao GPIO4 do ESP32-C3 DevKit por meio de um resistor limitador de corrente.",
+    "en": "Blinks an external red LED connected to GPIO4 of the ESP32-C3 DevKit through a current-limiting resistor.",
+    "es": "Hace parpadear un LED rojo externo conectado al GPIO4 del ESP32-C3 DevKit mediante una resistencia limitadora de corriente."
+  },
+  "board": {
+    "width": 1200,
+    "height": 720,
+    "gridSize": 10
+  },
+  "components": [
+    {
+      "id": "esp32c3-1",
+      "componentId": "board.esp32c3.devkit",
+      "position": { "x": 220, "y": 180 },
+      "properties": {
+        "logicVoltage": 3.3,
+        "wifiMode": "idle",
+        "usbSerialEnabled": true
+      }
+    },
+    {
+      "id": "resistor-1",
+      "componentId": "electronic.resistor",
+      "position": { "x": 600, "y": 280 },
+      "properties": { "resistanceOhms": 220 }
+    },
+    {
+      "id": "led-1",
+      "componentId": "electronic.led.red",
+      "position": { "x": 780, "y": 280 },
+      "properties": {}
+    }
+  ],
+  "connections": [
+    {
+      "id": "net-led-drive",
+      "color": "#4c8dff",
+      "terminals": ["esp32c3-1.io4", "resistor-1.a"]
+    },
+    {
+      "id": "net-led-anode",
+      "color": "#ffb454",
+      "terminals": ["resistor-1.b", "led-1.anode"]
+    },
+    {
+      "id": "net-gnd",
+      "color": "#f5f7fa",
+      "terminals": ["led-1.cathode", "esp32c3-1.gnd"]
+    }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": { "path": "./firmware/main.ino" }
+    }
+  }
+}

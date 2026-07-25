@@ -442,6 +442,27 @@ test('counter blink example runs through WASM with persisted increment state', a
   assert.match(runtime.getSerialSnapshot().events.map((event) => event.data).join(''), /counter: 10/);
 });
 
+test('ESP32-C3 LED blink example drives GPIO4 through WASM', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = readExampleProject('examples/esp32-c3-led-blink/project.json');
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
+  const components = componentsFromProject(project);
+  const session = await createProjectWasmSimulationSession({
+    state: { components },
+    nets: project.connections.map((connection) => testNet(connection.id, connection.terminals)),
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const first = session.runFrame();
+  const gpio4Events = first.firmwareResult.pinEvents.filter((event) => event.pin === 4);
+
+  assert.equal(wasm.ok, true);
+  assert.match(serialText(first), /ESP32-C3 LED blink ready/);
+  assert.deepEqual(gpio4Events.map((event) => event.value), ['LOW', 'HIGH', 'LOW']);
+  assert.equal(first.ledStates.get('led-1'), false);
+});
+
 test('WASM Arduino random avoids low-bit modulo cycles', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const { runWasmFirmware } = await import('../../apps/web/js/simulation/wasm-firmware-runner.js');
@@ -2009,6 +2030,7 @@ function phasePower(text, phase) {
 function officialManifestByIdentity(identityId) {
   const manifestPath = {
     'board.esp32.devkit': 'components/official/esp32-devkit/component.json',
+    'board.esp32c3.devkit': 'components/official/esp32-c3-devkit/component.json',
     'board.arduino.uno': 'components/official/arduino-uno/component.json',
     'converter.adc.ads1115': 'components/official/ads1115/component.json',
     'board.esp32s3.devkit': 'components/official/esp32-s3-devkit/component.json',
@@ -2023,7 +2045,9 @@ function officialManifestByIdentity(identityId) {
     'sensor.current.sct': 'components/official/sct-current-transformer/component.json',
     'input.analog.potentiometer.10k': 'components/official/potentiometer-10k/component.json',
     'sensor.temperature.lm35': 'components/official/lm35-temperature-sensor/component.json',
-    'sensor.soil-moisture.capacitive': 'components/official/capacitive-soil-moisture-sensor/component.json'
+    'sensor.soil-moisture.capacitive': 'components/official/capacitive-soil-moisture-sensor/component.json',
+    'electronic.resistor': 'components/official/resistor/component.json',
+    'electronic.led.red': 'components/official/led-red/component.json'
   }[identityId];
 
   if (!manifestPath) {
@@ -2042,6 +2066,7 @@ function officialManifestByVisualType(type) {
     'arduino-nano': 'components/official/arduino-nano/component.json',
     'bbc-microbit-v2': 'components/official/bbc-microbit-v2/component.json',
     'esp32-devkit': 'components/official/esp32-devkit/component.json',
+    'esp32-c3-devkit': 'components/official/esp32-c3-devkit/component.json',
     'bmp280-sensor': 'components/official/bmp280/component.json',
     'buzzer': 'components/official/buzzer/component.json',
     'climate-environment': 'components/official/climate/component.json',
