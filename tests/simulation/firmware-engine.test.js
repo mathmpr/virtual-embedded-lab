@@ -1064,6 +1064,20 @@ test('FC-37 rain WASM session updates rain without resetting virtual time', asyn
     },
     nets: [
       {
+        id: 'net-vcc',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: '5v' },
+          { componentId: 'rain-sensor-1', terminalId: 'vcc' }
+        ]
+      },
+      {
+        id: 'net-gnd',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: 'gnd' },
+          { componentId: 'rain-sensor-1', terminalId: 'gnd' }
+        ]
+      },
+      {
         id: 'net-rain-do',
         terminals: [
           { componentId: 'arduino-1', terminalId: 'd7' },
@@ -1071,9 +1085,7 @@ test('FC-37 rain WASM session updates rain without resetting virtual time', asyn
         ]
       }
     ],
-    terminalKind() {
-      return 'signal';
-    },
+    terminalKind: powerGroundTerminalKind,
     wasmBase64: wasm.wasmBase64
   });
 
@@ -1184,6 +1196,20 @@ test('BMP280 WASM session updates climate readings without resetting virtual tim
     },
     nets: [
       {
+        id: 'net-vcc',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: '3v3' },
+          { componentId: 'bmp280-1', terminalId: 'vcc' }
+        ]
+      },
+      {
+        id: 'net-gnd',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: 'gnd' },
+          { componentId: 'bmp280-1', terminalId: 'gnd' }
+        ]
+      },
+      {
         id: 'net-sda',
         terminals: [
           { componentId: 'arduino-1', terminalId: 'a4' },
@@ -1198,9 +1224,7 @@ test('BMP280 WASM session updates climate readings without resetting virtual tim
         ]
       }
     ],
-    terminalKind() {
-      return 'signal';
-    },
+    terminalKind: powerGroundTerminalKind,
     wasmBase64: wasm.wasmBase64
   });
 
@@ -1260,9 +1284,7 @@ test('external ADC WASM sessions update analog source without resetting virtual 
         ])
       },
       nets: adcTestNets(item),
-      terminalKind() {
-        return 'signal';
-      },
+      terminalKind: powerGroundTerminalKind,
       wasmBase64: wasm.wasmBase64
     });
 
@@ -1709,7 +1731,7 @@ test('ESP32 AC energy meter POC reads two phases through ADS1115 WASM', async ()
     state: { components },
     nets: [
       ...project.connections.map((connection) => testNet(connection.id, connection.terminals)),
-      ...project.environmentConnections.map((connection, index) => testNet(`env-${index + 1}`, [connection.source, connection.target]))
+      environmentTestNet('env-ac', project.environmentConnections)
     ],
     terminalKind: powerGroundTerminalKind,
     wasmBase64: wasm.wasmBase64
@@ -1731,7 +1753,7 @@ test('ESP32 AC energy meter POC reads two phases through ADS1115 WASM', async ()
     state: { components: invertedComponents },
     nets: [
       ...project.connections.map((connection) => testNet(connection.id, connection.terminals)),
-      ...project.environmentConnections.map((connection, index) => testNet(`env-${index + 1}`, [connection.source, connection.target]))
+      environmentTestNet('env-ac', project.environmentConnections)
     ],
     terminalKind: powerGroundTerminalKind,
     wasmBase64: wasm.wasmBase64
@@ -1779,6 +1801,32 @@ test('ESP32-S3 HUB75 Snake example draws matrix framebuffer through WASM', async
 
   assert.ok(gameOver);
   assert.ok(gameOver.buzzerEvents.some((event) => event.componentId === 'buzzer-1' && event.active === true && event.frequencyHz === 220));
+});
+
+test('ESP32-S3 HUB75 Snake does not draw when HUB75 physical connections are missing', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const officialProject = readExampleProject('examples/esp32-s3-snake-hub75/project.json');
+  const brokenProject = readExampleProject('esp32-s3-hub75-snake-game.json');
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(officialProject.code.files['main.ino']));
+  const components = componentsFromProject(brokenProject);
+  const session = await createProjectWasmSimulationSession({
+    state: { components },
+    nets: brokenProject.connections.map((connection) => testNet(connection.id, connection.terminals)),
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const first = session.runFrame();
+  const matrix = components.get('matrix-1');
+
+  assert.equal(wasm.ok, true);
+  assert.equal(matrix.properties.framebuffer, '64x32|');
+  assert.match(first.diagnostics.join('\n'), /matrix-1: HUB75 sem conexões físicas válidas/);
+  assert.match(first.diagnostics.join('\n'), /VCC não está ligado a uma alimentação/);
+  assert.match(first.diagnostics.join('\n'), /GND não está ligado ao terra/);
+  assert.match(first.diagnostics.join('\n'), /g2/);
+  assert.match(first.diagnostics.join('\n'), /b2/);
+  assert.match(first.diagnostics.join('\n'), /a/);
 });
 
 test('Servo sweep example updates servo angle through Servo WASM shim', async () => {
@@ -1856,6 +1904,34 @@ async function runHcsr04WasmDistance(wasmBase64, valueCm) {
 function adcTestNets(item) {
   const nets = [
     {
+      id: 'net-vcc',
+      terminals: item.adcType === 'mcp3008-adc'
+        ? [
+            { componentId: 'arduino-1', terminalId: '5v' },
+            { componentId: item.adcId, terminalId: 'vdd' },
+            { componentId: item.adcId, terminalId: 'vref' }
+          ]
+        : [
+            { componentId: 'arduino-1', terminalId: '5v' },
+            { componentId: item.adcId, terminalId: 'vdd' }
+          ]
+    },
+    {
+      id: 'net-gnd',
+      terminals: item.adcType === 'mcp3008-adc'
+        ? [
+            { componentId: 'arduino-1', terminalId: 'gnd' },
+            { componentId: item.adcId, terminalId: 'agnd' },
+            { componentId: item.adcId, terminalId: 'dgnd' },
+            { componentId: 'analog-1', terminalId: 'gnd' }
+          ]
+        : [
+            { componentId: 'arduino-1', terminalId: 'gnd' },
+            { componentId: item.adcId, terminalId: 'gnd' },
+            { componentId: 'analog-1', terminalId: 'gnd' }
+          ]
+    },
+    {
       id: 'net-analog',
       terminals: [
         { componentId: 'analog-1', terminalId: 'out' },
@@ -1931,6 +2007,20 @@ async function createHcsr04WasmSession(wasmBase64, valueCm) {
     },
     nets: [
       {
+        id: 'net-vcc',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: '5v' },
+          { componentId: 'sensor-1', terminalId: 'vcc' }
+        ]
+      },
+      {
+        id: 'net-gnd',
+        terminals: [
+          { componentId: 'arduino-1', terminalId: 'gnd' },
+          { componentId: 'sensor-1', terminalId: 'gnd' }
+        ]
+      },
+      {
         id: 'net-trigger',
         terminals: [
           { componentId: 'arduino-1', terminalId: 'd7' },
@@ -1947,6 +2037,11 @@ async function createHcsr04WasmSession(wasmBase64, valueCm) {
       }
     ],
     terminalKind(terminal) {
+      const railKind = powerGroundTerminalKind(terminal);
+      if (railKind !== 'signal') {
+        return railKind;
+      }
+
       return terminal.componentId === 'distance-1' ? 'environment' : 'signal';
     },
     wasmBase64
@@ -1979,7 +2074,15 @@ function testNet(id, references) {
   };
 }
 
+function environmentTestNet(id, connections) {
+  return testNet(id, [...new Set(connections.flatMap((connection) => [connection.source, connection.target]))]);
+}
+
 function powerGroundTerminalKind(terminal) {
+  if (terminal.terminalId === 'env') {
+    return 'environment';
+  }
+
   if (/gnd|com/.test(terminal.terminalId)) {
     return 'ground';
   }
@@ -2001,6 +2104,7 @@ function officialComponent(id, type, properties) {
     simulation: manifest.simulation ?? {},
     electricalModel: manifest.electricalModel ?? null,
     electricalPrimitive: manifest.electricalModel?.primitive ?? null,
+    terminals: manifest.terminals ?? [],
     propertySchema: manifest.properties ?? {},
     properties
   };
@@ -2016,6 +2120,7 @@ function componentsFromProject(project) {
       simulation: manifest.simulation ?? {},
       electricalModel: manifest.electricalModel ?? null,
       electricalPrimitive: manifest.electricalModel?.primitive ?? null,
+      terminals: manifest.terminals ?? [],
       propertySchema: manifest.properties ?? {},
       properties: { ...component.properties }
     }];

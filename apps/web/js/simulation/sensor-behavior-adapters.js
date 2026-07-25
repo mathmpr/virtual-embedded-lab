@@ -157,6 +157,11 @@ function bindHcsr04Sensors({ graph, environment, runtime, clock, scheduler, prog
   for (const sensor of components) {
     const sensorBehavior = sensor.behavior ?? {};
     const triggerTerminal = sensorBehavior.triggerTerminal ?? 'trigger';
+
+    if (!componentHasRequiredRails({ graph, component: sensor, diagnostics })) {
+      continue;
+    }
+
     const distanceSource = graph.findComponentsByBehaviorChannel(sensorBehavior.environmentChannel ?? 'distance').find((distanceControl) => {
       return graph.areConnected(
         { componentId: distanceControl.id, terminalId: distanceControl.behavior?.outputTerminal ?? distanceControl.behavior?.channel ?? 'distance' },
@@ -207,6 +212,10 @@ export function bindBmp280Sensors({ graph, environment, runtime, diagnostics, co
     const source = climateSources[0] ?? null;
     const address = Number(sensor.properties[sensor.behavior?.addressProperty] ?? 118);
 
+    if (!componentHasRequiredRails({ graph, component: sensor, diagnostics })) {
+      continue;
+    }
+
     if (!source) {
       diagnostics.push(`${sensor.id}: nenhum controle de clima disponível.`);
       continue;
@@ -238,6 +247,10 @@ export function bindBmp280Sensors({ graph, environment, runtime, diagnostics, co
 export function bindLcd16x2Displays({ graph, runtime, diagnostics, components }) {
   for (const display of components) {
     const address = Number(display.properties[display.behavior?.addressProperty] ?? 39);
+
+    if (!componentHasRequiredRails({ graph, component: display, diagnostics })) {
+      continue;
+    }
 
     if (!resolveI2cBusConnected(graph, display)) {
       diagnostics.push(`${display.id}: SDA/SCL não estão ligados a um barramento I2C conhecido.`);
@@ -278,9 +291,16 @@ function bindSevenSegmentDisplays({ graph, runtime, diagnostics, components }) {
       connected: Boolean(graph.findTerminalNet(display.id, terminalId))
     }));
     const connectedSegments = segments.filter((segment) => Number.isInteger(segment.pin));
+    const hasGroundCommon = hasCommonRail(graph, display, 'ground');
+    const hasPowerCommon = hasCommonRail(graph, display, 'power');
 
     if (connectedSegments.length === 0 && !segments.some((segment) => segment.connected)) {
       diagnostics.push(`${display.id}: nenhum segmento ligado a pino digital de microcontrolador.`);
+      continue;
+    }
+
+    if (!hasGroundCommon && !hasPowerCommon) {
+      diagnostics.push(`${display.id}: terminal comum não está ligado a VCC ou GND.`);
       continue;
     }
 
@@ -289,8 +309,8 @@ function bindSevenSegmentDisplays({ graph, runtime, diagnostics, components }) {
       graph,
       segments,
       commonTypeProperty: display.behavior?.commonTypeProperty ?? 'commonType',
-      hasGroundCommon: hasCommonRail(graph, display, 'ground'),
-      hasPowerCommon: hasCommonRail(graph, display, 'power')
+      hasGroundCommon,
+      hasPowerCommon
     });
   }
 
@@ -298,8 +318,22 @@ function bindSevenSegmentDisplays({ graph, runtime, diagnostics, components }) {
   return { sevenSegmentBindings };
 }
 
-function bindShiftRegisters74hc595({ graph, components }) {
+function bindShiftRegisters74hc595({ graph, diagnostics, components }) {
   for (const shiftRegister of components) {
+    if (!componentHasRequiredRails({ graph, component: shiftRegister, diagnostics })) {
+      continue;
+    }
+
+    for (const terminalId of [
+      shiftRegister.behavior?.dataTerminal ?? 'ds',
+      shiftRegister.behavior?.clockTerminal ?? 'shcp',
+      shiftRegister.behavior?.latchTerminal ?? 'stcp'
+    ]) {
+      if (!terminalHasDigitalSource(graph, shiftRegister, terminalId)) {
+        diagnostics.push(`${shiftRegister.id}.${terminalId}: entrada lógica não está ligada a GPIO digital.`);
+      }
+    }
+
     const state = {
       data: 'LOW',
       clock: 'LOW',
@@ -331,6 +365,10 @@ export function bindDhtSensors({ graph, environment, runtime, diagnostics, compo
     });
     const climateSource = climateSourceForSensor({ graph, climateSources, sensor });
     const dhtType = sensor.behavior?.model === 'DHT11' ? 11 : 22;
+
+    if (!componentHasRequiredRails({ graph, component: sensor, diagnostics })) {
+      continue;
+    }
 
     if (!Number.isInteger(pin)) {
       diagnostics.push(`${sensor.id}: DATA não está ligado a pino digital de microcontrolador.`);
@@ -369,6 +407,10 @@ export function bindServoMotors({ graph, runtime, diagnostics, components }) {
       terminalId: inputTerminal
     });
 
+    if (!componentHasRequiredRails({ graph, component: servo, diagnostics })) {
+      continue;
+    }
+
     if (!Number.isInteger(pin)) {
       diagnostics.push(`${servo.id}: SIG não está ligado a pino digital/PWM de microcontrolador.`);
       continue;
@@ -393,6 +435,10 @@ export function bindAnalogVoltageSources({ graph, environment, runtime, componen
       componentId: source.id,
       terminalId: outputTerminal
     });
+
+    if (!componentRailsAreValid(graph, source)) {
+      continue;
+    }
 
     if (!Number.isInteger(pin)) {
       continue;
@@ -419,6 +465,10 @@ export function bindI2cAdcConverters({ graph, environment, runtime, diagnostics,
     const sourcesByChannel = inputTerminals.map((terminalId) => {
       return analogSourceForTerminal(graph, { componentId: adc.id, terminalId });
     });
+
+    if (!componentHasRequiredRails({ graph, component: adc, diagnostics })) {
+      continue;
+    }
 
     if (!sourcesByChannel.some(Boolean)) {
       diagnostics.push(`${adc.id}: nenhum canal analógico conectado.`);
@@ -458,6 +508,10 @@ export function bindSpiAdcConverters({ graph, environment, runtime, diagnostics,
     const source = analogSourceForTerminal(graph, { componentId: adc.id, terminalId: inputTerminal });
     const chipSelectTerminal = adc.behavior?.chipSelectTerminal ?? 'cs';
     const chipSelectPin = resolveChipSelectPinConnectedToTerminal(graph, { componentId: adc.id, terminalId: chipSelectTerminal });
+
+    if (!componentHasRequiredRails({ graph, component: adc, diagnostics })) {
+      continue;
+    }
 
     if (!source) {
       diagnostics.push(`${adc.id}: canal CH0 sem fonte analógica.`);
@@ -502,6 +556,10 @@ function bindRainSensorAdapter({ graph, environment, runtime, diagnostics, compo
     const analogPin = resolveRuntimeAnalogPinConnectedToTerminal(graph, runtime, { componentId: sensor.id, terminalId: analogTerminal });
     const rainSource = rainSourceForSensor({ graph, rainSources, sensor });
 
+    if (!componentHasRequiredRails({ graph, component: sensor, diagnostics })) {
+      continue;
+    }
+
     if (!Number.isInteger(digitalPin) && !Number.isInteger(analogPin)) {
       diagnostics.push(`${sensor.id}: DO/AO não está ligado a pino digital ou analógico de microcontrolador.`);
       continue;
@@ -531,6 +589,10 @@ function bindWaterPumpSystems({ graph, runtime, environment, clock, diagnostics,
     const relay = relayForPump(graph, pump);
     const reservoir = reservoirForPump(graph, pump);
 
+    if (!componentHasRequiredRails({ graph, component: pump, diagnostics })) {
+      continue;
+    }
+
     if (!relay) {
       diagnostics.push(`${pump.id}: nenhum SSR conectado à bomba.`);
       continue;
@@ -547,6 +609,11 @@ function bindWaterPumpSystems({ graph, runtime, environment, clock, diagnostics,
     });
 
     if (!Number.isInteger(relayInputPin)) {
+      diagnostics.push(`${pump.id}: entrada do SSR não está ligada a GPIO digital.`);
+      continue;
+    }
+
+    if (!componentHasRequiredRails({ graph, component: relay, diagnostics })) {
       continue;
     }
 
@@ -600,6 +667,10 @@ function bindMomentaryButtons({ graph, runtime, diagnostics, components }) {
     const outputTerminal = button.behavior?.outputTerminal ?? 'out';
     const pin = resolveDigitalPinConnectedToTerminal(graph, { componentId: button.id, terminalId: outputTerminal });
 
+    if (!componentHasRequiredRails({ graph, component: button, diagnostics })) {
+      continue;
+    }
+
     if (!Number.isInteger(pin)) {
       diagnostics.push(`${button.id}: OUT não está ligado a um pino digital do Arduino.`);
       continue;
@@ -626,6 +697,10 @@ export function bindBuzzers({ graph, runtime, diagnostics, components }) {
       componentId: buzzer.id,
       terminalId: inputTerminal
     });
+
+    if (!componentHasRequiredRails({ graph, component: buzzer, diagnostics })) {
+      continue;
+    }
 
     if (!Number.isInteger(pin)) {
       diagnostics.push(`${buzzer.id}: SIG não está ligado a pino digital de microcontrolador.`);
@@ -751,7 +826,15 @@ function analogSourceForTerminal(graph, terminal) {
 }
 
 function analogVoltage(environment, sourceId, runtime = null) {
-  const value = normalizeEnvironmentValue('analog-voltage', environment.read(`${sourceId}.analog-voltage`));
+  let rawValue;
+
+  try {
+    rawValue = environment.read(`${sourceId}.analog-voltage`);
+  } catch {
+    return 0;
+  }
+
+  const value = normalizeEnvironmentValue('analog-voltage', rawValue);
 
   if (!value.enabled) {
     return 0;
@@ -848,7 +931,84 @@ function terminalNetHasKind(graph, terminal, kind) {
     return false;
   }
 
-  return net.terminals.some((item) => graph.terminalKind(item) === kind);
+  return net.terminals.some((item) => terminalMatchesKind(graph, item, kind));
+}
+
+function terminalMatchesKind(graph, terminal, kind) {
+  if (graph.terminalKind(terminal) === kind) {
+    return true;
+  }
+
+  const component = graph.components.get(terminal.componentId);
+  const definition = component?.terminals?.find((item) => item.id === terminal.terminalId);
+  const declaredKind = definition?.kind ?? definition?.type;
+
+  if (kind === 'power') {
+    return declaredKind === 'power' || declaredKind === 'power-output';
+  }
+
+  if (kind === 'ground') {
+    return declaredKind === 'ground';
+  }
+
+  return declaredKind === kind;
+}
+
+function componentHasRequiredRails({ graph, component, diagnostics }) {
+  const status = componentRailStatus(graph, component);
+
+  if (status.ok) {
+    return true;
+  }
+
+  diagnostics.push(`${component.id}: alimentação física inválida (${status.problems.join('; ')}).`);
+  return false;
+}
+
+function componentRailsAreValid(graph, component) {
+  return componentRailStatus(graph, component).ok;
+}
+
+function componentRailStatus(graph, component) {
+  const powerTerminals = componentPowerTerminals(component);
+  const groundTerminals = componentGroundTerminals(component);
+  const problems = [];
+
+  if (powerTerminals.length > 0 && !powerTerminals.some((terminalId) => terminalNetHasKind(graph, { componentId: component.id, terminalId }, 'power'))) {
+    problems.push(`${powerTerminals.join('/')} sem VCC`);
+  }
+
+  if (groundTerminals.length > 0 && !groundTerminals.some((terminalId) => terminalNetHasKind(graph, { componentId: component.id, terminalId }, 'ground'))) {
+    problems.push(`${groundTerminals.join('/')} sem GND`);
+  }
+
+  return {
+    ok: problems.length === 0,
+    problems
+  };
+}
+
+function componentPowerTerminals(component) {
+  return component.terminals
+    ?.filter((terminal) => terminal.type === 'power-input' || terminal.kind === 'power')
+    .map((terminal) => terminal.id)
+    .filter((terminalId) => !['vout', '3v3'].includes(terminalId)) ?? [];
+}
+
+function componentGroundTerminals(component) {
+  return component.terminals
+    ?.filter((terminal) => terminal.type === 'ground' || terminal.kind === 'ground')
+    .map((terminal) => terminal.id) ?? [];
+}
+
+function terminalHasDigitalSource(graph, component, terminalId) {
+  const net = graph.findTerminalNet(component.id, terminalId);
+
+  return Boolean(net?.terminals.some((terminal) => {
+    const source = graph.components.get(terminal.componentId);
+    const pin = source?.behavior?.pinMap?.[terminal.terminalId];
+    return source?.behavior?.type === 'microcontroller' && pin?.capabilities?.includes('digital');
+  }));
 }
 
 function hasCommonRail(graph, component, kind) {

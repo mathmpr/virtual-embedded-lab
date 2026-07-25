@@ -11,10 +11,19 @@ function bindAcMainsEnvironments({ environment, components }) {
   }
 }
 
-function bindAcVoltageSensors({ graph, environment, components }) {
+function bindAcVoltageSensors({ graph, environment, diagnostics, components }) {
   const mains = firstAcMains(graph);
 
   for (const sensor of components) {
+    if (!componentHasRequiredRails({ graph, component: sensor, diagnostics })) {
+      continue;
+    }
+
+    if (!mains || !isEnvironmentConnected(graph, mains, sensor)) {
+      diagnostics.push(`${sensor.id}: entrada ambiental AC não está ligada a AC Mains Environment.`);
+      continue;
+    }
+
     const phase = normalizedPhase(sensor.properties.phase);
     const mainsValue = mainsEnvironmentValue(mains);
     const phaseVoltageVrms = phaseVoltage(mainsValue, phase, Number(sensor.properties.inputVoltageVrms ?? 127));
@@ -39,12 +48,21 @@ function bindAcVoltageSensors({ graph, environment, components }) {
   }
 }
 
-function bindSctCurrentTransformers({ graph, environment, components }) {
+function bindSctCurrentTransformers({ graph, environment, diagnostics, components }) {
   const mains = firstAcMains(graph);
   const mainsValue = mainsEnvironmentValue(mains);
   const phaseMetrics = loadMetricsByPhase(graph, mainsValue);
 
   for (const sensor of components) {
+    if (!componentHasRequiredRails({ graph, component: sensor, diagnostics })) {
+      continue;
+    }
+
+    if (!mains || !isEnvironmentConnected(graph, mains, sensor)) {
+      diagnostics.push(`${sensor.id}: entrada ambiental AC não está ligada a AC Mains Environment.`);
+      continue;
+    }
+
     const phase = normalizedPhase(sensor.properties.phase);
     const metrics = phaseMetrics[phase] ?? emptyPhaseMetrics(phase);
     const outputVrms = metrics.irms * Number(sensor.properties.outputVoltageVrmsAtRatedCurrent ?? 1) / Math.max(0.001, Number(sensor.properties.ratedCurrentA ?? 100));
@@ -82,6 +100,64 @@ function ensureChannel(environment, id, value) {
 
 function firstAcMains(graph) {
   return graph.findComponentsByBehaviorType('ac-mains-environment')[0] ?? null;
+}
+
+function isEnvironmentConnected(graph, source, sensor) {
+  return graph.areConnected(
+    { componentId: source.id, terminalId: source.behavior?.outputTerminal ?? source.behavior?.channel ?? 'ac-mains' },
+    { componentId: sensor.id, terminalId: sensor.behavior?.environmentTerminal ?? 'env' }
+  );
+}
+
+function componentHasRequiredRails({ graph, component, diagnostics }) {
+  const powerTerminals = component.terminals
+    ?.filter((terminal) => terminal.type === 'power-input' || terminal.kind === 'power')
+    .map((terminal) => terminal.id)
+    .filter((terminalId) => !['vout', '3v3'].includes(terminalId)) ?? [];
+  const groundTerminals = component.terminals
+    ?.filter((terminal) => terminal.type === 'ground' || terminal.kind === 'ground')
+    .map((terminal) => terminal.id) ?? [];
+  const problems = [];
+
+  if (powerTerminals.length > 0 && !powerTerminals.some((terminalId) => terminalNetHasKind(graph, component.id, terminalId, 'power'))) {
+    problems.push(`${powerTerminals.join('/')} sem VCC`);
+  }
+
+  if (groundTerminals.length > 0 && !groundTerminals.some((terminalId) => terminalNetHasKind(graph, component.id, terminalId, 'ground'))) {
+    problems.push(`${groundTerminals.join('/')} sem GND`);
+  }
+
+  if (problems.length > 0) {
+    diagnostics.push(`${component.id}: alimentação física inválida (${problems.join('; ')}).`);
+    return false;
+  }
+
+  return true;
+}
+
+function terminalNetHasKind(graph, componentId, terminalId, kind) {
+  const net = graph.findTerminalNet(componentId, terminalId);
+  return Boolean(net?.terminals.some((terminal) => terminalMatchesKind(graph, terminal, kind)));
+}
+
+function terminalMatchesKind(graph, terminal, kind) {
+  if (graph.terminalKind(terminal) === kind) {
+    return true;
+  }
+
+  const component = graph.components.get(terminal.componentId);
+  const definition = component?.terminals?.find((item) => item.id === terminal.terminalId);
+  const declaredKind = definition?.kind ?? definition?.type;
+
+  if (kind === 'power') {
+    return declaredKind === 'power' || declaredKind === 'power-output';
+  }
+
+  if (kind === 'ground') {
+    return declaredKind === 'ground';
+  }
+
+  return declaredKind === kind;
 }
 
 function mainsEnvironmentValue(mains) {

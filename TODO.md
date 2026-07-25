@@ -165,6 +165,101 @@ npm test
 - [ ] Não há snap-to-grid.
 - [ ] Não há Electron integrado.
 
+### Auditoria futura - componentes devem respeitar conexões físicas
+
+Objetivo: revisar componente por componente para garantir que comportamento de firmware, visual e ambiente só aconteça quando as conexões físicas mínimas do circuito existirem. A primeira correção foi iniciada pelo HUB75 do exemplo Snake: o framebuffer só deve aceitar escrita se alimentação, GND e sinais HUB75 estiverem conectados corretamente.
+
+Regra global de simulação física:
+
+- Nenhum componente ativo, sensor, display, módulo ou atuador pode funcionar flutuando.
+- Todo componente que depende de alimentação deve validar VCC/alimentação e GND antes de produzir leitura, escrita, estado visual ou efeito ambiental.
+- Todo componente que depende do microcontrolador deve validar ligação lógica real entre seu terminal de sinal e um GPIO/barramento compatível.
+- Conexões por barramento devem ser completas: I2C exige SDA/SCL, SPI exige SCK/MISO/MOSI/CS quando aplicável, UART exige TX/RX conforme o sentido usado, e displays paralelos devem exigir todos os sinais mínimos.
+- Se a alimentação ou os sinais estiverem ausentes, o componente deve ficar inativo/sem efeito, limpar ou preservar estado seguro quando necessário, e reportar diagnóstico claro no painel de problemas.
+- Estados salvos no JSON, como framebuffer, nível de sensor ou status visual, não podem mascarar circuito inválido. Na simulação, a topologia física atual deve prevalecer sobre propriedades visuais persistidas.
+
+Legenda:
+
+- `FW`: firmware consegue interagir.
+- `EL`: há modelo/diagnóstico elétrico.
+- `ENV`: depende de ambiente/slider/fonte virtual.
+- `VIS`: estado visual muda.
+- `Parcial`: não é simulação física completa.
+
+| Componente | Hoje simula | Principal lacuna para revisão |
+|---|---:|---|
+| Arduino UNO | FW/EL/VIS | Não valida memória, travamentos, watchdog real ou limites internos completos da MCU. |
+| Arduino Nano | FW/EL/VIS | Mesmas limitações do Arduino UNO. |
+| ESP32 DevKitC V4 | FW/EL/ENV/VIS | Wi-Fi e detalhes reais da placa ainda são abstrações. |
+| ESP32-C3 DevKit | FW/EL/ENV/VIS | Pinout genérico; USB/RGB/boot straps simplificados. |
+| ESP32-S3 DevKit | FW/EL/ENV/VIS | Pinout genérico; USB, RGB interno e detalhes reais da placa simplificados. |
+| ESP8266 NodeMCU | FW/EL/ENV/VIS | Wi-Fi e detalhes reais da placa abstraídos. |
+| BBC micro:bit V2 | FW/EL/VIS | Matriz LED exposta por pinos virtuais; hardware real usa multiplexação. |
+| Resistor | EL | Modelo estático; sem tolerância térmica/aquecimento avançado. |
+| Capacitor | EL parcial | Sem solver transiente real. |
+| LEDs vermelho/verde/azul/amarelo | EL/VIS | Bom para série simples; sem curva I/V real. |
+| LED RGB common cathode | EL/VIS | Mistura cor/PWM simplificada; revisar exigência de resistores/canais completos. |
+| Buzzer | FW/EL/VIS | Som e consumo simplificados; precisa bloquear quando SIG/VCC/GND faltarem. |
+| Servo Motor | FW/EL/VIS | Ângulo por PWM virtual; falta torque, carga mecânica e validação física completa. |
+| Water Pump | EL/ENV/VIS | Fluxo simplificado; depende de regras de sistema e alimentação/carga completas. |
+| 5V DC Power Supply | EL | Fonte ideal/simplificada. |
+| Potentiometer 10k | FW/EL/ENV/VIS | Tratado como fonte analógica ajustável; revisar topologia real de divisor. |
+| Trimpot 10k | FW/EL/ENV/VIS | Idem potenciômetro. |
+| Fonte analógica | EL/ENV | Fonte ideal; útil para testes, não componente físico real. |
+| LM35 | FW/EL/ENV/VIS | Temperatura vira tensão ideal 10 mV/°C; revisar alimentação e saída. |
+| Capacitive Soil Moisture | FW/EL/ENV/VIS | Umidade vira tensão ideal; revisar alimentação e AO. |
+| LDR | FW/EL/ENV/VIS | Divisor/ambiente simplificados; revisar resistor de divisor e alimentação. |
+| Pull-up Button | FW/EL/VIS | Botão lógico; bouncing real não simulado. |
+| Slide Switch | FW/EL/VIS | Usa comportamento de botão/switch simplificado. |
+| TTP223 Touch | FW/EL/VIS | Toque lógico; capacitância real não simulada. |
+| PIR HC-SR501 | FW/EL/VIS | Movimento controlado diretamente; revisar VCC/GND/OUT antes de acionar firmware. |
+| A3144 Hall | FW/EL/VIS | Campo magnético real não simulado; revisar alimentação/pull-up. |
+| Reed Switch | FW/EL/VIS | Magnetismo físico e bouncing não simulados. |
+| Tilt Switch | FW/EL/VIS | Inclinação lógica; bouncing não simulado. |
+| SW-420 Vibration | FW/EL/VIS | Vibração lógica; ruído real não simulado. |
+| IR Obstacle Sensor | FW/EL/VIS | Obstáculo lógico; óptica real não simulada. |
+| FC-37 Rain Sensor | FW/ENV/VIS | Sem modelo elétrico completo; revisar VCC/GND/DO/AO. |
+| HC-SR04 | FW/ENV | Precisa exigir alimentação e TRIG/ECHO físicos antes de gerar pulso. |
+| BMP280 | FW/EL/ENV/VIS | I2C + clima virtual; revisar alimentação e barramento físico. |
+| DHT11 | FW/EL/ENV/VIS | Protocolo/ambiente virtual; timing e pull-up real simplificados. |
+| DHT22 | FW/EL/ENV/VIS | Idem DHT11. |
+| ADS1015 | FW/EL/ENV/VIS | I2C e canais simulados; ADC idealizado; revisar alimentação e entradas. |
+| ADS1115 | FW/EL/ENV/VIS | Idem ADS1015. |
+| MCP3008 | FW/EL/ENV/VIS | SPI/canais simulados; ADC idealizado; revisar alimentação e barramento. |
+| LCD 16x2 I2C | FW/EL/VIS | Display lógico; revisar alimentação e SDA/SCL antes de aceitar escrita. |
+| 7-Segment LED Display | FW/EL/VIS | Segmentos lógicos; corrente/multiplexação simplificados. |
+| HUB75 64x32 | FW/EL/VIS | Já iniciou validação de alimentação e sinais mínimos; ainda usa API framebuffer, não multiplexação real. |
+| 74HC595 | FW/EL/VIS | Shift/latch lógico; revisar alimentação, OE/MR e conexões de saída. |
+| 74AHCT245 | EL parcial | Placeholder elétrico; precisa atuar como propagador real de sinais, não só validação auxiliar. |
+| PC817 | EL/VIS | Regras educativas; CTR, saturação e transientes reais não simulados. |
+| ULN2003A | EL/VIS | Regras de driver; sem indutância/flyback real completo. |
+| ULN2803A | EL/VIS | Idem ULN2003A. |
+| Relé eletromecânico 1/2/4/8 canais | EL/VIS | Contatos/corrente validados parcialmente; bobina, tempo e transiente simplificados. |
+| SSR 1 canal | FW/EL/VIS | Revisar bloqueio de carga/saída por conexão física completa. |
+| SSR 2/3/4 canais | EL/VIS | Regras elétricas, mas sem behavior de firmware dedicado. |
+| Power MOSFET Module | EL/VIS | Chaveamento low-side simplificado; revisar propagação para carga real. |
+| MOSFETs 2N7000/AO3400/FQP30N06L/IRF520/IRLZ44N | EL/VIS | Valida Vgs/carga, mas sem curva real, dissipação térmica ou dinâmica. |
+| BJTs NPN 2N2222/2N3904/BC337/BC547/BC548/BD139/TIP41C | EL/VIS | Valida base/carga/saturação aproximada; revisar efeitos sobre carga. |
+| BJTs PNP 2N3906/BC327/BD140/TIP42C/TIP125/TIP127 | EL/VIS | High-side simplificado; revisar condução/carga de forma consistente. |
+| TIP120/TIP122 Darlington | EL/VIS | Tratado na família BJT; queda VCE(sat) e corrente simplificadas. |
+| AC Mains Environment | ENV/VIS | Fonte ambiente AC, não rede elétrica real. |
+| AC Load | ENV/VIS | Carga ambiente para medidores, não carga elétrica completa. |
+| ZMPT101B | FW/ENV/VIS | Leitura AC virtual; sem modelo elétrico completo. |
+| SCT Current Transformer | FW/ENV/VIS | Corrente virtual; sem burden resistor/transformador real completo. |
+| Wi-Fi Signal | FW/ENV/VIS | Rede virtual; sem RF/interferência real. |
+| Rain Environment | ENV | Controle virtual de chuva. |
+| Light Environment | ENV | Controle virtual de luminosidade. |
+| Climate Environment | ENV | Controle virtual de temperatura/umidade/pressão. |
+| Distance Environment | ENV | Controle virtual de distância. |
+| Water Reservoir | ENV/VIS | Volume/overflow simplificado. |
+
+Prioridade sugerida para endurecer conexões físicas:
+
+1. Displays e barramentos: HUB75, LCD I2C, ADS1015/ADS1115, MCP3008, 74HC595.
+2. Sensores de leitura direta: HC-SR04, FC-37, DHT11/DHT22, BMP280, LDR, LM35, solo capacitivo.
+3. Atuadores: buzzer, servo, bomba, relés, SSRs, MOSFET module.
+4. Semicondutores discretos: MOSFETs, BJTs, PC817, ULN2003A/ULN2803A.
+
 ## Prioridades
 
 ### Prioridade 1 - Conectar UI ao modelo de projeto
