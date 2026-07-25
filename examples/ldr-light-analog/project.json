@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "LDR Light Analog",
+  "description": "Lê um divisor resistivo com LDR no Arduino UNO e acompanha a variação da luz ambiente virtual.",
+  "descriptionI18n": {
+    "pt-BR": "Lê um divisor resistivo com LDR no Arduino UNO e acompanha a variação da luz ambiente virtual.",
+    "en": "Reads an LDR voltage divider on an Arduino UNO and tracks changes in virtual ambient light.",
+    "es": "Lee un divisor resistivo con LDR en un Arduino UNO y acompaña la variación de luz ambiente virtual."
+  },
   "board": {
     "width": 1600,
     "height": 900,

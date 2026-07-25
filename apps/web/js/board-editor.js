@@ -1,4 +1,4 @@
-import { componentDefinitions, componentPalette, loadOfficialComponents, relocalizeComponentCatalog } from './components.js';
+import { componentDefinitions, componentPalette, loadOfficialComponents, relocalizeComponentCatalog, typeByComponentId } from './components.js';
 import { createBuzzerAudioController } from './audio/buzzer-audio.js';
 import { createCodeEditor } from './code-editor.js';
 import { loadExampleList, loadExampleProject } from './examples.js';
@@ -12,7 +12,7 @@ import {
 } from './nets.js';
 import { createBottomPanelResizer } from './panel-resizer.js';
 import { createVisualSimulation } from './visual-simulation.js';
-import { applyDocumentTranslations, bindLanguageSelector, t } from './i18n.js';
+import { applyDocumentTranslations, bindLanguageSelector, getLocale, t } from './i18n.js';
 import { createComponentBinder } from './board/component-binder.js';
 import { createComponentState } from './board/component-state.js';
 import { renderComponentTemplate } from './board/component-template.js';
@@ -42,6 +42,7 @@ export function createBoardEditor(document) {
   const signalMonitor = document.querySelector('#signalMonitor');
   const serialMonitor = document.querySelector('#serialMonitor');
   const problemList = document.querySelector('#problemList');
+  const currentProjectTitle = document.querySelector('#currentProjectTitle');
   const toggleAudioButton = document.querySelector('#toggleAudio');
   const lockBoardButton = document.querySelector('#lockBoard');
 
@@ -129,6 +130,7 @@ export function createBoardEditor(document) {
     loadProjectFromLocalStorage,
     exportProjectFile,
     importProjectFile,
+    createNewProject,
     restoreProject,
     currentProject
   } = createProjectActions({
@@ -148,6 +150,7 @@ export function createBoardEditor(document) {
     selectComponent,
     simulation,
     syncRestoredComponentControls,
+    syncProjectTitle,
     saveActiveFirmware,
     syncFirmwareEditor
   });
@@ -180,6 +183,7 @@ export function createBoardEditor(document) {
     bindBoardDrop();
     bindResizer();
     await loadDefaultExample();
+    showSimulationNoticeIfNeeded();
     syncFirmwareEditor({ loadActive: true });
     recordHistory();
     window.addEventListener('resize', () => {
@@ -204,6 +208,44 @@ export function createBoardEditor(document) {
     wireLayer.setAttribute('width', String(boardWorld.width));
     wireLayer.setAttribute('height', String(boardWorld.height));
     applyViewportTransform();
+  }
+
+  function showSimulationNoticeIfNeeded() {
+    const cookieName = 'virtualEmbeddedLabSimulationNoticeAccepted';
+
+    if (hasCookie(cookieName)) {
+      return;
+    }
+
+    const dialog = document.querySelector('#simulationNoticeDialog');
+    const acknowledgeButton = document.querySelector('#ackSimulationNotice');
+
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+    });
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) {
+        event.preventDefault();
+      }
+    });
+    acknowledgeButton.addEventListener('click', () => {
+      writeCookie(cookieName, '1', 365);
+      dialog.close();
+    }, { once: true });
+    dialog.showModal();
+  }
+
+  function hasCookie(name) {
+    return document.cookie
+      .split(';')
+      .map((cookie) => cookie.trim())
+      .some((cookie) => cookie.startsWith(`${encodeURIComponent(name)}=`));
+  }
+
+  function writeCookie(name, value, maxAgeDays) {
+    const maxAgeSeconds = Math.max(1, Math.round(Number(maxAgeDays) * 24 * 60 * 60));
+
+    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
   }
 
   function bindPalette() {
@@ -320,6 +362,7 @@ export function createBoardEditor(document) {
       buzzerAudio.sync(state.components.values());
     });
     document.querySelector('#clearBoard').addEventListener('click', clearBoard);
+    document.querySelector('#openNewProject').addEventListener('click', openNewProjectDialog);
     document.querySelector('#openExamples').addEventListener('click', openExamplesDialog);
     document.querySelector('#undoBoard').addEventListener('click', undoBoard);
     lockBoardButton.addEventListener('click', () => setBoardLocked(!state.boardLocked));
@@ -332,6 +375,12 @@ export function createBoardEditor(document) {
     });
     document.querySelector('#projectFileInput').addEventListener('change', importProjectFile);
     syncBoardLockButton();
+    syncProjectTitle();
+  }
+
+  function syncProjectTitle() {
+    currentProjectTitle.textContent = state.project?.name ? `— ${state.project.name}` : '';
+    currentProjectTitle.title = state.project?.description ?? '';
   }
 
   function syncAudioButton(enabled = buzzerAudio.enabled) {
@@ -356,32 +405,211 @@ export function createBoardEditor(document) {
   async function openExamplesDialog() {
     const dialog = document.querySelector('#examplesDialog');
     const examplesList = document.querySelector('#examplesList');
+    const search = document.querySelector('#exampleSearch');
+    let examples = [];
 
+    search.value = '';
+    search.hidden = false;
     examplesList.innerHTML = `<p class="muted">${t('Loading examples...')}</p>`;
     dialog.showModal();
 
     try {
-      const examples = await loadExampleList();
+      examples = await loadExampleList();
+      renderExampleGrid(examples, examplesList, search);
 
-      examplesList.innerHTML = examples.length === 0
-        ? `<p class="muted">${t('No examples found.')}</p>`
-        : examples.map((example) => `
-          <button class="example-card" value="${example.id}" data-example-id="${example.id}">
-            <strong>${example.name}</strong>
-            <span>${example.componentCount} componente(s)</span>
-          </button>
-        `).join('');
-
-      examplesList.querySelectorAll('[data-example-id]').forEach((button) => {
-        button.addEventListener('click', async (event) => {
-          event.preventDefault();
-          await loadExampleById(button.dataset.exampleId);
-          dialog.close();
-        });
-      });
+      search.oninput = () => renderExampleGrid(examples, examplesList, search);
     } catch (error) {
       examplesList.innerHTML = `<p class="muted">${t('Failed to load examples')}: ${escapeHtml(error.message)}</p>`;
     }
+  }
+
+  function renderExampleGrid(examples, examplesList, search) {
+    const query = search.value.trim().toLowerCase();
+    const filtered = query
+      ? examples.filter((example) => example.name.toLowerCase().includes(query))
+      : examples;
+
+    examplesList.innerHTML = filtered.length === 0
+      ? `<p class="muted">${t('No examples found.')}</p>`
+      : [...examplesByBoard(filtered).entries()].map(([boardName, groupExamples]) => `
+        <section class="example-board-group">
+          <div class="example-board-title">${escapeHtml(t(boardName))}</div>
+          <div class="example-grid">
+            ${groupExamples.map((example) => `
+              <button class="example-card" value="${escapeHtml(example.id)}" data-example-id="${escapeHtml(example.id)}">
+                <strong>${escapeHtml(example.name)}</strong>
+                <span>${example.componentCount} ${t('components')}</span>
+              </button>
+            `).join('')}
+          </div>
+        </section>
+      `).join('');
+
+    examplesList.querySelectorAll('[data-example-id]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        const example = examples.find((item) => item.id === button.dataset.exampleId);
+
+        if (example) {
+          openExampleDetail(example, examples, examplesList, search);
+        }
+      });
+    });
+  }
+
+  async function openExampleDetail(example, examples, examplesList, search) {
+    search.hidden = true;
+    examplesList.innerHTML = `<p class="muted">${t('Loading example...')}</p>`;
+
+    try {
+      renderExampleDetail(await exampleWithDetails(example), examples, examplesList, search);
+    } catch (error) {
+      examplesList.innerHTML = `<p class="muted">${t('Failed to load example')}: ${escapeHtml(error.message)}</p>`;
+    }
+  }
+
+  function renderExampleDetail(example, examples, examplesList, search) {
+    search.hidden = true;
+    examplesList.innerHTML = `
+      <section class="example-detail">
+        <div>
+          <h3>${escapeHtml(example.name)}</h3>
+          <p>${escapeHtml(localizedExampleDescription(example))}</p>
+        </div>
+        <div>
+          <div class="example-board-title">${t('Boards')}</div>
+          <p>${escapeHtml((example.boardNames ?? []).join(', ') || t('No board'))}</p>
+        </div>
+        <div>
+          <div class="example-board-title">${t('Components used')}</div>
+          <ul class="example-component-list">
+            ${(example.components ?? []).map((component) => `<li>${escapeHtml(component)}</li>`).join('')}
+          </ul>
+        </div>
+        <div class="example-detail-actions">
+          <button type="button" data-example-back>${t('Back')}</button>
+          <button type="button" class="primary" data-example-load>${t('Load')}</button>
+        </div>
+      </section>
+    `;
+
+    examplesList.querySelector('[data-example-back]').addEventListener('click', () => {
+      search.hidden = false;
+      renderExampleGrid(examples, examplesList, search);
+    });
+    examplesList.querySelector('[data-example-load]').addEventListener('click', async () => {
+      await loadExampleById(example.id);
+      document.querySelector('#examplesDialog').close();
+    });
+  }
+
+  async function exampleWithDetails(example) {
+    const hasDetails = (example.components ?? []).length > 0 && (example.boardNames ?? []).length > 0;
+
+    if (hasDetails) {
+      return example;
+    }
+
+    const project = await loadExampleProject(example.id);
+    const components = componentNamesFromProject(project);
+    const boardNames = boardNamesFromProject(project);
+
+    return {
+      ...example,
+      description: example.description || project.description || '',
+      descriptionI18n: example.descriptionI18n || project.descriptionI18n || null,
+      boardNames,
+      boardGroup: example.boardGroup || boardGroupName(boardNames),
+      componentCount: project.components?.length ?? example.componentCount ?? 0,
+      components
+    };
+  }
+
+  function localizedExampleDescription(example) {
+    return example.descriptionI18n?.[getLocale()]
+      ?? example.descriptionI18n?.en
+      ?? example.description
+      ?? t('No description provided.');
+  }
+
+  function componentNamesFromProject(project) {
+    const names = (project.components ?? []).map((component) => componentName(component.componentId));
+
+    return [...new Set(names)].sort((left, right) => left.localeCompare(right));
+  }
+
+  function boardNamesFromProject(project) {
+    const names = (project.components ?? [])
+      .filter((component) => component.componentId?.startsWith('board.'))
+      .map((component) => componentName(component.componentId));
+
+    return [...new Set(names)].sort((left, right) => left.localeCompare(right));
+  }
+
+  function componentName(componentId) {
+    const type = typeByComponentId[componentId];
+
+    return componentDefinitions[type]?.identity?.name
+      ?? componentDefinitions[type]?.title
+      ?? componentId;
+  }
+
+  function boardGroupName(boardNames) {
+    if (boardNames.length === 0) {
+      return 'No board';
+    }
+
+    if (boardNames.length > 1) {
+      return 'Multiple boards';
+    }
+
+    return boardNames[0];
+  }
+
+  function examplesByBoard(examples) {
+    const groups = new Map();
+
+    for (const example of examples) {
+      const boardName = example.boardGroup || 'No board';
+      const group = groups.get(boardName) ?? [];
+
+      group.push(example);
+      groups.set(boardName, group);
+    }
+
+    return new Map([...groups.entries()].sort(([left], [right]) => t(left).localeCompare(t(right))));
+  }
+
+  function openNewProjectDialog() {
+    const dialog = document.querySelector('#newProjectDialog');
+    const form = document.querySelector('#newProjectForm');
+    const nameInput = document.querySelector('#newProjectName');
+    const descriptionInput = document.querySelector('#newProjectDescription');
+
+    form.reset();
+    nameInput.value = t('Untitled project');
+    dialog.showModal();
+    nameInput.focus();
+    nameInput.select();
+
+    dialog.querySelectorAll('[data-new-project-cancel]').forEach((button) => {
+      button.onclick = () => dialog.close();
+    });
+
+    form.onsubmit = (event) => {
+      event.preventDefault();
+
+      if (event.submitter && !event.submitter.matches('[data-new-project-create]')) {
+        dialog.close();
+        return;
+      }
+
+      const name = nameInput.value.trim() || t('Untitled project');
+      const description = descriptionInput.value.trim();
+
+      createNewProject({ name, description });
+      dialog.close();
+    };
   }
 
   function bindBottomTabs() {
@@ -550,6 +778,12 @@ export function createBoardEditor(document) {
       deleteButton.append(deleteCircle, deleteText);
       deleteButton.addEventListener('click', (event) => {
         event.stopPropagation();
+
+        if (state.boardLocked) {
+          selectNet(group.dataset.netId);
+          return;
+        }
+
         deleteWire(wire.id);
       });
 
@@ -607,7 +841,7 @@ export function createBoardEditor(document) {
 
   async function loadDefaultExample() {
     try {
-      await loadExampleById('hc-sr04-led-distance', false);
+      await loadExampleById('esp32-s3-snake-hub75', false);
     } catch (error) {
       codeEditor.value = '';
       renderProblems([`${t('Failed to load default example')}: ${error.message}`]);

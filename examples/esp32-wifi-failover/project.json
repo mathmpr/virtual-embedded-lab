@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "ESP32 Wi-Fi Failover",
+  "description": "Simula seleção automática de rede Wi-Fi no ESP32 entre múltiplos pontos de acesso com diferentes níveis de sinal e internet.",
+  "descriptionI18n": {
+    "pt-BR": "Simula seleção automática de rede Wi-Fi no ESP32 entre múltiplos pontos de acesso com diferentes níveis de sinal e internet.",
+    "en": "Simulates automatic Wi-Fi network selection on ESP32 across multiple access points with different signal levels and internet availability.",
+    "es": "Simula selección automática de red Wi-Fi en ESP32 entre múltiples puntos de acceso con distintos niveles de señal e internet."
+  },
   "board": {
     "width": 1600,
     "height": 900,

@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Arduino Serial LED",
+  "description": "Controla um LED no Arduino UNO por comandos recebidos no monitor serial virtual.",
+  "descriptionI18n": {
+    "pt-BR": "Controla um LED no Arduino UNO por comandos recebidos no monitor serial virtual.",
+    "en": "Controls an LED on an Arduino UNO using commands received from the virtual serial monitor.",
+    "es": "Controla un LED en un Arduino UNO mediante comandos recibidos en el monitor serial virtual."
+  },
   "board": {
     "width": 1600,
     "height": 900,

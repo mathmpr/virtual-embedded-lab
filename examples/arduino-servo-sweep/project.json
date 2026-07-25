@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Arduino Servo Sweep",
+  "description": "Executa o movimento de varredura de um servo motor controlado por PWM pelo Arduino UNO.",
+  "descriptionI18n": {
+    "pt-BR": "Executa o movimento de varredura de um servo motor controlado por PWM pelo Arduino UNO.",
+    "en": "Runs a sweep movement on a servo motor controlled by Arduino UNO PWM.",
+    "es": "Ejecuta un movimiento de barrido en un servomotor controlado por PWM desde un Arduino UNO."
+  },
   "board": {
     "width": 1500,
     "height": 860,

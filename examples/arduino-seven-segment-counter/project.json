@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Arduino 7-Segment Counter",
+  "description": "Controla diretamente um display de 7 segmentos com o Arduino UNO para exibir uma contagem.",
+  "descriptionI18n": {
+    "pt-BR": "Controla diretamente um display de 7 segmentos com o Arduino UNO para exibir uma contagem.",
+    "en": "Directly drives a 7-segment display with an Arduino UNO to show a count.",
+    "es": "Controla directamente un display de 7 segmentos con un Arduino UNO para mostrar una cuenta."
+  },
   "board": {
     "width": 1700,
     "height": 960,

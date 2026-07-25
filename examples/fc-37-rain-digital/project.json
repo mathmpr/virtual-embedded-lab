@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "FC-37 Rain Digital",
+  "description": "Lê o estado digital de um sensor de chuva FC-37 no Arduino UNO a partir de uma fonte virtual de chuva.",
+  "descriptionI18n": {
+    "pt-BR": "Lê o estado digital de um sensor de chuva FC-37 no Arduino UNO a partir de uma fonte virtual de chuva.",
+    "en": "Reads the digital state of an FC-37 rain sensor on an Arduino UNO from a virtual rain source.",
+    "es": "Lee el estado digital de un sensor de lluvia FC-37 en un Arduino UNO desde una fuente virtual de lluvia."
+  },
   "board": {
     "width": 1600,
     "height": 900,

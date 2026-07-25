@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Arduino Maker Analog Inputs",
+  "description": "Compara leituras analógicas de potenciômetro, LM35 e sensor capacitivo de umidade do solo no Arduino UNO.",
+  "descriptionI18n": {
+    "pt-BR": "Compara leituras analógicas de potenciômetro, LM35 e sensor capacitivo de umidade do solo no Arduino UNO.",
+    "en": "Compares analog readings from a potentiometer, LM35 and capacitive soil moisture sensor on an Arduino UNO.",
+    "es": "Compara lecturas analógicas de potenciómetro, LM35 y sensor capacitivo de humedad del suelo en un Arduino UNO."
+  },
   "board": {
     "width": 1280,
     "height": 760,

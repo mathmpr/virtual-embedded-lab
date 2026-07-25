@@ -4,7 +4,7 @@ import { createComponentBinder } from '../../apps/web/js/board/component-binder.
 import { createComponentState } from '../../apps/web/js/board/component-state.js';
 import { createInspectorPanel } from '../../apps/web/js/board/inspector-panel.js';
 import { componentDefinitionFromManifest, installComponentCatalog } from '../../apps/web/js/components.js';
-import { projectToSnapshot } from '../../apps/web/js/project-serializer.js';
+import { boardToProject, projectToSnapshot } from '../../apps/web/js/project-serializer.js';
 
 test('inline controls update component properties through data-property generically', () => {
   const definition = fakeDefinition();
@@ -38,6 +38,56 @@ test('inline controls update component properties through data-property generica
     ['levelPercent', 80, false],
     ['levelPercent', 90, true]
   ]);
+});
+
+test('locked board still allows component selection without dragging', () => {
+  const definition = fakeDefinition();
+  const component = fakeComponent(definition);
+  const element = fakeElement();
+  const calls = [];
+  const binder = createComponentBinder({
+    state: {
+      boardLocked: true,
+      viewport: { scale: 1, isSpacePanning: false }
+    },
+    componentState: {},
+    selectComponent(componentId) {
+      calls.push(['select', componentId]);
+    },
+    drawWires() {
+      calls.push(['draw']);
+    },
+    renderInspector() {
+      calls.push(['inspector']);
+    },
+    recordHistory() {
+      calls.push(['history']);
+    },
+    handleTerminalClick() {
+      calls.push(['terminal']);
+    },
+    deleteComponent() {
+      calls.push(['delete']);
+    }
+  });
+
+  binder.bindComponent(element, component);
+  element.dispatch('pointerdown', {
+    clientX: 10,
+    clientY: 10,
+    pointerId: 1,
+    target: {
+      closest() {
+        return null;
+      }
+    }
+  });
+  element.dispatch('pointermove', { clientX: 50, clientY: 50 });
+  element.dispatch('pointerup', {});
+
+  assert.deepEqual(calls, [['select', 'simple-1']]);
+  assert.equal(component.x, 0);
+  assert.equal(component.y, 0);
 });
 
 test('inspector controls update component properties through propertySchema generically', () => {
@@ -136,6 +186,35 @@ test('projectToSnapshot fills missing component properties from manifest default
   });
 });
 
+test('boardToProject preserves editable project name and description', () => {
+  const project = boardToProject({
+    state: {
+      project: {
+        name: 'Meu robô',
+        description: 'Protótipo para aula maker'
+      },
+      components: new Map(),
+      wires: [],
+      firmwares: new Map(),
+      network: {}
+    },
+    board: {
+      clientWidth: 800,
+      clientHeight: 600
+    },
+    codeEditor: {
+      value: ''
+    },
+    nets: [],
+    terminalKind() {
+      return 'signal';
+    }
+  });
+
+  assert.equal(project.name, 'Meu robô');
+  assert.equal(project.description, 'Protótipo para aula maker');
+});
+
 function fakeDefinition() {
   return componentDefinitionFromManifest(fakeManifest());
 }
@@ -178,10 +257,26 @@ function fakeComponent(definition) {
 }
 
 function fakeElement(inputs = []) {
+  const listeners = new Map();
+
   return {
     style: {},
     classList: { toggle() {} },
-    addEventListener() {},
+    addEventListener(eventName, callback) {
+      listeners.set(eventName, callback);
+    },
+    dispatch(eventName, event = {}) {
+      listeners.get(eventName)?.({
+        preventDefault() {},
+        stopPropagation() {},
+        target: {
+          closest() {
+            return null;
+          }
+        },
+        ...event
+      });
+    },
     setPointerCapture() {},
     querySelector(selector) {
       if (selector === '[data-delete-component]') {

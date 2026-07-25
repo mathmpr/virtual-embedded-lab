@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "ESP32 Counter Blink",
+  "description": "Exemplo mínimo em ESP32 que mantém estado entre ciclos e alterna o LED interno com base em um contador.",
+  "descriptionI18n": {
+    "pt-BR": "Exemplo mínimo em ESP32 que mantém estado entre ciclos e alterna o LED interno com base em um contador.",
+    "en": "Minimal ESP32 example that keeps state between cycles and toggles the built-in LED from a counter.",
+    "es": "Ejemplo mínimo en ESP32 que conserva estado entre ciclos y alterna el LED integrado mediante un contador."
+  },
   "board": {
     "width": 1600,
     "height": 900,

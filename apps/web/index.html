@@ -39,6 +39,7 @@
           </div>
         </div>
         <nav class="menu">
+          <button id="openNewProject" data-i18n="New Project">Novo projeto</button>
           <button id="openExamples" data-i18n="Examples">Exemplos</button>
           <label class="language-picker">
             <span data-i18n="Language">Idioma</span>
@@ -67,7 +68,10 @@
 
         <section class="board-panel">
           <div class="board-toolbar">
-            <span data-i18n="Board visual">Placa visual</span>
+            <div class="board-title">
+              <span data-i18n="Board visual">Placa visual</span>
+              <span id="currentProjectTitle" class="current-project-title"></span>
+            </div>
             <div>
               <button id="lockBoard" type="button" aria-pressed="false" data-i18n="Lock">Travar</button>
               <button id="undoBoard" disabled data-i18n="Undo">Desfazer</button>
@@ -171,12 +175,57 @@
               <strong data-i18n="Examples">Exemplos</strong>
               <span data-i18n="Load a complete project with board and code.">Carregue um projeto completo com board e código.</span>
             </div>
-            <button value="cancel" data-i18n-aria-label="Close" aria-label="Fechar">×</button>
+            <div class="modal-header-actions">
+              <input id="exampleSearch" class="example-search" type="text" data-i18n-placeholder="Search examples" placeholder="Buscar exemplos">
+              <button value="cancel" data-i18n-aria-label="Close" aria-label="Fechar">×</button>
+            </div>
           </div>
           <div id="examplesList" class="examples-list">
             <p class="muted" data-i18n="Loading examples...">Carregando exemplos...</p>
           </div>
         </form>
+      </dialog>
+
+      <dialog id="newProjectDialog" class="examples-dialog">
+        <form id="newProjectForm" class="examples-modal">
+          <div class="modal-header">
+            <div>
+              <strong data-i18n="New Project">Novo projeto</strong>
+              <span data-i18n="Create an empty board with project metadata.">Crie um board vazio com nome e descrição.</span>
+            </div>
+            <button type="button" data-new-project-cancel data-i18n-aria-label="Close" aria-label="Fechar">×</button>
+          </div>
+          <label class="modal-field">
+            <span data-i18n="Project name">Nome do projeto</span>
+            <input id="newProjectName" type="text" required maxlength="80" autocomplete="off">
+          </label>
+          <label class="modal-field">
+            <span data-i18n="Description">Descrição</span>
+            <textarea id="newProjectDescription" rows="4" maxlength="400"></textarea>
+          </label>
+          <div class="modal-actions">
+            <button type="button" data-new-project-cancel data-i18n="Cancel">Cancelar</button>
+            <button class="primary" type="submit" data-new-project-create data-i18n="Create">Criar</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="simulationNoticeDialog" class="simulation-notice-dialog" aria-labelledby="simulationNoticeTitle">
+        <div class="simulation-notice-modal">
+          <div class="simulation-notice-icon" aria-hidden="true">!</div>
+          <div>
+            <strong id="simulationNoticeTitle" data-i18n="Before you simulate">Antes de simular</strong>
+            <p data-i18n="Simulation notice intro">As simulações tentam representar o mundo real e as placas simuladas da forma mais fiel possível, mas não substituem a experiência física com componentes reais.</p>
+            <ul>
+              <li data-i18n="Simulation notice memory">O ambiente não valida estouro de memória, fragmentação de heap, travamentos por firmware, watchdogs reais ou limites internos específicos de cada placa.</li>
+              <li data-i18n="Simulation notice electrical">As regras elétricas ajudam a detectar problemas comuns, mas não modelam todos os efeitos físicos, tolerâncias, aquecimento, envelhecimento, ruído, bouncing, mau contato ou variações entre fabricantes.</li>
+              <li data-i18n="Simulation notice light">Não são simulados picos e variações rápidas de luz que podem afetar sensores, alimentação ou o funcionamento do microcontrolador.</li>
+              <li data-i18n="Simulation notice magnetism">Também não são simuladas interferências eletromagnéticas, campos magnéticos externos, acoplamento indutivo/capacitivo ou problemas de layout físico.</li>
+              <li data-i18n="Simulation notice safety">Para projetos com energia, motores, relés, baterias ou cargas reais, valide o circuito físico com instrumentos e boas práticas de segurança antes de montar.</li>
+            </ul>
+          </div>
+          <button id="ackSimulationNotice" class="primary simulation-notice-confirm" type="button" data-i18n="I understand">Estou ciente</button>
+        </div>
       </dialog>
     </div>
 

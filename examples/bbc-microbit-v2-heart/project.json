@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "BBC micro:bit V2 Heart",
+  "description": "Desenha uma animação de coração na matriz de LEDs integrada da BBC micro:bit V2.",
+  "descriptionI18n": {
+    "pt-BR": "Desenha uma animação de coração na matriz de LEDs integrada da BBC micro:bit V2.",
+    "en": "Draws a heart animation on the built-in LED matrix of the BBC micro:bit V2.",
+    "es": "Dibuja una animación de corazón en la matriz de LEDs integrada de la BBC micro:bit V2."
+  },
   "board": {
     "width": 1300,
     "height": 760,

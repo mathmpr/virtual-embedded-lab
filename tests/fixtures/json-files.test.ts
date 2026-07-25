@@ -7,6 +7,7 @@ import { componentPalette, installComponentCatalog } from '../../apps/web/js/com
 
 const root = new URL('../..', import.meta.url).pathname;
 const officialComponentsRoot = join(root, 'components/official');
+const examplesRoot = join(root, 'examples');
 
 const jsonFiles = [
   'schemas/project.schema.json',
@@ -86,6 +87,13 @@ function officialComponentPaths() {
     .sort();
 }
 
+function exampleProjectPaths() {
+  return readdirSync(examplesRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `examples/${entry.name}/project.json`)
+    .sort();
+}
+
 function readJson(relativePath: string) {
   if (relativePath.startsWith('examples/')) {
     return readProjectWithCodeReferencesSync(join(root, relativePath));
@@ -130,6 +138,25 @@ test('official component manifests follow the minimum simulation contract', () =
 
     if (manifest.simulation.kind === 'microcontroller' || manifest.simulation.kind === 'behavioral-sensor' || manifest.simulation.kind === 'environment-source') {
       assert.ok(manifest.behavior, `${path} impacts runtime/environment simulation and must define behavior`);
+    }
+  }
+});
+
+test('example projects provide useful descriptions for the examples modal', () => {
+  for (const path of exampleProjectPaths()) {
+    const project = readJson(path);
+    const description = project.description;
+    const descriptionI18n = project.descriptionI18n;
+
+    assert.equal(typeof description, 'string', `${path} must define description`);
+    assert.ok(description.trim().length >= 24, `${path} description must explain the example`);
+    assert.doesNotMatch(description, /^(todo|tbd|n\/a|sem descricao|sem descrição)$/i, `${path} description must not be placeholder text`);
+    assert.equal(descriptionI18n?.['pt-BR'], description, `${path} descriptionI18n.pt-BR must match description fallback`);
+
+    for (const locale of ['en', 'es']) {
+      assert.equal(typeof descriptionI18n?.[locale], 'string', `${path} must define descriptionI18n.${locale}`);
+      assert.ok(descriptionI18n[locale].trim().length >= 24, `${path} descriptionI18n.${locale} must explain the example`);
+      assert.notEqual(descriptionI18n[locale], description, `${path} descriptionI18n.${locale} must be localized`);
     }
   }
 });

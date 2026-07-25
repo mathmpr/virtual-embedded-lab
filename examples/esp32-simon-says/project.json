@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "ESP32 Simon Says",
+  "description": "Implementa um jogo Simon Says no ESP32 usando LEDs coloridos, botões, buzzer, 74HC595 e displays de 7 segmentos.",
+  "descriptionI18n": {
+    "pt-BR": "Implementa um jogo Simon Says no ESP32 usando LEDs coloridos, botões, buzzer, 74HC595 e displays de 7 segmentos.",
+    "en": "Implements a Simon Says game on ESP32 using colored LEDs, buttons, buzzer, 74HC595 and 7-segment displays.",
+    "es": "Implementa un juego Simon Says en ESP32 usando LEDs de colores, botones, zumbador, 74HC595 y displays de 7 segmentos."
+  },
   "board": {
     "width": 2300,
     "height": 1300,

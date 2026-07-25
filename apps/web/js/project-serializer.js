@@ -14,7 +14,7 @@ export function boardToProject({ state, board, codeEditor, nets, terminalKind })
 
   const project = {
     schemaVersion: '1.0.0',
-    name: 'Virtual Embedded Lab Project',
+    name: normalizeProjectName(state.project?.name),
     board: {
       width: Math.max(board.clientWidth, 1),
       height: Math.max(board.clientHeight, 1),
@@ -55,6 +55,10 @@ export function boardToProject({ state, board, codeEditor, nets, terminalKind })
 
   if (firmwares.size > 0) {
     project.firmwares = Object.fromEntries(firmwares.entries());
+  }
+
+  if (typeof state.project?.description === 'string' && state.project.description.trim()) {
+    project.description = state.project.description.trim();
   }
 
   if (state.network && Object.keys(state.network).length > 0) {
@@ -102,6 +106,7 @@ export function projectToSnapshot(project) {
   return {
     components,
     wires: [...electricalWires, ...environmentWires],
+    project: projectMetadata(project),
     firmwares: new Map(Object.entries(project.firmwares ?? {})),
     activeFirmwareComponentId: Object.keys(project.firmwares ?? {})[0] ?? null,
     network: structuredClone(project.network ?? {}),
@@ -109,6 +114,13 @@ export function projectToSnapshot(project) {
     nextWireId: nextCounterFromIds([...electricalWires, ...environmentWires].map((wire) => wire.id)),
     selectedId: components[0]?.id ?? null,
     selectedNetId: null
+  };
+}
+
+export function projectMetadata(project = {}) {
+  return {
+    name: normalizeProjectName(project.name),
+    description: typeof project.description === 'string' ? project.description : ''
   };
 }
 
@@ -142,6 +154,10 @@ function validateProjectShape(project) {
   if (!project.code?.files || !project.code.entry) {
     throw new Error('Projeto precisa conter code.files e code.entry.');
   }
+}
+
+function normalizeProjectName(name) {
+  return typeof name === 'string' && name.trim() ? name.trim() : 'Virtual Embedded Lab Project';
 }
 
 function projectFirmwaresFromState(state, codeEditor) {

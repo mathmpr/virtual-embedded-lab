@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "ADS1115 Single Ended",
+  "description": "Demonstra a leitura single-ended de uma fonte analógica externa usando o ADC ADS1115 conectado ao Arduino UNO por I2C.",
+  "descriptionI18n": {
+    "pt-BR": "Demonstra a leitura single-ended de uma fonte analógica externa usando o ADC ADS1115 conectado ao Arduino UNO por I2C.",
+    "en": "Demonstrates single-ended reading from an external analog source using the ADS1115 ADC connected to an Arduino UNO over I2C.",
+    "es": "Demuestra la lectura single-ended de una fuente analógica externa usando el ADC ADS1115 conectado a un Arduino UNO por I2C."
+  },
   "board": {
     "width": 1600,
     "height": 900,

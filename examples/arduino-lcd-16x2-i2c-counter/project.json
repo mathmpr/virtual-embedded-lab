@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Arduino LCD 16x2 I2C Counter",
+  "description": "Mostra um contador em um display LCD 16x2 I2C controlado pelo Arduino UNO.",
+  "descriptionI18n": {
+    "pt-BR": "Mostra um contador em um display LCD 16x2 I2C controlado pelo Arduino UNO.",
+    "en": "Shows a counter on a 16x2 I2C LCD controlled by an Arduino UNO.",
+    "es": "Muestra un contador en un LCD 16x2 I2C controlado por un Arduino UNO."
+  },
   "board": {
     "width": 1500,
     "height": 860,

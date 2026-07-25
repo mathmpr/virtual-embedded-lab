@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Pull-up Button Toggle Blue LED",
+  "description": "Demonstra entrada digital com botão pull-up no Arduino UNO alternando o estado de um LED azul.",
+  "descriptionI18n": {
+    "pt-BR": "Demonstra entrada digital com botão pull-up no Arduino UNO alternando o estado de um LED azul.",
+    "en": "Demonstrates a digital pull-up button input on an Arduino UNO toggling a blue LED.",
+    "es": "Demuestra una entrada digital con botón pull-up en un Arduino UNO alternando un LED azul."
+  },
   "board": {
     "width": 1600,
     "height": 900,

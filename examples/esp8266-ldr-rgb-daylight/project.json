@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "ESP8266 LDR RGB Daylight",
+  "description": "Usa ESP8266, LDR e LED RGB para mudar a cor conforme a luminosidade virtual do ambiente.",
+  "descriptionI18n": {
+    "pt-BR": "Usa ESP8266, LDR e LED RGB para mudar a cor conforme a luminosidade virtual do ambiente.",
+    "en": "Uses ESP8266, LDR and RGB LED to change color according to the virtual ambient light level.",
+    "es": "Usa ESP8266, LDR y LED RGB para cambiar el color según la luminosidad virtual del ambiente."
+  },
   "board": {
     "width": 1500,
     "height": 900,

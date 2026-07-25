@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Arduino 74HC595 7-Segment Counter",
+  "description": "Usa um Arduino UNO para controlar um display de 7 segmentos por meio do registrador de deslocamento 74HC595.",
+  "descriptionI18n": {
+    "pt-BR": "Usa um Arduino UNO para controlar um display de 7 segmentos por meio do registrador de deslocamento 74HC595.",
+    "en": "Uses an Arduino UNO to drive a 7-segment display through a 74HC595 shift register.",
+    "es": "Usa un Arduino UNO para controlar un display de 7 segmentos mediante un registro de desplazamiento 74HC595."
+  },
   "board": {
     "width": 1800,
     "height": 980,

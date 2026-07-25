@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "ESP32 AC Energy Meter POC",
+  "description": "Prova de conceito de medição de energia AC com ESP32, ADS1115, sensores ZMPT101B/SCT e cargas monofásicas virtuais.",
+  "descriptionI18n": {
+    "pt-BR": "Prova de conceito de medição de energia AC com ESP32, ADS1115, sensores ZMPT101B/SCT e cargas monofásicas virtuais.",
+    "en": "Proof of concept for AC energy metering with ESP32, ADS1115, ZMPT101B/SCT sensors and virtual single-phase loads.",
+    "es": "Prueba de concepto de medición de energía AC con ESP32, ADS1115, sensores ZMPT101B/SCT y cargas monofásicas virtuales."
+  },
   "board": {
     "width": 1800,
     "height": 980,

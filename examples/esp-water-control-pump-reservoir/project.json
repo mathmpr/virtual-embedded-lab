@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "ESP Water Control Pump Reservoir",
+  "description": "Demonstra controle de bomba e reservatório com ESP8266 e ESP32 comunicando por rede virtual e sensores de chuva.",
+  "descriptionI18n": {
+    "pt-BR": "Demonstra controle de bomba e reservatório com ESP8266 e ESP32 comunicando por rede virtual e sensores de chuva.",
+    "en": "Demonstrates pump and reservoir control with ESP8266 and ESP32 communicating over a virtual network and rain sensors.",
+    "es": "Demuestra control de bomba y reservorio con ESP8266 y ESP32 comunicándose por una red virtual y sensores de lluvia."
+  },
   "board": {
     "width": 1800,
     "height": 1000,

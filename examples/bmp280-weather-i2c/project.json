@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "BMP280 Weather I2C",
+  "description": "Lê temperatura e pressão de um BMP280 via I2C no Arduino UNO usando uma fonte virtual de clima.",
+  "descriptionI18n": {
+    "pt-BR": "Lê temperatura e pressão de um BMP280 via I2C no Arduino UNO usando uma fonte virtual de clima.",
+    "en": "Reads temperature and pressure from a BMP280 over I2C on an Arduino UNO using a virtual climate source.",
+    "es": "Lee temperatura y presión de un BMP280 por I2C en un Arduino UNO usando una fuente virtual de clima."
+  },
   "board": {
     "width": 1600,
     "height": 900,

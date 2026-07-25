@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "ESP32 Wi-Fi Signal",
+  "description": "Demonstra leitura e reação ao nível de sinal Wi-Fi virtual em um ESP32.",
+  "descriptionI18n": {
+    "pt-BR": "Demonstra leitura e reação ao nível de sinal Wi-Fi virtual em um ESP32.",
+    "en": "Demonstrates reading and reacting to a virtual Wi-Fi signal level on an ESP32.",
+    "es": "Demuestra lectura y reacción al nivel de señal Wi-Fi virtual en un ESP32."
+  },
   "board": {
     "width": 1600,
     "height": 900,

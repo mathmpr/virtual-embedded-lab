@@ -1,6 +1,6 @@
 import { slugify, storageKey } from '../components.js';
 import { t } from '../i18n.js';
-import { boardToProject, projectCodeOrReference, projectToSnapshot } from '../project-serializer.js';
+import { boardToProject, projectCodeOrReference, projectMetadata, projectToSnapshot } from '../project-serializer.js';
 
 export function createProjectActions({
   document,
@@ -19,6 +19,7 @@ export function createProjectActions({
   selectComponent,
   simulation,
   syncRestoredComponentControls,
+  syncProjectTitle = () => {},
   saveActiveFirmware,
   syncFirmwareEditor
 }) {
@@ -106,6 +107,7 @@ export function createProjectActions({
         to: { ...wire.to },
         color: wire.color
       })),
+      project: { ...(state.project ?? projectMetadata()) },
       firmwares: state.firmwares instanceof Map
         ? new Map([...state.firmwares.entries()].map(([componentId, firmware]) => [componentId, cloneFirmware(firmware)]))
         : new Map(),
@@ -145,6 +147,7 @@ export function createProjectActions({
       color: wire.color
     }));
     state.firmwares = snapshot.firmwares ?? new Map();
+    state.project = { ...(snapshot.project ?? state.project ?? projectMetadata()) };
     state.activeFirmwareComponentId = snapshot.activeFirmwareComponentId ?? null;
     state.network = structuredClone(snapshot.network ?? {});
     state.nextComponentId = snapshot.nextComponentId;
@@ -157,6 +160,7 @@ export function createProjectActions({
     centerViewportOnContent();
     selectComponent(state.selectedId);
     simulation.resetSimulation();
+    syncProjectTitle();
   }
 
   function recordHistory() {
@@ -258,6 +262,7 @@ export function createProjectActions({
   }
 
   function restoreProject(project, shouldRecord = true) {
+    state.project = projectMetadata(project);
     codeEditor.value = projectCodeOrReference(project);
     restoreBoard(projectToSnapshot(project));
     syncFirmwareEditor({ loadActive: true });
@@ -266,7 +271,35 @@ export function createProjectActions({
       recordHistory();
     }
 
-    consoleOutput.textContent = `${t('Project loaded')}: ${project.name}`;
+    consoleOutput.textContent = `${t('Project loaded')}: ${state.project.name}`;
+  }
+
+  function createNewProject({ name, description = '' }) {
+    const metadata = projectMetadata({ name, description });
+
+    restoreProject({
+      schemaVersion: '1.0.0',
+      name: metadata.name,
+      description: metadata.description,
+      board: {
+        width: Math.max(board.clientWidth, 1),
+        height: Math.max(board.clientHeight, 1),
+        gridSize: 10
+      },
+      components: [],
+      connections: [],
+      environmentConnections: [],
+      code: {
+        language: 'arduino-cpp',
+        entry: 'main.ino',
+        files: {
+          'main.ino': `// ${metadata.name}\n\nvoid setup() {\n}\n\nvoid loop() {\n}\n`
+        }
+      }
+    }, false);
+    state.history = [];
+    state.redoStack = [];
+    recordHistory();
   }
 
   function currentProject() {
@@ -291,6 +324,7 @@ export function createProjectActions({
     loadProjectFromLocalStorage,
     exportProjectFile,
     importProjectFile,
+    createNewProject,
     restoreProject,
     currentProject
   };

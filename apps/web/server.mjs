@@ -166,7 +166,10 @@ async function handleComponentsCatalog(response) {
 
 async function handleExamplesCatalog(response) {
   const examplesRoot = join(root, 'examples');
+  const componentsRoot = join(root, 'components', 'official');
   const entries = await readdir(examplesRoot, { withFileTypes: true });
+  const manifests = await readOfficialComponentManifests(componentsRoot);
+  const componentsById = new Map(manifests.map((manifest) => [manifest.identity.id, manifest]));
   const examples = [];
 
   for (const entry of entries) {
@@ -175,10 +178,18 @@ async function handleExamplesCatalog(response) {
     }
 
     const project = await readExampleProject(entry.name);
+    const componentNames = componentNamesForProject(project, componentsById);
+    const boardNames = boardNamesForProject(project, componentsById);
+
     examples.push({
       id: entry.name,
       name: project.name,
-      componentCount: project.components?.length ?? 0
+      description: project.description ?? '',
+      descriptionI18n: project.descriptionI18n ?? null,
+      boardNames,
+      boardGroup: boardGroupName(boardNames),
+      componentCount: project.components?.length ?? 0,
+      components: componentNames
     });
   }
 
@@ -191,6 +202,34 @@ async function handleExamplesCatalog(response) {
     schemaVersion: '1.0.0',
     examples
   }));
+}
+
+function componentNamesForProject(project, componentsById) {
+  const names = (project.components ?? []).map((component) => {
+    return componentsById.get(component.componentId)?.identity?.name ?? component.componentId;
+  });
+
+  return [...new Set(names)].sort((left, right) => left.localeCompare(right));
+}
+
+function boardNamesForProject(project, componentsById) {
+  const names = (project.components ?? [])
+    .filter((component) => component.componentId?.startsWith('board.'))
+    .map((component) => componentsById.get(component.componentId)?.identity?.name ?? component.componentId);
+
+  return [...new Set(names)].sort((left, right) => left.localeCompare(right));
+}
+
+function boardGroupName(boardNames) {
+  if (boardNames.length === 0) {
+    return 'No board';
+  }
+
+  if (boardNames.length > 1) {
+    return 'Multiple boards';
+  }
+
+  return boardNames[0];
 }
 
 async function handleExampleProject(pathname, response) {

@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "MCP3008 Single Ended",
+  "description": "Demonstra leitura single-ended de uma fonte analógica externa usando o ADC MCP3008 conectado ao Arduino UNO por SPI.",
+  "descriptionI18n": {
+    "pt-BR": "Demonstra leitura single-ended de uma fonte analógica externa usando o ADC MCP3008 conectado ao Arduino UNO por SPI.",
+    "en": "Demonstrates single-ended reading from an external analog source using the MCP3008 ADC connected to an Arduino UNO over SPI.",
+    "es": "Demuestra la lectura single-ended de una fuente analógica externa usando el ADC MCP3008 conectado a un Arduino UNO por SPI."
+  },
   "board": {
     "width": 1600,
     "height": 900,

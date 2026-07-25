@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "ESP32-S3 HUB75 Snake Game",
+  "description": "Jogo Snake em ESP32-S3 com matriz RGB HUB75, botões direcionais, buzzer e alimentação de 5 V.",
+  "descriptionI18n": {
+    "pt-BR": "Jogo Snake em ESP32-S3 com matriz RGB HUB75, botões direcionais, buzzer e alimentação de 5 V.",
+    "en": "Snake game on ESP32-S3 with HUB75 RGB matrix, directional buttons, buzzer and 5 V power supply.",
+    "es": "Juego Snake en ESP32-S3 con matriz RGB HUB75, botones direccionales, zumbador y alimentación de 5 V."
+  },
   "board": {
     "width": 1900,
     "height": 1080,

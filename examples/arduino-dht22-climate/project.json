@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Arduino DHT22 Climate",
+  "description": "Lê temperatura e umidade de um DHT22 ligado ao Arduino UNO usando uma fonte virtual de clima.",
+  "descriptionI18n": {
+    "pt-BR": "Lê temperatura e umidade de um DHT22 ligado ao Arduino UNO usando uma fonte virtual de clima.",
+    "en": "Reads temperature and humidity from a DHT22 connected to an Arduino UNO using a virtual climate source.",
+    "es": "Lee temperatura y humedad de un DHT22 conectado a un Arduino UNO usando una fuente virtual de clima."
+  },
   "board": {
     "width": 1500,
     "height": 860,

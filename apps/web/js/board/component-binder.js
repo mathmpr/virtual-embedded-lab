@@ -16,11 +16,17 @@ export function createComponentBinder({
     let originY = 0;
 
     element.addEventListener('pointerdown', (event) => {
-      if (state.viewport.isSpacePanning || state.boardLocked) {
+      if (state.viewport.isSpacePanning) {
         return;
       }
 
       if (event.target.closest('.terminal, input, textarea, select, button, [data-delete-component]')) {
+        return;
+      }
+
+      selectComponent(model.id);
+
+      if (state.boardLocked) {
         return;
       }
 
@@ -30,7 +36,6 @@ export function createComponentBinder({
       originX = model.x;
       originY = model.y;
       element.setPointerCapture(event.pointerId);
-      selectComponent(model.id);
     });
 
     element.addEventListener('pointermove', (event) => {
@@ -73,6 +78,12 @@ export function createComponentBinder({
         event.preventDefault();
         event.stopPropagation();
 
+        selectComponent(model.id);
+
+        if (state.boardLocked) {
+          return;
+        }
+
         if (state.viewport.suppressNextClick) {
           state.viewport.suppressNextClick = false;
           return;
@@ -87,6 +98,12 @@ export function createComponentBinder({
     element.querySelector('[data-delete-component]').addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
+
+      if (state.boardLocked) {
+        selectComponent(model.id);
+        return;
+      }
+
       deleteComponent(model.id);
     });
   }

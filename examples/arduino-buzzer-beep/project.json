@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Arduino Buzzer Beep",
+  "description": "Exemplo básico de acionamento de buzzer pelo Arduino UNO para gerar bipes em tempo de execução.",
+  "descriptionI18n": {
+    "pt-BR": "Exemplo básico de acionamento de buzzer pelo Arduino UNO para gerar bipes em tempo de execução.",
+    "en": "Basic Arduino UNO buzzer example that generates beeps during runtime.",
+    "es": "Ejemplo básico de zumbador con Arduino UNO para generar pitidos durante la ejecución."
+  },
   "board": {
     "width": 1500,
     "height": 860,

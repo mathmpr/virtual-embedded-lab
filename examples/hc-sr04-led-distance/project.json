@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "HC-SR04 com LED",
+  "description": "Mede distância com HC-SR04 no Arduino UNO e aciona um LED conforme a proximidade do objeto virtual.",
+  "descriptionI18n": {
+    "pt-BR": "Mede distância com HC-SR04 no Arduino UNO e aciona um LED conforme a proximidade do objeto virtual.",
+    "en": "Measures distance with an HC-SR04 on Arduino UNO and turns on an LED based on virtual object proximity.",
+    "es": "Mide distancia con HC-SR04 en Arduino UNO y enciende un LED según la proximidad del objeto virtual."
+  },
   "board": {
     "width": 1600,
     "height": 900,

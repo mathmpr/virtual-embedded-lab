@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Arduino Nano Blink Button",
+  "description": "Usa um Arduino Nano com botão pull-up para alternar um LED azul externo e o LED interno da placa.",
+  "descriptionI18n": {
+    "pt-BR": "Usa um Arduino Nano com botão pull-up para alternar um LED azul externo e o LED interno da placa.",
+    "en": "Uses an Arduino Nano with a pull-up button to toggle an external blue LED and the board LED.",
+    "es": "Usa un Arduino Nano con botón pull-up para alternar un LED azul externo y el LED integrado de la placa."
+  },
   "board": {
     "width": 1500,
     "height": 860,

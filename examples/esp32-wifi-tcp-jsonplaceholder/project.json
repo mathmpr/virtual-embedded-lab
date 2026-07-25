@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "ESP32 Wi-Fi TCP JSONPlaceholder",
+  "description": "Executa uma requisição HTTP virtual via Wi-Fi no ESP32 para consumir uma resposta JSON simulada.",
+  "descriptionI18n": {
+    "pt-BR": "Executa uma requisição HTTP virtual via Wi-Fi no ESP32 para consumir uma resposta JSON simulada.",
+    "en": "Runs a virtual HTTP request over ESP32 Wi-Fi to consume a simulated JSON response.",
+    "es": "Ejecuta una solicitud HTTP virtual por Wi-Fi en ESP32 para consumir una respuesta JSON simulada."
+  },
   "board": {
     "width": 1600,
     "height": 900,

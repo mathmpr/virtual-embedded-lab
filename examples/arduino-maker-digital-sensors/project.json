@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Arduino Maker Digital Sensors",
+  "description": "Reúne sensores digitais maker comuns no Arduino UNO, incluindo PIR, toque, tilt, vibração, Hall, reed, obstáculo IR e chave deslizante.",
+  "descriptionI18n": {
+    "pt-BR": "Reúne sensores digitais maker comuns no Arduino UNO, incluindo PIR, toque, tilt, vibração, Hall, reed, obstáculo IR e chave deslizante.",
+    "en": "Collects common maker digital sensors on an Arduino UNO, including PIR, touch, tilt, vibration, Hall, reed, IR obstacle and slide switch.",
+    "es": "Reúne sensores digitales maker comunes en un Arduino UNO, incluidos PIR, toque, inclinación, vibración, Hall, reed, obstáculo IR e interruptor deslizante."
+  },
   "board": {
     "width": 1500,
     "height": 900,

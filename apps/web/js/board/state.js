@@ -9,6 +9,10 @@ export function createInitialBoardState() {
   return {
     components: new Map(),
     wires: [],
+    project: {
+      name: 'Virtual Embedded Lab Project',
+      description: ''
+    },
     nextComponentId: 1,
     nextWireId: 1,
     selectedId: null,

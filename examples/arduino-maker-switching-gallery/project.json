@@ -1,6 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "name": "Arduino Maker Switching Gallery",
+  "description": "Galeria de acionamento de cargas com Arduino UNO usando transistores, MOSFETs, relés, SSR, optoacoplador PC817 e drivers ULN.",
+  "descriptionI18n": {
+    "pt-BR": "Galeria de acionamento de cargas com Arduino UNO usando transistores, MOSFETs, relés, SSR, optoacoplador PC817 e drivers ULN.",
+    "en": "Switching-load gallery with Arduino UNO using transistors, MOSFETs, relays, SSR, PC817 optocoupler and ULN drivers.",
+    "es": "Galería de accionamiento de cargas con Arduino UNO usando transistores, MOSFET, relés, SSR, optoacoplador PC817 y drivers ULN."
+  },
   "board": {
     "width": 1700,
     "height": 1000,
