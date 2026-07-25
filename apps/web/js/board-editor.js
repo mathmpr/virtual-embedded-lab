@@ -444,6 +444,7 @@ export function createBoardEditor(document) {
       electricalModel: definition.electricalModel,
       behavior: definition.behavior ?? {},
       simulation: definition.simulation ?? {},
+      terminals: definition.terminals ?? [],
       propertySchema: definition.propertySchema ?? {},
       x,
       y,

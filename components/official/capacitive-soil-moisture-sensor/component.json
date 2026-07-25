@@ -1,0 +1,54 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "sensor.soil-moisture.capacitive",
+    "name": "Capacitive Soil Moisture Sensor",
+    "category": "sensor",
+    "subCategory": "soil"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment", "electrical", "firmware", "visual-state"],
+    "implemented": true,
+    "notes": ["Modeled as an adjustable analog voltage source for irrigation lessons."]
+  },
+  "properties": {
+    "enabled": { "type": "boolean", "default": true, "simulationUpdate": "live" },
+    "voltageVolts": { "type": "number", "default": 2.25, "minimum": 0, "maximum": 5, "unit": "V", "simulationUpdate": "live" }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "out", "label": "AOUT", "type": "analog-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" }
+  ],
+  "behavior": {
+    "type": "analog-voltage-source",
+    "channel": "analog-voltage",
+    "voltageProperty": "voltageVolts",
+    "activeProperty": "enabled",
+    "outputTerminal": "out"
+  },
+  "electricalModel": {
+    "type": "voltage-source",
+    "outputVoltageProperty": "voltageVolts"
+  },
+  "visual": {
+    "type": "capacitive-soil-moisture-sensor",
+    "title": "Soil Moisture",
+    "className": "maker-soil-moisture",
+    "body": "45%",
+    "width": 190,
+    "height": 112,
+    "controls": [
+      { "type": "readout", "className": "analog-readout", "label": "AOUT", "property": "voltageVolts", "unit": "V" },
+      { "type": "range", "property": "voltageVolts" }
+    ],
+    "palette": { "group": "Sensors", "subgroup": "Water/Soil", "icon": "soil-icon", "order": 80 },
+    "terminals": [
+      { "id": "vcc", "label": "VCC", "side": "left", "x": 0, "y": 28, "kind": "power" },
+      { "id": "out", "label": "AOUT", "side": "right", "x": 190, "y": 56, "kind": "signal" },
+      { "id": "gnd", "label": "GND", "side": "bottom", "x": 95, "y": 112, "kind": "ground" }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Arduino Maker Analog Inputs",
+  "board": {
+    "width": 1280,
+    "height": 760,
+    "gridSize": 10
+  },
+  "components": [
+    { "id": "arduino-1", "componentId": "board.arduino.uno", "position": { "x": 80, "y": 120 }, "properties": {} },
+    { "id": "pot-1", "componentId": "input.analog.potentiometer.10k", "position": { "x": 520, "y": 80 }, "properties": { "enabled": true, "voltageVolts": 2.5, "resistanceOhms": 10000 } },
+    { "id": "lm35-1", "componentId": "sensor.temperature.lm35", "position": { "x": 520, "y": 250 }, "properties": { "enabled": true, "voltageVolts": 0.25 } },
+    { "id": "soil-1", "componentId": "sensor.soil-moisture.capacitive", "position": { "x": 520, "y": 420 }, "properties": { "enabled": true, "voltageVolts": 2.25 } }
+  ],
+  "connections": [
+    { "id": "net-vcc", "color": "#f05252", "terminals": ["arduino-1.5v", "pot-1.vcc", "lm35-1.vcc", "soil-1.vcc"] },
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "pot-1.gnd", "lm35-1.gnd", "soil-1.gnd"] },
+    { "id": "net-pot", "color": "#4c8dff", "terminals": ["arduino-1.a0", "pot-1.wiper"] },
+    { "id": "net-lm35", "color": "#4c8dff", "terminals": ["arduino-1.a1", "lm35-1.out"] },
+    { "id": "net-soil", "color": "#4c8dff", "terminals": ["arduino-1.a2", "soil-1.out"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": { "path": "./firmware/main.ino" }
+    }
+  }
+}

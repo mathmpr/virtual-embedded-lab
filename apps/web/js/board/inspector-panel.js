@@ -78,7 +78,7 @@ export function createInspectorPanel({
   }
 
   function renderInspectorPropertyControl(component, definition, propertyName, propertySchema) {
-    const value = component.properties[propertyName];
+    const value = inspectorPropertyValue(component, propertyName, propertySchema);
     const label = propertySchema.label ?? labelFromPropertyName(propertyName);
     const variants = definition.variants?.[propertyName] ?? [];
 
@@ -178,7 +178,7 @@ export function createInspectorPanel({
     for (const [propertyName, propertySchema] of Object.entries(definition?.propertySchema ?? {})) {
       const input = inspectorContent.querySelector(`[data-property="${propertyName}"]`);
       const output = inspectorContent.querySelector(`[data-property-output="${propertyName}"]`);
-      const value = component.properties[propertyName];
+      const value = inspectorPropertyValue(component, propertyName, propertySchema);
 
       if (input) {
         if (input.type === 'checkbox') {
@@ -192,6 +192,10 @@ export function createInspectorPanel({
         output.textContent = formatInspectorPropertyValue(propertyName, value, propertySchema);
       }
     }
+  }
+
+  function inspectorPropertyValue(component, propertyName, propertySchema = {}) {
+    return component.properties[propertyName] ?? propertySchema.default ?? '';
   }
 
   function formatInspectorPropertyValue(propertyName, value, propertySchema) {

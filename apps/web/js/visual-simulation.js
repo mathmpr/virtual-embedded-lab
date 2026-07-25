@@ -74,6 +74,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
       state.signalsByComponent = result.signalsByComponent ?? new Map();
       state.signalsByNet = result.signalsByNet ?? new Map();
       applyLedStates(result.ledStates);
+      applyRgbLedStates(result.electrical?.componentReadings);
       applyBuiltInLedStates(result.builtInLedStates);
       clearLedAnimation();
       animateLedEvents(result.ledEvents, result.electrical);
@@ -130,6 +131,7 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
     clearSerialHistory();
     clearLedAnimation();
     applyLedStates(new Map());
+    applyRgbLedStates(new Map());
     applyBuiltInLedStates(new Map());
     onSimulationResult({ electrical: state.electrical });
     consoleOutput.textContent = t('Runtime ready.');
@@ -167,6 +169,22 @@ export function createVisualSimulation({ state, renderSignals, renderSerial, ren
       if (component.electricalPrimitive === 'led' || component.type === 'led') {
         component.element.classList.toggle('on', ledStates.get(component.id) === true);
       }
+    }
+  }
+
+  function applyRgbLedStates(componentReadings = new Map()) {
+    for (const component of state.components.values()) {
+      if (component.electricalPrimitive !== 'rgb-led') {
+        continue;
+      }
+
+      const reading = componentReadings.get(component.id);
+      const color = reading?.color ?? '#000000';
+      const brightness = Math.max(0, Math.min(1, Number(reading?.brightness ?? 0)));
+
+      component.element.classList.toggle('on', brightness > 0);
+      component.element.style.setProperty('--rgb-led-color', color);
+      component.element.style.setProperty('--rgb-led-brightness', String(brightness));
     }
   }
 

@@ -63,13 +63,30 @@ export class ArduinoRuntime {
       throw new Error(`Cannot digitalWrite to pin ${pin} configured as ${pinState.mode}`);
     }
 
-    this.#pins.set(pin, { ...pinState, value });
+    this.#pins.set(pin, { ...pinState, value, pwmValue: value === 'HIGH' ? 255 : 0 });
     this.#pinEvents.push({
       pin,
       value,
+      pwmValue: value === 'HIGH' ? 255 : 0,
       timeUs: this.clock.nowUs()
     });
     this.graph.driveArduinoPin(pin, value, this.componentId);
+  }
+
+  analogWrite(pin, value) {
+    const normalizedPin = Number(pin);
+    const pwmValue = Math.max(0, Math.min(255, Math.round(Number(value) || 0)));
+    const digitalValue = pwmValue > 0 ? 'HIGH' : 'LOW';
+    const pinState = this.getPin(normalizedPin);
+
+    this.#pins.set(normalizedPin, { ...pinState, mode: 'OUTPUT', value: digitalValue, pwmValue });
+    this.#pinEvents.push({
+      pin: normalizedPin,
+      value: digitalValue,
+      pwmValue,
+      timeUs: this.clock.nowUs()
+    });
+    this.graph.driveArduinoPin(normalizedPin, digitalValue, this.componentId);
   }
 
   driveInput(pin, value) {

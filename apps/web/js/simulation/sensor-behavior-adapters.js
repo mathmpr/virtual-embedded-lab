@@ -15,6 +15,7 @@ export function registerSensorBehaviorAdapters(registry) {
   registry.register('bmp280-sensor', bindBmp280Sensors);
   registry.register('adc-i2c', bindI2cAdcConverters);
   registry.register('adc-spi', bindSpiAdcConverters);
+  registry.register('analog-voltage-source', bindAnalogVoltageSources);
   registry.register('momentary-button', bindMomentaryButtons);
   registry.register('buzzer', bindBuzzers);
   registry.register('water-pump', bindWaterPumpSystems);
@@ -103,6 +104,19 @@ export function applyButtonInputs({ runtime, buttonBindings }) {
       : activeHigh ? 'LOW' : 'HIGH';
 
     runtime.driveInput(binding.pin, value);
+  }
+}
+
+export function applyAnalogVoltageInputs({ runtime, environment, analogVoltageBindings }) {
+  for (const binding of analogVoltageBindings ?? []) {
+    const voltage = analogVoltage(environment, binding.source.id, runtime);
+    const raw = Math.round(clamp(voltage / binding.referenceVoltageVolts, 0, 1) * binding.maxRaw);
+
+    runtime.driveAnalogInput(binding.pin, raw, {
+      voltageVolts: voltage,
+      maxRaw: binding.maxRaw,
+      sourceComponentId: binding.source.id
+    });
   }
 }
 
@@ -368,6 +382,33 @@ export function bindServoMotors({ graph, runtime, diagnostics, components }) {
       maxPulseProperty: servo.behavior?.maxPulseProperty ?? 'maxPulseUs'
     });
   }
+}
+
+export function bindAnalogVoltageSources({ graph, environment, runtime, components }) {
+  const bindings = [];
+
+  for (const source of components) {
+    const outputTerminal = source.behavior?.outputTerminal ?? 'out';
+    const pin = resolveRuntimeAnalogPinConnectedToTerminal(graph, runtime, {
+      componentId: source.id,
+      terminalId: outputTerminal
+    });
+
+    if (!Number.isInteger(pin)) {
+      continue;
+    }
+
+    bindings.push({
+      source,
+      pin,
+      maxRaw: Number(source.behavior?.analogMaxRaw ?? 1023),
+      referenceVoltageVolts: Number(source.behavior?.referenceVoltageVolts ?? 5)
+    });
+  }
+
+  applyAnalogVoltageInputs({ runtime, environment, analogVoltageBindings: bindings });
+
+  return { analogVoltageBindings: bindings };
 }
 
 export function bindI2cAdcConverters({ graph, environment, runtime, diagnostics, components }) {

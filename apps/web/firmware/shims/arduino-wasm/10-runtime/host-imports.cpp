@@ -1,5 +1,6 @@
 extern "C" void __vl_pinMode(int pin, int mode);
 extern "C" void __vl_digitalWrite(int pin, int value);
+extern "C" void __vl_analogWrite(int pin, int value);
 extern "C" int __vl_digitalRead(int pin);
 extern "C" int __vl_analogRead(int pin);
 extern "C" void __vl_delay(unsigned long milliseconds);

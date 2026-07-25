@@ -45,6 +45,9 @@ const arduinoCoreImportAdapter = {
       __vl_digitalWrite(pin, value) {
         runtime.digitalWrite(Number(pin), value === 1 ? 'HIGH' : 'LOW');
       },
+      __vl_analogWrite(pin, value) {
+        runtime.analogWrite(Number(pin), Number(value));
+      },
       __vl_digitalRead(pin) {
         return runtime.digitalRead(Number(pin)) === 'HIGH' ? 1 : 0;
       },

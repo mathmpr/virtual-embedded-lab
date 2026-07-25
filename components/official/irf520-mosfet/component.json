@@ -1,0 +1,128 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "transistor.mosfet.n.irf520",
+    "name": "IRF520 N-Channel MOSFET",
+    "category": "semiconductor",
+    "subCategory": "mosfet-n-channel"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": [
+      "electrical",
+      "visual-state"
+    ],
+    "implemented": true,
+    "notes": [
+      "Educational electrical rules enabled: wiring, activation, floating inputs and current/voltage limit diagnostics."
+    ]
+  },
+  "properties": {
+    "channel": {
+      "type": "string",
+      "default": "N",
+      "simulationUpdate": "none"
+    },
+    "logicLevel": {
+      "type": "boolean",
+      "default": false,
+      "simulationUpdate": "none"
+    },
+    "maxDrainCurrentAmps": {
+      "type": "number",
+      "default": 9.2,
+      "minimum": 0,
+      "maximum": 100,
+      "unit": "A",
+      "simulationUpdate": "rerun"
+    },
+    "gateThresholdVolts": {
+      "type": "number",
+      "default": 4,
+      "minimum": 0,
+      "maximum": 10,
+      "unit": "V",
+      "simulationUpdate": "rerun"
+    }
+  },
+  "terminals": [
+    {
+      "id": "drain",
+      "label": "D",
+      "type": "mosfet-drain"
+    },
+    {
+      "id": "gate",
+      "label": "G",
+      "type": "mosfet-gate"
+    },
+    {
+      "id": "source",
+      "label": "S",
+      "type": "mosfet-source"
+    }
+  ],
+  "electricalModel": {
+    "type": "mosfet",
+    "channel": "n",
+    "logicLevelProperty": "logicLevel",
+    "maxDrainCurrentProperty": "maxDrainCurrentAmps"
+  },
+  "visual": {
+    "type": "irf520-mosfet",
+    "title": "IRF520",
+    "className": "maker-mosfet",
+    "body": "N-MOS",
+    "width": 162,
+    "height": 108,
+    "controls": [
+      {
+        "type": "readout",
+        "className": "component-readout",
+        "label": "Id máx",
+        "property": "maxDrainCurrentAmps",
+        "unit": "A"
+      },
+      {
+        "type": "readout",
+        "className": "component-readout",
+        "label": "Vg(th)",
+        "property": "gateThresholdVolts",
+        "unit": "V"
+      }
+    ],
+    "palette": {
+      "group": "Semiconductors",
+      "subgroup": "MOSFETs",
+      "icon": "mosfet-icon",
+      "order": 110
+    },
+    "terminals": [
+      {
+        "id": "drain",
+        "label": "D",
+        "side": "top",
+        "x": 80,
+        "y": 0,
+        "kind": "signal"
+      },
+      {
+        "id": "gate",
+        "label": "G",
+        "side": "left",
+        "x": 0,
+        "y": 56,
+        "kind": "signal"
+      },
+      {
+        "id": "source",
+        "label": "S",
+        "side": "bottom",
+        "x": 80,
+        "y": 108,
+        "kind": "signal"
+      }
+    ]
+  }
+}

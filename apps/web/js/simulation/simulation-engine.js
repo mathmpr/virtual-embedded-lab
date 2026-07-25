@@ -11,6 +11,7 @@ import { solveElectricalState } from './electrical-solver.js';
 import { createSimulationBehaviorRegistry } from './behavior-registry.js';
 import {
   applyBuzzerStates,
+  applyAnalogVoltageInputs,
   applyButtonInputs,
   applyLightSensorInputs,
   applyRainSensorInputs,
@@ -36,7 +37,7 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
   const wasmSession = await createWasmFirmwareSession(runtime, wasmBase64);
   const program = programFromWasmConstants(wasmSession.constants);
   const diagnostics = formatFirmwareDiagnostics(wasmDiagnostics);
-  let inputBindings = { rainBindings: [], lightBindings: [], buttonBindings: [], buzzerBindings: [], waterBindings: [], sevenSegmentBindings: [] };
+  let inputBindings = { rainBindings: [], lightBindings: [], analogVoltageBindings: [], buttonBindings: [], buzzerBindings: [], waterBindings: [], sevenSegmentBindings: [] };
 
   await loadComponentContributionModules('simulationBehaviors');
   inputBindings = bindSimulationInputs({ graph, environment, runtime, clock, scheduler, program, diagnostics });
@@ -59,6 +60,7 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
     },
     updateAnalogVoltageValue(componentId, value) {
       environment.write(`${componentId}.analog-voltage`, normalizeEnvironmentValue('analog-voltage', value));
+      applyAnalogVoltageInputs({ runtime, environment, analogVoltageBindings: inputBindings.analogVoltageBindings });
     },
     updateWaterValue(componentId, value) {
       environment.write(`${componentId}.water`, normalizeEnvironmentValue('water', value));
@@ -79,6 +81,7 @@ export async function createProjectWasmSimulationSession({ state, nets, terminal
       applyWaterPumpSystems({ runtime, environment, clock, waterBindings: inputBindings.waterBindings });
       applyRainSensorInputs({ runtime, environment, rainBindings: inputBindings.rainBindings });
       applyLightSensorInputs({ runtime, environment, lightBindings: inputBindings.lightBindings });
+      applyAnalogVoltageInputs({ runtime, environment, analogVoltageBindings: inputBindings.analogVoltageBindings });
       applyButtonInputs({ runtime, buttonBindings: inputBindings.buttonBindings });
 
       const firmwareResult = wasmSession.runLoop({ loopIterations: 1, drainEvents: true });
@@ -158,6 +161,7 @@ export async function createProjectMultiWasmSimulationSession({ state, nets, ter
         applyWaterPumpSystems({ runtime: session.runtime, environment, clock, waterBindings: inputBindings.waterBindings ?? [] });
         applyRainSensorInputs({ runtime: session.runtime, environment, rainBindings: inputBindings.rainBindings ?? [] });
         applyLightSensorInputs({ runtime: session.runtime, environment, lightBindings: inputBindings.lightBindings ?? [] });
+        applyAnalogVoltageInputs({ runtime: session.runtime, environment, analogVoltageBindings: inputBindings.analogVoltageBindings ?? [] });
         applyButtonInputs({ runtime: session.runtime, buttonBindings: inputBindings.buttonBindings ?? [] });
 
         const result = session.wasmSession.runLoop({ loopIterations: 1, drainEvents: true });
@@ -498,9 +502,113 @@ function externalLedEvents({ graph, pinEvents }) {
         timeUs: event.timeUs
       });
     }
+
+    for (const led of switchedLedLoadsForPinNet({ graph, pinNet })) {
+      events.push({
+        componentId: led.id,
+        value: event.value === 'HIGH',
+        timeUs: event.timeUs
+      });
+    }
   }
 
   return events.sort((left, right) => left.timeUs - right.timeUs);
+}
+
+function switchedLedLoadsForPinNet({ graph, pinNet }) {
+  const leds = [];
+
+  for (const component of graph.components.values()) {
+    const controlledTerminals = controlledSwitchTerminalsForPinNet({ graph, pinNet, component });
+
+    for (const terminalId of controlledTerminals) {
+      leds.push(...ledLoadsConnectedToSwitchTerminal({ graph, componentId: component.id, terminalId }));
+    }
+  }
+
+  return uniqueComponents(leds);
+}
+
+function controlledSwitchTerminalsForPinNet({ graph, pinNet, component }) {
+  const model = component.electricalModel ?? {};
+
+  if (model.type === 'bjt-transistor' && pinNetControlsTerminal({ graph, pinNet, componentId: component.id, terminalId: 'base' })) {
+    return ['collector'];
+  }
+
+  if (model.type === 'mosfet' && pinNetControlsTerminal({ graph, pinNet, componentId: component.id, terminalId: 'gate' })) {
+    return ['drain'];
+  }
+
+  if (model.primitive === 'mosfet-module' && pinNetControlsTerminal({ graph, pinNet, componentId: component.id, terminalId: 'sig' })) {
+    return ['loadOut'];
+  }
+
+  if ((model.primitive === 'pc817' || model.type === 'optoisolator') && pinNetControlsTerminal({ graph, pinNet, componentId: component.id, terminalId: 'anode' })) {
+    return ['collector'];
+  }
+
+  if (model.type === 'darlington-array') {
+    const channels = Number(model.channels ?? component.properties.channels ?? 0);
+    return Array.from({ length: channels }, (_, index) => index + 1)
+      .filter((channel) => pinNetControlsTerminal({ graph, pinNet, componentId: component.id, terminalId: `in${channel}` }))
+      .map((channel) => `out${channel}`);
+  }
+
+  if (['relay', 'ssr'].includes(model.primitive)) {
+    const channels = Number(model.channels ?? component.properties.channels ?? 0);
+    return Array.from({ length: channels }, (_, index) => index + 1)
+      .filter((channel) => pinNetControlsTerminal({ graph, pinNet, componentId: component.id, terminalId: `in${channel}` }))
+      .map((channel) => `no${channel}`);
+  }
+
+  return [];
+}
+
+function pinNetControlsTerminal({ graph, pinNet, componentId, terminalId }) {
+  if (pinNet.terminals.some((terminal) => terminal.componentId === componentId && terminal.terminalId === terminalId)) {
+    return true;
+  }
+
+  for (const resistor of graph.findComponentsByElectricalPrimitive('resistor')) {
+    for (const resistorTerminalId of ['a', 'b']) {
+      const otherTerminalId = resistorTerminalId === 'a' ? 'b' : 'a';
+      const resistorOnPinNet = pinNet.terminals.some((terminal) => {
+        return terminal.componentId === resistor.id && terminal.terminalId === resistorTerminalId;
+      });
+
+      if (!resistorOnPinNet) {
+        continue;
+      }
+
+      if (graph.areConnected(
+        { componentId: resistor.id, terminalId: otherTerminalId },
+        { componentId, terminalId }
+      )) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function ledLoadsConnectedToSwitchTerminal({ graph, componentId, terminalId }) {
+  const net = graph.findTerminalNet(componentId, terminalId);
+
+  if (!net) {
+    return [];
+  }
+
+  return graph.findComponentsByElectricalPrimitive('led').filter((led) => {
+    const cathodeTerminal = led.electricalModel?.cathodeTerminal ?? 'cathode';
+
+    return net.terminals.some((terminal) => terminal.componentId === led.id && terminal.terminalId === cathodeTerminal);
+  });
+}
+
+function uniqueComponents(components) {
+  return [...new Map(components.map((component) => [component.id, component])).values()];
 }
 
 function buzzerEvents({ graph, pinEvents }) {

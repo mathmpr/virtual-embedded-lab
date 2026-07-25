@@ -1,0 +1,142 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "module.mosfet.power",
+    "name": "Power MOSFET Module",
+    "category": "module",
+    "subCategory": "mosfet-driver"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": [
+      "electrical",
+      "visual-state"
+    ],
+    "implemented": true,
+    "notes": [
+      "Educational electrical rules enabled: wiring, activation, floating inputs and current/voltage limit diagnostics."
+    ]
+  },
+  "properties": {
+    "activeHigh": {
+      "type": "boolean",
+      "default": true,
+      "simulationUpdate": "rerun"
+    },
+    "ratedCurrentAmps": {
+      "type": "number",
+      "default": 5,
+      "minimum": 0,
+      "maximum": 40,
+      "unit": "A",
+      "simulationUpdate": "rerun"
+    },
+    "ratedVoltageVolts": {
+      "type": "number",
+      "default": 24,
+      "minimum": 0,
+      "maximum": 60,
+      "unit": "V",
+      "simulationUpdate": "rerun"
+    }
+  },
+  "terminals": [
+    {
+      "id": "vcc",
+      "label": "VCC",
+      "type": "power-input"
+    },
+    {
+      "id": "gnd",
+      "label": "GND",
+      "type": "ground"
+    },
+    {
+      "id": "sig",
+      "label": "SIG",
+      "type": "digital-input"
+    },
+    {
+      "id": "loadIn",
+      "label": "LOAD+",
+      "type": "switched-input"
+    },
+    {
+      "id": "loadOut",
+      "label": "LOAD-",
+      "type": "switched-output"
+    }
+  ],
+  "electricalModel": {
+    "type": "low-side-switch-module",
+    "primitive": "mosfet-module",
+    "ratedCurrentProperty": "ratedCurrentAmps",
+    "ratedVoltageProperty": "ratedVoltageVolts"
+  },
+  "visual": {
+    "type": "power-mosfet-module",
+    "title": "MOSFET Module",
+    "className": "maker-power-mosfet-module",
+    "body": "DC LOAD",
+    "width": 188,
+    "height": 118,
+    "controls": [
+      {
+        "type": "readout",
+        "className": "component-readout",
+        "label": "I máx",
+        "property": "ratedCurrentAmps",
+        "unit": "A"
+      }
+    ],
+    "palette": {
+      "group": "Modules",
+      "subgroup": "MOSFET Drivers",
+      "icon": "mosfet-module-icon",
+      "order": 113
+    },
+    "terminals": [
+      {
+        "id": "vcc",
+        "label": "VCC",
+        "side": "left",
+        "x": 0,
+        "y": 28,
+        "kind": "power"
+      },
+      {
+        "id": "sig",
+        "label": "SIG",
+        "side": "left",
+        "x": 0,
+        "y": 58,
+        "kind": "signal"
+      },
+      {
+        "id": "loadIn",
+        "label": "LOAD+",
+        "side": "right",
+        "x": 188,
+        "y": 42,
+        "kind": "signal"
+      },
+      {
+        "id": "loadOut",
+        "label": "LOAD-",
+        "side": "right",
+        "x": 188,
+        "y": 78,
+        "kind": "signal"
+      },
+      {
+        "id": "gnd",
+        "label": "GND",
+        "side": "bottom",
+        "x": 94,
+        "y": 118,
+        "kind": "ground"
+      }
+    ]
+  }
+}

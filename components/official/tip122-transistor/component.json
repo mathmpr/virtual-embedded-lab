@@ -1,0 +1,126 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "transistor.bjt.tip122",
+    "name": "TIP122 NPN Darlington Transistor",
+    "category": "semiconductor",
+    "subCategory": "bjt-pnp"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": [
+      "electrical",
+      "visual-state"
+    ],
+    "implemented": true,
+    "notes": [
+      "Educational electrical rules enabled: wiring, activation, floating inputs and current/voltage limit diagnostics."
+    ]
+  },
+  "properties": {
+    "polarity": {
+      "type": "string",
+      "default": "NPN Darlington",
+      "simulationUpdate": "none"
+    },
+    "package": {
+      "type": "string",
+      "default": "TO-220",
+      "simulationUpdate": "none"
+    },
+    "maxCollectorCurrentAmps": {
+      "type": "number",
+      "default": 5,
+      "minimum": 0,
+      "maximum": 10,
+      "unit": "A",
+      "simulationUpdate": "rerun"
+    },
+    "gainHfe": {
+      "type": "number",
+      "default": 1000,
+      "minimum": 1,
+      "maximum": 5000,
+      "simulationUpdate": "rerun"
+    }
+  },
+  "terminals": [
+    {
+      "id": "collector",
+      "label": "C",
+      "type": "transistor-collector"
+    },
+    {
+      "id": "base",
+      "label": "B",
+      "type": "transistor-base"
+    },
+    {
+      "id": "emitter",
+      "label": "E",
+      "type": "transistor-emitter"
+    }
+  ],
+  "electricalModel": {
+    "type": "bjt-transistor",
+    "polarity": "NPN Darlington",
+    "maxCollectorCurrentProperty": "maxCollectorCurrentAmps",
+    "gainProperty": "gainHfe"
+  },
+  "visual": {
+    "type": "tip122-transistor",
+    "title": "TIP122",
+    "className": "maker-bjt-transistor",
+    "body": "NPN Darlington",
+    "width": 150,
+    "height": 104,
+    "controls": [
+      {
+        "type": "readout",
+        "className": "component-readout",
+        "label": "Tipo",
+        "property": "polarity"
+      },
+      {
+        "type": "readout",
+        "className": "component-readout",
+        "label": "Ic máx",
+        "property": "maxCollectorCurrentAmps",
+        "unit": "A"
+      }
+    ],
+    "palette": {
+      "group": "Semiconductors",
+      "subgroup": "BJT NPN",
+      "icon": "transistor-icon",
+      "order": 102
+    },
+    "terminals": [
+      {
+        "id": "collector",
+        "label": "C",
+        "side": "top",
+        "x": 45,
+        "y": 0,
+        "kind": "signal"
+      },
+      {
+        "id": "base",
+        "label": "B",
+        "side": "left",
+        "x": 0,
+        "y": 54,
+        "kind": "signal"
+      },
+      {
+        "id": "emitter",
+        "label": "E",
+        "side": "bottom",
+        "x": 105,
+        "y": 104,
+        "kind": "signal"
+      }
+    ]
+  }
+}

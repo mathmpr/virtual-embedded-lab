@@ -1795,6 +1795,37 @@ test('Servo sweep example updates servo angle through Servo WASM shim', async ()
   assert.match(serialText(second), /Servo angle: 90/);
 });
 
+test('maker analog input example updates direct analogRead sources live', async () => {
+  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
+  const project = readExampleProject('examples/arduino-maker-analog-inputs/project.json');
+  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
+    constants: { LED_BUILTIN: 13 }
+  });
+  const components = componentsFromProject(project);
+  const session = await createProjectWasmSimulationSession({
+    state: { components },
+    nets: project.connections.map((connection) => testNet(connection.id, connection.terminals)),
+    terminalKind: powerGroundTerminalKind,
+    wasmBase64: wasm.wasmBase64
+  });
+
+  const initial = session.runFrame();
+  session.updateAnalogVoltageValue('pot-1', { enabled: true, voltageVolts: 4.5 });
+  session.updateAnalogVoltageValue('lm35-1', { enabled: true, voltageVolts: 0.5 });
+  session.updateAnalogVoltageValue('soil-1', { enabled: true, voltageVolts: 1.0 });
+  const updated = session.runFrame();
+  const initialText = serialText(initial);
+  const updatedText = serialText(updated);
+
+  assert.equal(wasm.ok, true);
+  assert.match(initialText, /POT raw: 512/);
+  assert.match(initialText, /LM35 C: 24/);
+  assert.match(initialText, /SOIL raw: 460/);
+  assert.match(updatedText, /POT raw: 921/);
+  assert.match(updatedText, /LM35 C: 49/);
+  assert.match(updatedText, /SOIL raw: 205/);
+});
+
 async function runHcsr04WasmDistance(wasmBase64, valueCm) {
   const session = await createHcsr04WasmSession(wasmBase64, valueCm);
 
@@ -1978,6 +2009,7 @@ function phasePower(text, phase) {
 function officialManifestByIdentity(identityId) {
   const manifestPath = {
     'board.esp32.devkit': 'components/official/esp32-devkit/component.json',
+    'board.arduino.uno': 'components/official/arduino-uno/component.json',
     'converter.adc.ads1115': 'components/official/ads1115/component.json',
     'board.esp32s3.devkit': 'components/official/esp32-s3-devkit/component.json',
     'display.rgb-matrix.hub75.64x32': 'components/official/hub75-rgb-matrix-64x32/component.json',
@@ -1988,7 +2020,10 @@ function officialManifestByIdentity(identityId) {
     'environment.ac-mains': 'components/official/ac-mains-environment/component.json',
     'environment.ac-load': 'components/official/ac-load/component.json',
     'sensor.voltage.zmpt101b': 'components/official/zmpt101b-voltage-sensor/component.json',
-    'sensor.current.sct': 'components/official/sct-current-transformer/component.json'
+    'sensor.current.sct': 'components/official/sct-current-transformer/component.json',
+    'input.analog.potentiometer.10k': 'components/official/potentiometer-10k/component.json',
+    'sensor.temperature.lm35': 'components/official/lm35-temperature-sensor/component.json',
+    'sensor.soil-moisture.capacitive': 'components/official/capacitive-soil-moisture-sensor/component.json'
   }[identityId];
 
   if (!manifestPath) {

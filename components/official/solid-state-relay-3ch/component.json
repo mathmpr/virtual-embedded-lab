@@ -1,0 +1,273 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "module.relay.ssr.three-channel",
+    "name": "3-Channel Solid State Relay Module",
+    "category": "module",
+    "subCategory": "relay"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": [
+      "electrical",
+      "visual-state"
+    ],
+    "implemented": true,
+    "notes": [
+      "Educational electrical rules enabled: wiring, activation, floating inputs and current/voltage limit diagnostics."
+    ]
+  },
+  "properties": {
+    "channels": {
+      "type": "number",
+      "default": 3,
+      "minimum": 3,
+      "maximum": 3,
+      "simulationUpdate": "none"
+    },
+    "activeHigh": {
+      "type": "boolean",
+      "default": true,
+      "simulationUpdate": "rerun"
+    },
+    "ratedCurrentAmps": {
+      "type": "number",
+      "default": 2,
+      "minimum": 0,
+      "maximum": 40,
+      "unit": "A",
+      "simulationUpdate": "rerun"
+    },
+    "ratedVoltageVolts": {
+      "type": "number",
+      "default": 240,
+      "minimum": 0,
+      "maximum": 250,
+      "unit": "V",
+      "simulationUpdate": "rerun"
+    }
+  },
+  "terminals": [
+    {
+      "id": "vcc",
+      "label": "VCC",
+      "type": "power-input"
+    },
+    {
+      "id": "gnd",
+      "label": "GND",
+      "type": "ground"
+    },
+    {
+      "id": "in1",
+      "label": "IN1",
+      "type": "digital-input"
+    },
+    {
+      "id": "in2",
+      "label": "IN2",
+      "type": "digital-input"
+    },
+    {
+      "id": "in3",
+      "label": "IN3",
+      "type": "digital-input"
+    },
+    {
+      "id": "com1",
+      "label": "COM1",
+      "type": "relay-common"
+    },
+    {
+      "id": "com2",
+      "label": "COM2",
+      "type": "relay-common"
+    },
+    {
+      "id": "com3",
+      "label": "COM3",
+      "type": "relay-common"
+    },
+    {
+      "id": "no1",
+      "label": "NO1",
+      "type": "relay-normally-open"
+    },
+    {
+      "id": "no2",
+      "label": "NO2",
+      "type": "relay-normally-open"
+    },
+    {
+      "id": "no3",
+      "label": "NO3",
+      "type": "relay-normally-open"
+    },
+    {
+      "id": "nc1",
+      "label": "NC1",
+      "type": "relay-normally-closed"
+    },
+    {
+      "id": "nc2",
+      "label": "NC2",
+      "type": "relay-normally-closed"
+    },
+    {
+      "id": "nc3",
+      "label": "NC3",
+      "type": "relay-normally-closed"
+    }
+  ],
+  "electricalModel": {
+    "type": "relay-module",
+    "primitive": "ssr",
+    "channels": 3,
+    "ratedCurrentProperty": "ratedCurrentAmps",
+    "ratedVoltageProperty": "ratedVoltageVolts"
+  },
+  "visual": {
+    "type": "solid-state-relay-3ch",
+    "title": "3-Channel Solid State Relay",
+    "className": "maker-ssr-module",
+    "body": "3CH SSR",
+    "width": 220,
+    "height": 132,
+    "controls": [
+      {
+        "type": "readout",
+        "className": "component-readout",
+        "label": "Canais",
+        "property": "channels"
+      },
+      {
+        "type": "readout",
+        "className": "component-readout",
+        "label": "I máx",
+        "property": "ratedCurrentAmps",
+        "unit": "A"
+      }
+    ],
+    "palette": {
+      "group": "Modules",
+      "subgroup": "Solid State Relays",
+      "icon": "relay-icon",
+      "order": 120
+    },
+    "terminals": [
+      {
+        "id": "vcc",
+        "label": "VCC",
+        "side": "left",
+        "x": 0,
+        "y": 24,
+        "kind": "power"
+      },
+      {
+        "id": "in1",
+        "label": "IN1",
+        "side": "left",
+        "x": 0,
+        "y": 44,
+        "kind": "signal"
+      },
+      {
+        "id": "in2",
+        "label": "IN2",
+        "side": "left",
+        "x": 0,
+        "y": 62,
+        "kind": "signal"
+      },
+      {
+        "id": "in3",
+        "label": "IN3",
+        "side": "left",
+        "x": 0,
+        "y": 80,
+        "kind": "signal"
+      },
+      {
+        "id": "com1",
+        "label": "C1",
+        "side": "right",
+        "x": 220,
+        "y": 30,
+        "kind": "signal"
+      },
+      {
+        "id": "no1",
+        "label": "NO1",
+        "side": "right",
+        "x": 220,
+        "y": 40,
+        "kind": "signal"
+      },
+      {
+        "id": "nc1",
+        "label": "NC1",
+        "side": "right",
+        "x": 220,
+        "y": 50,
+        "kind": "signal"
+      },
+      {
+        "id": "com2",
+        "label": "C2",
+        "side": "right",
+        "x": 220,
+        "y": 50,
+        "kind": "signal"
+      },
+      {
+        "id": "no2",
+        "label": "NO2",
+        "side": "right",
+        "x": 220,
+        "y": 60,
+        "kind": "signal"
+      },
+      {
+        "id": "nc2",
+        "label": "NC2",
+        "side": "right",
+        "x": 220,
+        "y": 70,
+        "kind": "signal"
+      },
+      {
+        "id": "com3",
+        "label": "C3",
+        "side": "right",
+        "x": 220,
+        "y": 70,
+        "kind": "signal"
+      },
+      {
+        "id": "no3",
+        "label": "NO3",
+        "side": "right",
+        "x": 220,
+        "y": 80,
+        "kind": "signal"
+      },
+      {
+        "id": "nc3",
+        "label": "NC3",
+        "side": "right",
+        "x": 220,
+        "y": 90,
+        "kind": "signal"
+      },
+      {
+        "id": "gnd",
+        "label": "GND",
+        "side": "bottom",
+        "x": 110,
+        "y": 132,
+        "kind": "ground"
+      }
+    ]
+  }
+}

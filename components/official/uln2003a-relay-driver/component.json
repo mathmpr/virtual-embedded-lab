@@ -1,0 +1,277 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "driver.relay.uln2003a",
+    "name": "ULN2003A Darlington Driver",
+    "category": "driver",
+    "subCategory": "relay-driver"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": [
+      "electrical",
+      "visual-state"
+    ],
+    "implemented": true,
+    "notes": [
+      "Educational electrical rules enabled: wiring, activation, floating inputs and current/voltage limit diagnostics."
+    ]
+  },
+  "properties": {
+    "channels": {
+      "type": "number",
+      "default": 7,
+      "minimum": 7,
+      "maximum": 7,
+      "simulationUpdate": "none"
+    },
+    "maxChannelCurrentAmps": {
+      "type": "number",
+      "default": 0.5,
+      "minimum": 0,
+      "maximum": 1,
+      "unit": "A",
+      "simulationUpdate": "rerun"
+    }
+  },
+  "terminals": [
+    {
+      "id": "gnd",
+      "label": "GND",
+      "type": "ground"
+    },
+    {
+      "id": "com",
+      "label": "COM",
+      "type": "flyback-common"
+    },
+    {
+      "id": "in1",
+      "label": "IN1",
+      "type": "digital-input"
+    },
+    {
+      "id": "in2",
+      "label": "IN2",
+      "type": "digital-input"
+    },
+    {
+      "id": "in3",
+      "label": "IN3",
+      "type": "digital-input"
+    },
+    {
+      "id": "in4",
+      "label": "IN4",
+      "type": "digital-input"
+    },
+    {
+      "id": "in5",
+      "label": "IN5",
+      "type": "digital-input"
+    },
+    {
+      "id": "in6",
+      "label": "IN6",
+      "type": "digital-input"
+    },
+    {
+      "id": "in7",
+      "label": "IN7",
+      "type": "digital-input"
+    },
+    {
+      "id": "out1",
+      "label": "OUT1",
+      "type": "open-collector-output"
+    },
+    {
+      "id": "out2",
+      "label": "OUT2",
+      "type": "open-collector-output"
+    },
+    {
+      "id": "out3",
+      "label": "OUT3",
+      "type": "open-collector-output"
+    },
+    {
+      "id": "out4",
+      "label": "OUT4",
+      "type": "open-collector-output"
+    },
+    {
+      "id": "out5",
+      "label": "OUT5",
+      "type": "open-collector-output"
+    },
+    {
+      "id": "out6",
+      "label": "OUT6",
+      "type": "open-collector-output"
+    },
+    {
+      "id": "out7",
+      "label": "OUT7",
+      "type": "open-collector-output"
+    }
+  ],
+  "electricalModel": {
+    "type": "darlington-array",
+    "channels": 7,
+    "maxChannelCurrentProperty": "maxChannelCurrentAmps"
+  },
+  "visual": {
+    "type": "uln2003a-relay-driver",
+    "title": "ULN2003A",
+    "className": "maker-uln-driver",
+    "body": "7CH sink driver",
+    "width": 230,
+    "height": 150,
+    "controls": [
+      {
+        "type": "readout",
+        "className": "component-readout",
+        "label": "Canais",
+        "property": "channels"
+      }
+    ],
+    "palette": {
+      "group": "Drivers",
+      "subgroup": "Relay Drivers",
+      "icon": "driver-icon",
+      "order": 123
+    },
+    "terminals": [
+      {
+        "id": "gnd",
+        "label": "GND",
+        "side": "bottom",
+        "x": 56,
+        "y": 150,
+        "kind": "ground"
+      },
+      {
+        "id": "com",
+        "label": "COM",
+        "side": "top",
+        "x": 56,
+        "y": 0,
+        "kind": "signal"
+      },
+      {
+        "id": "in1",
+        "label": "I1",
+        "side": "left",
+        "x": 0,
+        "y": 24,
+        "kind": "signal"
+      },
+      {
+        "id": "in2",
+        "label": "I2",
+        "side": "left",
+        "x": 0,
+        "y": 38,
+        "kind": "signal"
+      },
+      {
+        "id": "in3",
+        "label": "I3",
+        "side": "left",
+        "x": 0,
+        "y": 52,
+        "kind": "signal"
+      },
+      {
+        "id": "in4",
+        "label": "I4",
+        "side": "left",
+        "x": 0,
+        "y": 66,
+        "kind": "signal"
+      },
+      {
+        "id": "in5",
+        "label": "I5",
+        "side": "left",
+        "x": 0,
+        "y": 80,
+        "kind": "signal"
+      },
+      {
+        "id": "in6",
+        "label": "I6",
+        "side": "left",
+        "x": 0,
+        "y": 94,
+        "kind": "signal"
+      },
+      {
+        "id": "in7",
+        "label": "I7",
+        "side": "left",
+        "x": 0,
+        "y": 108,
+        "kind": "signal"
+      },
+      {
+        "id": "out1",
+        "label": "O1",
+        "side": "right",
+        "x": 230,
+        "y": 24,
+        "kind": "signal"
+      },
+      {
+        "id": "out2",
+        "label": "O2",
+        "side": "right",
+        "x": 230,
+        "y": 38,
+        "kind": "signal"
+      },
+      {
+        "id": "out3",
+        "label": "O3",
+        "side": "right",
+        "x": 230,
+        "y": 52,
+        "kind": "signal"
+      },
+      {
+        "id": "out4",
+        "label": "O4",
+        "side": "right",
+        "x": 230,
+        "y": 66,
+        "kind": "signal"
+      },
+      {
+        "id": "out5",
+        "label": "O5",
+        "side": "right",
+        "x": 230,
+        "y": 80,
+        "kind": "signal"
+      },
+      {
+        "id": "out6",
+        "label": "O6",
+        "side": "right",
+        "x": 230,
+        "y": 94,
+        "kind": "signal"
+      },
+      {
+        "id": "out7",
+        "label": "O7",
+        "side": "right",
+        "x": 230,
+        "y": 108,
+        "kind": "signal"
+      }
+    ]
+  }
+}

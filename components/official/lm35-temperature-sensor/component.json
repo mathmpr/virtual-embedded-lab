@@ -1,0 +1,54 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "sensor.temperature.lm35",
+    "name": "LM35 Temperature Sensor",
+    "category": "sensor",
+    "subCategory": "temperature"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment", "electrical", "firmware", "visual-state"],
+    "implemented": true,
+    "notes": ["The temperature slider is converted to the LM35 10 mV/°C analog output."]
+  },
+  "properties": {
+    "enabled": { "type": "boolean", "default": true, "simulationUpdate": "live" },
+    "voltageVolts": { "type": "number", "default": 0.25, "minimum": 0, "maximum": 1, "unit": "V", "simulationUpdate": "live" }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "out", "label": "OUT", "type": "analog-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" }
+  ],
+  "behavior": {
+    "type": "analog-voltage-source",
+    "channel": "analog-voltage",
+    "voltageProperty": "voltageVolts",
+    "activeProperty": "enabled",
+    "outputTerminal": "out"
+  },
+  "electricalModel": {
+    "type": "voltage-source",
+    "outputVoltageProperty": "voltageVolts"
+  },
+  "visual": {
+    "type": "lm35-temperature-sensor",
+    "title": "LM35",
+    "className": "maker-lm35",
+    "body": "25 °C",
+    "width": 176,
+    "height": 112,
+    "controls": [
+      { "type": "readout", "className": "analog-readout", "label": "Vout", "property": "voltageVolts", "unit": "V" },
+      { "type": "range", "property": "voltageVolts" }
+    ],
+    "palette": { "group": "Sensors", "subgroup": "Temperature", "icon": "temperature-icon", "order": 59 },
+    "terminals": [
+      { "id": "vcc", "label": "VCC", "side": "left", "x": 0, "y": 28, "kind": "power" },
+      { "id": "out", "label": "OUT", "side": "right", "x": 176, "y": 56, "kind": "signal" },
+      { "id": "gnd", "label": "GND", "side": "bottom", "x": 88, "y": 112, "kind": "ground" }
+    ]
+  }
+}

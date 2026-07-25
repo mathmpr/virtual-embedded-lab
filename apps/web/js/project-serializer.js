@@ -1,4 +1,5 @@
 import {
+  componentDefinitions,
   componentIdByType,
   nextCounterFromIds,
   parseTerminalReference,
@@ -78,7 +79,10 @@ export function projectToSnapshot(project) {
       type,
       x: component.position.x,
       y: component.position.y,
-      properties: { ...component.properties }
+      properties: {
+        ...(componentDefinitions[type]?.properties ?? {}),
+        ...(component.properties ?? {})
+      }
     };
   });
 

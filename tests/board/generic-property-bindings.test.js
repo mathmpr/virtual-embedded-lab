@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { createComponentBinder } from '../../apps/web/js/board/component-binder.js';
 import { createComponentState } from '../../apps/web/js/board/component-state.js';
 import { createInspectorPanel } from '../../apps/web/js/board/inspector-panel.js';
-import { componentDefinitionFromManifest } from '../../apps/web/js/components.js';
+import { componentDefinitionFromManifest, installComponentCatalog } from '../../apps/web/js/components.js';
+import { projectToSnapshot } from '../../apps/web/js/project-serializer.js';
 
 test('inline controls update component properties through data-property generically', () => {
   const definition = fakeDefinition();
@@ -113,8 +114,34 @@ test('simple manifest component can render and bind without board-editor changes
   assert.deepEqual(calls, ['inspector-sync', 'signals', 'history']);
 });
 
+test('projectToSnapshot fills missing component properties from manifest defaults', () => {
+  installComponentCatalog([fakeManifest()], { remember: false });
+
+  const snapshot = projectToSnapshot({
+    schemaVersion: '1.0.0',
+    components: [
+      { id: 'simple-1', componentId: 'test.simple', position: { x: 10, y: 20 }, properties: {} }
+    ],
+    connections: [],
+    code: {
+      entry: 'main.ino',
+      files: { 'main.ino': '' }
+    }
+  });
+
+  assert.deepEqual(snapshot.components[0].properties, {
+    enabled: false,
+    levelPercent: 50,
+    label: 'fake'
+  });
+});
+
 function fakeDefinition() {
-  return componentDefinitionFromManifest({
+  return componentDefinitionFromManifest(fakeManifest());
+}
+
+function fakeManifest() {
+  return {
     schemaVersion: '1.0.0',
     identity: { id: 'test.simple', name: 'Simple Fake', category: 'test' },
     simulation: { kind: 'visual-only', effects: [], implemented: true },
@@ -136,7 +163,7 @@ function fakeDefinition() {
       ],
       terminals: [{ id: 'sig', side: 'right', x: 100, y: 40, kind: 'signal' }]
     }
-  });
+  };
 }
 
 function fakeComponent(definition) {

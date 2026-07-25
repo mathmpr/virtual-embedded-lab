@@ -1,0 +1,55 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "sensor.vibration.sw420",
+    "name": "SW-420 Vibration Sensor",
+    "category": "sensor",
+    "subCategory": "vibration"
+  },
+  "simulation": {
+    "kind": "behavioral-sensor",
+    "effects": ["firmware", "electrical", "visual-state"],
+    "implemented": true
+  },
+  "properties": {
+    "pressed": { "type": "boolean", "default": false, "simulationUpdate": "live" },
+    "activeHigh": { "type": "boolean", "default": true, "simulationUpdate": "rerun" }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "out", "label": "DO", "type": "digital-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" }
+  ],
+  "behavior": {
+    "type": "momentary-button",
+    "outputTerminal": "out",
+    "activeProperty": "pressed",
+    "activeHighProperty": "activeHigh"
+  },
+  "electricalModel": {
+    "type": "sensor-module",
+    "logicVoltage": 5,
+    "recommendedVoltageVolts": 5,
+    "inputCurrentAmps": 0.005,
+    "maximumCurrentAmps": 0.02
+  },
+  "visual": {
+    "type": "vibration-sw420",
+    "title": "SW-420",
+    "className": "maker-vibration",
+    "body": "QUIET",
+    "width": 170,
+    "height": 104,
+    "controls": [
+      { "type": "readout", "className": "button-readout", "label": "Vib", "property": "pressed", "format": "onOff" },
+      { "type": "pulse", "label": "Tap", "property": "pressed", "durationMs": 180 }
+    ],
+    "palette": { "group": "Sensors", "subgroup": "Motion", "icon": "vibration-icon", "order": 74 },
+    "terminals": [
+      { "id": "vcc", "label": "VCC", "side": "left", "x": 0, "y": 28, "kind": "power" },
+      { "id": "out", "label": "DO", "side": "right", "x": 170, "y": 52, "kind": "signal" },
+      { "id": "gnd", "label": "GND", "side": "bottom", "x": 85, "y": 104, "kind": "ground" }
+    ]
+  }
+}

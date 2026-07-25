@@ -1,5 +1,6 @@
 void pinMode(int pin, int mode) { __vl_pinMode(pin, mode); }
 void digitalWrite(int pin, int value) { __vl_digitalWrite(pin, value); }
+void analogWrite(int pin, int value) { __vl_analogWrite(pin, value); }
 int digitalRead(int pin) { return __vl_digitalRead(pin); }
 int analogRead(int pin) { return __vl_analogRead(pin); }
 void delay(unsigned long milliseconds) { __vl_delay(milliseconds); }

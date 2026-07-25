@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "ESP8266 LDR RGB Daylight",
+  "board": {
+    "width": 1500,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    { "id": "esp8266-1", "componentId": "board.esp8266.nodemcu", "position": { "x": 120, "y": 220 }, "properties": {} },
+    { "id": "ldr-1", "componentId": "sensor.light.ldr", "position": { "x": 510, "y": 180 }, "properties": { "darkResistanceOhms": 100000, "brightResistanceOhms": 1000, "gamma": 0.7, "responseMs": 50 } },
+    { "id": "ldr-pulldown-1", "componentId": "electronic.resistor", "position": { "x": 510, "y": 350 }, "properties": { "resistanceOhms": 10000 } },
+    { "id": "light-1", "componentId": "environment.light-level", "position": { "x": 510, "y": 520 }, "properties": { "enabled": true, "intensityPercent": 80 } },
+    { "id": "rgb-1", "componentId": "electronic.led.rgb.common-cathode", "position": { "x": 1020, "y": 260 }, "properties": {} },
+    { "id": "r-red-1", "componentId": "electronic.resistor", "position": { "x": 780, "y": 210 }, "properties": { "resistanceOhms": 220 } },
+    { "id": "r-green-1", "componentId": "electronic.resistor", "position": { "x": 780, "y": 300 }, "properties": { "resistanceOhms": 220 } },
+    { "id": "r-blue-1", "componentId": "electronic.resistor", "position": { "x": 780, "y": 390 }, "properties": { "resistanceOhms": 220 } }
+  ],
+  "connections": [
+    { "id": "net-3v3", "color": "#f05252", "terminals": ["esp8266-1.3v3", "ldr-1.a"] },
+    { "id": "net-ldr-midpoint", "color": "#ffb454", "terminals": ["ldr-1.b", "ldr-pulldown-1.a", "esp8266-1.a0"] },
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["esp8266-1.gnd", "ldr-pulldown-1.b", "rgb-1.cathode"] },
+    { "id": "net-red-drive", "color": "#f44747", "terminals": ["esp8266-1.d1", "r-red-1.a"] },
+    { "id": "net-red-led", "color": "#f44747", "terminals": ["r-red-1.b", "rgb-1.red"] },
+    { "id": "net-green-drive", "color": "#50e07d", "terminals": ["esp8266-1.d2", "r-green-1.a"] },
+    { "id": "net-green-led", "color": "#50e07d", "terminals": ["r-green-1.b", "rgb-1.green"] },
+    { "id": "net-blue-drive", "color": "#5c9dff", "terminals": ["esp8266-1.d5", "r-blue-1.a"] },
+    { "id": "net-blue-led", "color": "#5c9dff", "terminals": ["r-blue-1.b", "rgb-1.blue"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": { "path": "./firmware/main.ino" }
+    }
+  }
+}

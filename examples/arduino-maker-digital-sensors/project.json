@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Arduino Maker Digital Sensors",
+  "board": {
+    "width": 1500,
+    "height": 900,
+    "gridSize": 10
+  },
+  "components": [
+    { "id": "arduino-1", "componentId": "board.arduino.uno", "position": { "x": 80, "y": 180 }, "properties": {} },
+    { "id": "pir-1", "componentId": "sensor.motion.pir.hc-sr501", "position": { "x": 520, "y": 40 }, "properties": { "pressed": false, "activeHigh": true } },
+    { "id": "touch-1", "componentId": "input.touch.ttp223", "position": { "x": 760, "y": 40 }, "properties": { "pressed": false, "activeHigh": true } },
+    { "id": "tilt-1", "componentId": "sensor.position.tilt-switch", "position": { "x": 520, "y": 190 }, "properties": { "pressed": false, "activeHigh": true } },
+    { "id": "vibration-1", "componentId": "sensor.vibration.sw420", "position": { "x": 760, "y": 190 }, "properties": { "pressed": false, "activeHigh": true } },
+    { "id": "hall-1", "componentId": "sensor.magnetic.hall.a3144", "position": { "x": 520, "y": 340 }, "properties": { "pressed": false, "activeHigh": true } },
+    { "id": "reed-1", "componentId": "sensor.magnetic.reed-switch", "position": { "x": 760, "y": 340 }, "properties": { "pressed": false, "activeHigh": true } },
+    { "id": "ir-1", "componentId": "sensor.obstacle.ir", "position": { "x": 520, "y": 490 }, "properties": { "pressed": false, "activeHigh": true } },
+    { "id": "switch-1", "componentId": "input.switch.slide", "position": { "x": 760, "y": 490 }, "properties": { "pressed": false, "activeHigh": true } }
+  ],
+  "connections": [
+    { "id": "net-vcc", "color": "#f05252", "terminals": ["arduino-1.5v", "pir-1.vcc", "touch-1.vcc", "tilt-1.vcc", "vibration-1.vcc", "hall-1.vcc", "reed-1.vcc", "ir-1.vcc", "switch-1.vcc"] },
+    { "id": "net-gnd", "color": "#f5f7fa", "terminals": ["arduino-1.gnd", "pir-1.gnd", "touch-1.gnd", "tilt-1.gnd", "vibration-1.gnd", "hall-1.gnd", "reed-1.gnd", "ir-1.gnd", "switch-1.gnd"] },
+    { "id": "net-pir", "color": "#4c8dff", "terminals": ["arduino-1.d2", "pir-1.out"] },
+    { "id": "net-touch", "color": "#4c8dff", "terminals": ["arduino-1.d3", "touch-1.out"] },
+    { "id": "net-tilt", "color": "#4c8dff", "terminals": ["arduino-1.d4", "tilt-1.out"] },
+    { "id": "net-vibration", "color": "#4c8dff", "terminals": ["arduino-1.d5", "vibration-1.out"] },
+    { "id": "net-hall", "color": "#4c8dff", "terminals": ["arduino-1.d6", "hall-1.out"] },
+    { "id": "net-reed", "color": "#4c8dff", "terminals": ["arduino-1.d7", "reed-1.out"] },
+    { "id": "net-ir", "color": "#4c8dff", "terminals": ["arduino-1.d8", "ir-1.out"] },
+    { "id": "net-switch", "color": "#4c8dff", "terminals": ["arduino-1.d9", "switch-1.out"] }
+  ],
+  "environmentConnections": [],
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": { "path": "./firmware/main.ino" }
+    }
+  }
+}

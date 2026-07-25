@@ -3,9 +3,9 @@
     {
       "id": "arduino-core",
       "headers": ["Arduino"],
-      "identifiers": ["pinMode", "digitalWrite", "digitalRead", "analogRead", "delay", "delayMicroseconds", "pulseIn", "millis", "micros", "shiftOut", "tone", "noTone", "random", "randomSeed"],
-      "imports": ["digitalRead", "digitalWrite", "pinMode", "analogRead", "delay", "delayMicroseconds", "millis", "micros", "pulseIn", "tone", "noTone"],
-      "apis": ["pinMode", "digitalWrite", "digitalRead", "analogRead", "delay", "delayMicroseconds", "pulseIn", "millis", "micros", "shiftOut", "tone", "noTone", "random", "randomSeed"]
+      "identifiers": ["pinMode", "digitalWrite", "analogWrite", "digitalRead", "analogRead", "delay", "delayMicroseconds", "pulseIn", "millis", "micros", "shiftOut", "tone", "noTone", "random", "randomSeed"],
+      "imports": ["digitalRead", "digitalWrite", "analogWrite", "pinMode", "analogRead", "delay", "delayMicroseconds", "millis", "micros", "pulseIn", "tone", "noTone"],
+      "apis": ["pinMode", "digitalWrite", "analogWrite", "digitalRead", "analogRead", "delay", "delayMicroseconds", "pulseIn", "millis", "micros", "shiftOut", "tone", "noTone", "random", "randomSeed"]
     },
     {
       "id": "serial",

@@ -1,0 +1,533 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "module.relay.electromechanical.eight-channel",
+    "name": "8-Channel Electromechanical Relay Module",
+    "category": "module",
+    "subCategory": "relay"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": [
+      "electrical",
+      "visual-state"
+    ],
+    "implemented": true,
+    "notes": [
+      "Educational electrical rules enabled: wiring, activation, floating inputs and current/voltage limit diagnostics."
+    ]
+  },
+  "properties": {
+    "channels": {
+      "type": "number",
+      "default": 8,
+      "minimum": 8,
+      "maximum": 8,
+      "simulationUpdate": "none"
+    },
+    "activeHigh": {
+      "type": "boolean",
+      "default": true,
+      "simulationUpdate": "rerun"
+    },
+    "ratedCurrentAmps": {
+      "type": "number",
+      "default": 10,
+      "minimum": 0,
+      "maximum": 40,
+      "unit": "A",
+      "simulationUpdate": "rerun"
+    },
+    "ratedVoltageVolts": {
+      "type": "number",
+      "default": 30,
+      "minimum": 0,
+      "maximum": 250,
+      "unit": "V",
+      "simulationUpdate": "rerun"
+    }
+  },
+  "terminals": [
+    {
+      "id": "vcc",
+      "label": "VCC",
+      "type": "power-input"
+    },
+    {
+      "id": "gnd",
+      "label": "GND",
+      "type": "ground"
+    },
+    {
+      "id": "in1",
+      "label": "IN1",
+      "type": "digital-input"
+    },
+    {
+      "id": "in2",
+      "label": "IN2",
+      "type": "digital-input"
+    },
+    {
+      "id": "in3",
+      "label": "IN3",
+      "type": "digital-input"
+    },
+    {
+      "id": "in4",
+      "label": "IN4",
+      "type": "digital-input"
+    },
+    {
+      "id": "in5",
+      "label": "IN5",
+      "type": "digital-input"
+    },
+    {
+      "id": "in6",
+      "label": "IN6",
+      "type": "digital-input"
+    },
+    {
+      "id": "in7",
+      "label": "IN7",
+      "type": "digital-input"
+    },
+    {
+      "id": "in8",
+      "label": "IN8",
+      "type": "digital-input"
+    },
+    {
+      "id": "com1",
+      "label": "COM1",
+      "type": "relay-common"
+    },
+    {
+      "id": "com2",
+      "label": "COM2",
+      "type": "relay-common"
+    },
+    {
+      "id": "com3",
+      "label": "COM3",
+      "type": "relay-common"
+    },
+    {
+      "id": "com4",
+      "label": "COM4",
+      "type": "relay-common"
+    },
+    {
+      "id": "com5",
+      "label": "COM5",
+      "type": "relay-common"
+    },
+    {
+      "id": "com6",
+      "label": "COM6",
+      "type": "relay-common"
+    },
+    {
+      "id": "com7",
+      "label": "COM7",
+      "type": "relay-common"
+    },
+    {
+      "id": "com8",
+      "label": "COM8",
+      "type": "relay-common"
+    },
+    {
+      "id": "no1",
+      "label": "NO1",
+      "type": "relay-normally-open"
+    },
+    {
+      "id": "no2",
+      "label": "NO2",
+      "type": "relay-normally-open"
+    },
+    {
+      "id": "no3",
+      "label": "NO3",
+      "type": "relay-normally-open"
+    },
+    {
+      "id": "no4",
+      "label": "NO4",
+      "type": "relay-normally-open"
+    },
+    {
+      "id": "no5",
+      "label": "NO5",
+      "type": "relay-normally-open"
+    },
+    {
+      "id": "no6",
+      "label": "NO6",
+      "type": "relay-normally-open"
+    },
+    {
+      "id": "no7",
+      "label": "NO7",
+      "type": "relay-normally-open"
+    },
+    {
+      "id": "no8",
+      "label": "NO8",
+      "type": "relay-normally-open"
+    },
+    {
+      "id": "nc1",
+      "label": "NC1",
+      "type": "relay-normally-closed"
+    },
+    {
+      "id": "nc2",
+      "label": "NC2",
+      "type": "relay-normally-closed"
+    },
+    {
+      "id": "nc3",
+      "label": "NC3",
+      "type": "relay-normally-closed"
+    },
+    {
+      "id": "nc4",
+      "label": "NC4",
+      "type": "relay-normally-closed"
+    },
+    {
+      "id": "nc5",
+      "label": "NC5",
+      "type": "relay-normally-closed"
+    },
+    {
+      "id": "nc6",
+      "label": "NC6",
+      "type": "relay-normally-closed"
+    },
+    {
+      "id": "nc7",
+      "label": "NC7",
+      "type": "relay-normally-closed"
+    },
+    {
+      "id": "nc8",
+      "label": "NC8",
+      "type": "relay-normally-closed"
+    }
+  ],
+  "electricalModel": {
+    "type": "relay-module",
+    "primitive": "relay",
+    "channels": 8,
+    "ratedCurrentProperty": "ratedCurrentAmps",
+    "ratedVoltageProperty": "ratedVoltageVolts"
+  },
+  "visual": {
+    "type": "electromechanical-relay-8ch",
+    "title": "8-Channel Relay",
+    "className": "maker-relay-module",
+    "body": "8CH RELAY",
+    "width": 220,
+    "height": 232,
+    "controls": [
+      {
+        "type": "readout",
+        "className": "component-readout",
+        "label": "Canais",
+        "property": "channels"
+      },
+      {
+        "type": "readout",
+        "className": "component-readout",
+        "label": "I máx",
+        "property": "ratedCurrentAmps",
+        "unit": "A"
+      }
+    ],
+    "palette": {
+      "group": "Modules",
+      "subgroup": "Relays",
+      "icon": "relay-icon",
+      "order": 117
+    },
+    "terminals": [
+      {
+        "id": "vcc",
+        "label": "VCC",
+        "side": "left",
+        "x": 0,
+        "y": 24,
+        "kind": "power"
+      },
+      {
+        "id": "in1",
+        "label": "IN1",
+        "side": "left",
+        "x": 0,
+        "y": 44,
+        "kind": "signal"
+      },
+      {
+        "id": "in2",
+        "label": "IN2",
+        "side": "left",
+        "x": 0,
+        "y": 62,
+        "kind": "signal"
+      },
+      {
+        "id": "in3",
+        "label": "IN3",
+        "side": "left",
+        "x": 0,
+        "y": 80,
+        "kind": "signal"
+      },
+      {
+        "id": "in4",
+        "label": "IN4",
+        "side": "left",
+        "x": 0,
+        "y": 98,
+        "kind": "signal"
+      },
+      {
+        "id": "in5",
+        "label": "IN5",
+        "side": "left",
+        "x": 0,
+        "y": 116,
+        "kind": "signal"
+      },
+      {
+        "id": "in6",
+        "label": "IN6",
+        "side": "left",
+        "x": 0,
+        "y": 134,
+        "kind": "signal"
+      },
+      {
+        "id": "in7",
+        "label": "IN7",
+        "side": "left",
+        "x": 0,
+        "y": 152,
+        "kind": "signal"
+      },
+      {
+        "id": "in8",
+        "label": "IN8",
+        "side": "left",
+        "x": 0,
+        "y": 170,
+        "kind": "signal"
+      },
+      {
+        "id": "com1",
+        "label": "C1",
+        "side": "right",
+        "x": 220,
+        "y": 30,
+        "kind": "signal"
+      },
+      {
+        "id": "no1",
+        "label": "NO1",
+        "side": "right",
+        "x": 220,
+        "y": 40,
+        "kind": "signal"
+      },
+      {
+        "id": "nc1",
+        "label": "NC1",
+        "side": "right",
+        "x": 220,
+        "y": 50,
+        "kind": "signal"
+      },
+      {
+        "id": "com2",
+        "label": "C2",
+        "side": "right",
+        "x": 220,
+        "y": 50,
+        "kind": "signal"
+      },
+      {
+        "id": "no2",
+        "label": "NO2",
+        "side": "right",
+        "x": 220,
+        "y": 60,
+        "kind": "signal"
+      },
+      {
+        "id": "nc2",
+        "label": "NC2",
+        "side": "right",
+        "x": 220,
+        "y": 70,
+        "kind": "signal"
+      },
+      {
+        "id": "com3",
+        "label": "C3",
+        "side": "right",
+        "x": 220,
+        "y": 70,
+        "kind": "signal"
+      },
+      {
+        "id": "no3",
+        "label": "NO3",
+        "side": "right",
+        "x": 220,
+        "y": 80,
+        "kind": "signal"
+      },
+      {
+        "id": "nc3",
+        "label": "NC3",
+        "side": "right",
+        "x": 220,
+        "y": 90,
+        "kind": "signal"
+      },
+      {
+        "id": "com4",
+        "label": "C4",
+        "side": "right",
+        "x": 220,
+        "y": 90,
+        "kind": "signal"
+      },
+      {
+        "id": "no4",
+        "label": "NO4",
+        "side": "right",
+        "x": 220,
+        "y": 100,
+        "kind": "signal"
+      },
+      {
+        "id": "nc4",
+        "label": "NC4",
+        "side": "right",
+        "x": 220,
+        "y": 110,
+        "kind": "signal"
+      },
+      {
+        "id": "com5",
+        "label": "C5",
+        "side": "right",
+        "x": 220,
+        "y": 110,
+        "kind": "signal"
+      },
+      {
+        "id": "no5",
+        "label": "NO5",
+        "side": "right",
+        "x": 220,
+        "y": 120,
+        "kind": "signal"
+      },
+      {
+        "id": "nc5",
+        "label": "NC5",
+        "side": "right",
+        "x": 220,
+        "y": 130,
+        "kind": "signal"
+      },
+      {
+        "id": "com6",
+        "label": "C6",
+        "side": "right",
+        "x": 220,
+        "y": 130,
+        "kind": "signal"
+      },
+      {
+        "id": "no6",
+        "label": "NO6",
+        "side": "right",
+        "x": 220,
+        "y": 140,
+        "kind": "signal"
+      },
+      {
+        "id": "nc6",
+        "label": "NC6",
+        "side": "right",
+        "x": 220,
+        "y": 150,
+        "kind": "signal"
+      },
+      {
+        "id": "com7",
+        "label": "C7",
+        "side": "right",
+        "x": 220,
+        "y": 150,
+        "kind": "signal"
+      },
+      {
+        "id": "no7",
+        "label": "NO7",
+        "side": "right",
+        "x": 220,
+        "y": 160,
+        "kind": "signal"
+      },
+      {
+        "id": "nc7",
+        "label": "NC7",
+        "side": "right",
+        "x": 220,
+        "y": 170,
+        "kind": "signal"
+      },
+      {
+        "id": "com8",
+        "label": "C8",
+        "side": "right",
+        "x": 220,
+        "y": 170,
+        "kind": "signal"
+      },
+      {
+        "id": "no8",
+        "label": "NO8",
+        "side": "right",
+        "x": 220,
+        "y": 180,
+        "kind": "signal"
+      },
+      {
+        "id": "nc8",
+        "label": "NC8",
+        "side": "right",
+        "x": 220,
+        "y": 190,
+        "kind": "signal"
+      },
+      {
+        "id": "gnd",
+        "label": "GND",
+        "side": "bottom",
+        "x": 110,
+        "y": 232,
+        "kind": "ground"
+      }
+    ]
+  }
+}

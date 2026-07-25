@@ -1,0 +1,72 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "electronic.led.rgb.common-cathode",
+    "name": "LED RGB common cathode",
+    "category": "semiconductor",
+    "subCategory": "led"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": ["electrical", "visual-state"],
+    "implemented": true,
+    "notes": ["Models three PWM-driven LED channels and combines them into a visible RGB color."]
+  },
+  "properties": {
+    "redForwardVoltage": { "type": "number", "default": 2, "unit": "V", "simulationUpdate": "rerun" },
+    "greenForwardVoltage": { "type": "number", "default": 2.1, "unit": "V", "simulationUpdate": "rerun" },
+    "blueForwardVoltage": { "type": "number", "default": 3, "unit": "V", "simulationUpdate": "rerun" },
+    "recommendedCurrent": { "type": "number", "default": 0.01, "unit": "A", "simulationUpdate": "rerun" },
+    "minimumVisibleCurrent": { "type": "number", "default": 0.001, "unit": "A", "simulationUpdate": "rerun" },
+    "maximumCurrent": { "type": "number", "default": 0.02, "unit": "A", "simulationUpdate": "rerun" }
+  },
+  "terminals": [
+    { "id": "red", "label": "R", "type": "passive" },
+    { "id": "green", "label": "G", "type": "passive" },
+    { "id": "blue", "label": "B", "type": "passive" },
+    { "id": "cathode", "label": "K", "type": "ground-capable" }
+  ],
+  "electricalModel": {
+    "type": "rgb-led",
+    "primitive": "rgb-led",
+    "commonMode": "cathode",
+    "commonTerminal": "cathode",
+    "channels": {
+      "red": { "terminal": "red", "forwardVoltageProperty": "redForwardVoltage" },
+      "green": { "terminal": "green", "forwardVoltageProperty": "greenForwardVoltage" },
+      "blue": { "terminal": "blue", "forwardVoltageProperty": "blueForwardVoltage" }
+    }
+  },
+  "visualBehavior": {
+    "colorSource": "electrical.color",
+    "brightnessSource": "electrical.brightness"
+  },
+  "visual": {
+    "type": "rgb-led-common-cathode",
+    "title": "LED RGB",
+    "className": "led led-rgb",
+    "body": "RGB",
+    "width": 140,
+    "height": 124,
+    "controls": [
+      { "type": "element", "className": "led-glow rgb-led-glow" },
+      { "type": "readout", "className": "rgb-led-readout", "label": "Cor", "text": "#000000", "dataAttribute": "data-rgb-led-color" }
+    ],
+    "stateBindings": [
+      { "type": "text", "selector": "[data-rgb-led-color]", "source": { "kind": "electricalReading", "property": "color", "fallback": "#000000" } }
+    ],
+    "palette": {
+      "group": "Electronic",
+      "subgroup": "LEDs",
+      "icon": "led-rgb-icon",
+      "order": 54
+    },
+    "terminals": [
+      { "id": "red", "label": "R", "side": "left", "x": 0, "y": 30, "kind": "signal" },
+      { "id": "green", "label": "G", "side": "left", "x": 0, "y": 60, "kind": "signal" },
+      { "id": "blue", "label": "B", "side": "left", "x": 0, "y": 90, "kind": "signal" },
+      { "id": "cathode", "label": "K", "side": "bottom", "x": 70, "y": 124, "kind": "ground" }
+    ]
+  }
+}

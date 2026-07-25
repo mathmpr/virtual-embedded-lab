@@ -12,7 +12,7 @@ export function createSignalSnapshot({ graph, runtime, runtimesByComponent = nul
 
   for (const component of graph.components.values()) {
     const properties = propertySignals(component);
-    const terminals = (component.terminals ?? []).map((terminal) => {
+    const terminals = terminalsForComponent({ graph, component }).map((terminal) => {
       const net = graph.findTerminalNet(component.id, terminal.id);
       const signal = signalForTerminal({ graph, runtime, runtimesByComponent, electrical, terminal: { componentId: component.id, terminalId: terminal.id }, net });
       const connected = connectedTerminalLabels(component.id, net);
@@ -38,6 +38,36 @@ export function createSignalSnapshot({ graph, runtime, runtimesByComponent = nul
     signalsByComponent,
     signalsByNet
   };
+}
+
+function terminalsForComponent({ graph, component }) {
+  const terminalsById = new Map();
+
+  for (const terminal of component.terminals ?? []) {
+    terminalsById.set(terminal.id, terminal);
+  }
+
+  for (const [terminalId, pin] of Object.entries(component.behavior?.pinMap ?? {})) {
+    if (!terminalsById.has(terminalId)) {
+      terminalsById.set(terminalId, {
+        id: terminalId,
+        label: pin.name ?? terminalId
+      });
+    }
+  }
+
+  for (const net of graph.nets) {
+    for (const terminal of net.terminals) {
+      if (terminal.componentId === component.id && !terminalsById.has(terminal.terminalId)) {
+        terminalsById.set(terminal.terminalId, {
+          id: terminal.terminalId,
+          label: terminal.terminalId
+        });
+      }
+    }
+  }
+
+  return [...terminalsById.values()];
 }
 
 function propertySignals(component) {

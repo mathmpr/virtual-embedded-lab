@@ -13,6 +13,7 @@ export function createSimulationBehaviorRegistry() {
       const bindings = {
         rainBindings: [],
         lightBindings: [],
+        analogVoltageBindings: [],
         buttonBindings: [],
         buzzerBindings: [],
         waterBindings: [],
@@ -30,6 +31,7 @@ export function createSimulationBehaviorRegistry() {
 
         bindings.rainBindings.push(...(result.rainBindings ?? []));
         bindings.lightBindings.push(...(result.lightBindings ?? []));
+        bindings.analogVoltageBindings.push(...(result.analogVoltageBindings ?? []));
         bindings.buttonBindings.push(...(result.buttonBindings ?? []));
         bindings.buzzerBindings.push(...(result.buzzerBindings ?? []));
         bindings.waterBindings.push(...(result.waterBindings ?? []));

@@ -1,0 +1,131 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "isolator.opto.pc817",
+    "name": "PC817 Optocoupler",
+    "category": "isolator",
+    "subCategory": "optoisolator"
+  },
+  "simulation": {
+    "kind": "active-electrical",
+    "effects": [
+      "electrical",
+      "visual-state"
+    ],
+    "implemented": true,
+    "notes": [
+      "Educational electrical rules enabled: wiring, activation, floating inputs and current/voltage limit diagnostics."
+    ]
+  },
+  "properties": {
+    "isolationVoltageVolts": {
+      "type": "number",
+      "default": 5000,
+      "minimum": 0,
+      "maximum": 10000,
+      "unit": "V",
+      "simulationUpdate": "none"
+    },
+    "inputCurrentAmps": {
+      "type": "number",
+      "default": 0.005,
+      "minimum": 0,
+      "maximum": 0.05,
+      "unit": "A",
+      "simulationUpdate": "rerun"
+    },
+    "currentTransferRatioPercent": {
+      "type": "number",
+      "default": 100,
+      "minimum": 20,
+      "maximum": 600,
+      "unit": "%",
+      "simulationUpdate": "rerun"
+    }
+  },
+  "terminals": [
+    {
+      "id": "anode",
+      "label": "A",
+      "type": "led-anode"
+    },
+    {
+      "id": "cathode",
+      "label": "K",
+      "type": "led-cathode"
+    },
+    {
+      "id": "collector",
+      "label": "C",
+      "type": "phototransistor-collector"
+    },
+    {
+      "id": "emitter",
+      "label": "E",
+      "type": "phototransistor-emitter"
+    }
+  ],
+  "electricalModel": {
+    "type": "optoisolator",
+    "primitive": "pc817",
+    "isolationVoltageProperty": "isolationVoltageVolts"
+  },
+  "visual": {
+    "type": "pc817-optoisolator",
+    "title": "PC817",
+    "className": "maker-pc817",
+    "body": "Optocoupler",
+    "width": 170,
+    "height": 108,
+    "controls": [
+      {
+        "type": "readout",
+        "className": "component-readout",
+        "label": "CTR",
+        "property": "currentTransferRatioPercent",
+        "unit": "%"
+      }
+    ],
+    "palette": {
+      "group": "Semiconductors",
+      "subgroup": "Optocouplers",
+      "icon": "opto-icon",
+      "order": 122
+    },
+    "terminals": [
+      {
+        "id": "anode",
+        "label": "A",
+        "side": "left",
+        "x": 0,
+        "y": 34,
+        "kind": "signal"
+      },
+      {
+        "id": "cathode",
+        "label": "K",
+        "side": "left",
+        "x": 0,
+        "y": 72,
+        "kind": "signal"
+      },
+      {
+        "id": "collector",
+        "label": "C",
+        "side": "right",
+        "x": 170,
+        "y": 34,
+        "kind": "signal"
+      },
+      {
+        "id": "emitter",
+        "label": "E",
+        "side": "right",
+        "x": 170,
+        "y": 72,
+        "kind": "signal"
+      }
+    ]
+  }
+}

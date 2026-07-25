@@ -12,10 +12,15 @@ export function solveElectricalState({ graph, runtime, runtimesByComponent = nul
   applyGenericResistors({ graph, netlist, diagnostics, componentReadings });
   applyGenericCapacitors({ graph, netlist, diagnostics, componentReadings });
   applySensorModuleLimits({ graph, netlist, diagnostics, componentReadings });
+  applyBjtTransistorRules({ graph, netlist, runtime, runtimesByComponent, diagnostics, componentReadings });
+  applyMosfetRules({ graph, netlist, runtime, runtimesByComponent, diagnostics, componentReadings });
+  applySwitchModuleRules({ graph, netlist, runtime, runtimesByComponent, diagnostics, componentReadings });
+  applyOptoisolatorRules({ graph, netlist, runtime, runtimesByComponent, diagnostics, componentReadings });
+  applyDarlingtonArrayRules({ graph, netlist, runtime, runtimesByComponent, diagnostics, componentReadings });
   diagnoseFloatingInputs({ graph, netlist, runtime, diagnostics });
 
   for (const led of findElectricalComponents(graph, 'led', 'diode-led')) {
-    const solved = solveLedPath({ graph, arduino, led, drivenHighPins });
+    const solved = solveLedPath({ graph, netlist, componentReadings, arduino, led, drivenHighPins });
 
     ledStates.set(led.id, solved.isLit);
     componentReadings.set(led.id, solved.ledReading);
@@ -24,6 +29,14 @@ export function solveElectricalState({ graph, runtime, runtimesByComponent = nul
       componentReadings.set(solved.resistorReading.componentId, solved.resistorReading);
     }
 
+    diagnostics.push(...solved.diagnostics);
+  }
+
+  for (const led of findElectricalComponents(graph, 'rgb-led')) {
+    const solved = solveRgbLed({ graph, led, runtime, runtimesByComponent });
+
+    ledStates.set(led.id, solved.isLit);
+    componentReadings.set(led.id, solved.reading);
     diagnostics.push(...solved.diagnostics);
   }
 
@@ -36,7 +49,121 @@ export function solveElectricalState({ graph, runtime, runtimesByComponent = nul
   };
 }
 
-function solveLedPath({ graph, arduino, led, drivenHighPins }) {
+function solveRgbLed({ graph, led, runtime, runtimesByComponent }) {
+  const model = led.electricalModel ?? {};
+  const commonTerminal = model.commonTerminal ?? 'cathode';
+  const activeMode = model.commonMode ?? 'cathode';
+  const channels = model.channels ?? {
+    red: { terminal: 'red' },
+    green: { terminal: 'green' },
+    blue: { terminal: 'blue' }
+  };
+  const diagnostics = [];
+  const grounded = activeMode === 'cathode'
+    ? isTerminalConnectedToGround(graph, { componentId: led.id, terminalId: commonTerminal })
+    : false;
+
+  if (!grounded) {
+    diagnostics.push(`${led.id}: terminal comum do LED RGB não está conectado ao GND.`);
+  }
+
+  const values = Object.fromEntries(Object.entries(channels).map(([color, channel]) => {
+    return [color, grounded ? rgbChannelDuty({ graph, led, channel, runtime, runtimesByComponent }) : 0];
+  }));
+  const red = clamp(Math.round((values.red ?? 0) * 255), 0, 255);
+  const green = clamp(Math.round((values.green ?? 0) * 255), 0, 255);
+  const blue = clamp(Math.round((values.blue ?? 0) * 255), 0, 255);
+  const brightness = Math.max(red, green, blue) / 255;
+  const color = rgbHex(red, green, blue);
+
+  return {
+    isLit: brightness > 0,
+    reading: {
+      componentId: led.id,
+      type: 'rgb-led',
+      red,
+      green,
+      blue,
+      color,
+      brightness,
+      state: brightness > 0 ? 'on' : 'off'
+    },
+    diagnostics
+  };
+}
+
+function rgbChannelDuty({ graph, led, channel, runtime, runtimesByComponent }) {
+  const terminalId = channel.terminal;
+  const terminalNet = graph.findTerminalNet(led.id, terminalId);
+
+  if (!terminalNet) {
+    return 0;
+  }
+
+  const directDuty = drivenDutyOnNet({ graph, net: terminalNet, runtime, runtimesByComponent });
+
+  if (directDuty > 0) {
+    return directDuty;
+  }
+
+  for (const resistor of findElectricalComponents(graph, 'resistor', 'resistor')) {
+    const resistorAConnected = graph.areConnected(
+      { componentId: resistor.id, terminalId: 'a' },
+      { componentId: led.id, terminalId }
+    );
+    const resistorBConnected = graph.areConnected(
+      { componentId: resistor.id, terminalId: 'b' },
+      { componentId: led.id, terminalId }
+    );
+
+    if (!resistorAConnected && !resistorBConnected) {
+      continue;
+    }
+
+    const otherTerminalId = resistorAConnected ? 'b' : 'a';
+    const otherNet = graph.findTerminalNet(resistor.id, otherTerminalId);
+    const resistorDuty = otherNet ? drivenDutyOnNet({ graph, net: otherNet, runtime, runtimesByComponent }) : 0;
+
+    if (resistorDuty > 0) {
+      return resistorDuty;
+    }
+  }
+
+  return 0;
+}
+
+function drivenDutyOnNet({ graph, net, runtime, runtimesByComponent }) {
+  let maxDuty = 0;
+
+  for (const terminal of net.terminals) {
+    const component = graph.components.get(terminal.componentId);
+    const pin = component?.behavior?.pinMap?.[terminal.terminalId];
+
+    if (!pin || !Number.isInteger(pin.number)) {
+      continue;
+    }
+
+    const boardRuntime = runtimesByComponent?.get(component.id) ?? runtime;
+    const state = boardRuntime?.getPin(pin.number);
+
+    if (state?.mode !== 'OUTPUT') {
+      continue;
+    }
+
+    const duty = Number.isFinite(Number(state.pwmValue))
+      ? Number(state.pwmValue) / 255
+      : state.value === 'HIGH' ? 1 : 0;
+    maxDuty = Math.max(maxDuty, clamp(duty, 0, 1));
+  }
+
+  return maxDuty;
+}
+
+function rgbHex(red, green, blue) {
+  return `#${[red, green, blue].map((value) => clamp(value, 0, 255).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function solveLedPath({ graph, netlist, componentReadings, arduino, led, drivenHighPins }) {
   const diagnostics = [];
   const anodeTerminal = led.electricalModel?.anodeTerminal ?? 'anode';
   const cathodeTerminal = led.electricalModel?.cathodeTerminal ?? 'cathode';
@@ -50,14 +177,21 @@ function solveLedPath({ graph, arduino, led, drivenHighPins }) {
     state: 'off'
   };
 
-  if (drivenHighPins.length === 0) {
+  const grounded = isTerminalConnectedToGround(graph, { componentId: led.id, terminalId: cathodeTerminal });
+  const switchedGround = !grounded
+    ? lowSideSwitchedGroundForTerminal({ graph, componentReadings, componentId: led.id, terminalId: cathodeTerminal })
+    : null;
+
+  if (!grounded && switchedGround?.known && !switchedGround.active) {
     return { isLit: false, ledReading: defaultReading, resistorReading: null, diagnostics };
   }
 
-  const grounded = isTerminalConnectedToGround(graph, { componentId: led.id, terminalId: cathodeTerminal });
-
-  if (!grounded) {
+  if (!grounded && !switchedGround?.active) {
     diagnostics.push(`${led.id}: catodo não está conectado ao GND.`);
+    return { isLit: false, ledReading: defaultReading, resistorReading: null, diagnostics };
+  }
+
+  if (drivenHighPins.length === 0 && !switchedGround?.active) {
     return { isLit: false, ledReading: defaultReading, resistorReading: null, diagnostics };
   }
 
@@ -78,13 +212,16 @@ function solveLedPath({ graph, arduino, led, drivenHighPins }) {
 
   for (const resistor of findElectricalComponents(graph, 'resistor', 'resistor')) {
     const path = findSeriesPath({ graph, resistor, led, drivenHighPins, anodeTerminal });
+    const poweredPath = switchedGround?.active
+      ? findPoweredSeriesPath({ graph, resistor, led, anodeTerminal })
+      : null;
 
-    if (!path) {
+    if (!path && !poweredPath) {
       continue;
     }
 
     const electrical = solveLedSeriesCircuit({
-      supplyVoltage: supplyVoltageForDrivenTerminal({ graph, arduino, terminal: path }),
+      supplyVoltage: poweredPath?.supplyVoltage ?? supplyVoltageForDrivenTerminal({ graph, arduino, terminal: path }),
       forwardVoltage: Number(led.properties.forwardVoltage ?? 2),
       resistanceOhms: Number(resistor.properties.resistanceOhms ?? 220),
       recommendedCurrentAmps: Number(led.properties.recommendedCurrent ?? 0.01),
@@ -122,6 +259,110 @@ function solveLedPath({ graph, arduino, led, drivenHighPins }) {
   return { isLit: false, ledReading: defaultReading, resistorReading: null, diagnostics };
 }
 
+function findPoweredSeriesPath({ graph, resistor, led, anodeTerminal }) {
+  const anodeFromA = graph.areConnected({ componentId: resistor.id, terminalId: 'a' }, { componentId: led.id, terminalId: anodeTerminal });
+  const anodeFromB = graph.areConnected({ componentId: resistor.id, terminalId: 'b' }, { componentId: led.id, terminalId: anodeTerminal });
+
+  if (!anodeFromA && !anodeFromB) {
+    return null;
+  }
+
+  const supplyTerminalId = anodeFromA ? 'b' : 'a';
+  const supplyNet = graph.findTerminalNet(resistor.id, supplyTerminalId);
+  const supplyTerminal = supplyNet?.terminals.find((terminal) => graph.terminalKind(terminal) === 'power');
+
+  if (!supplyTerminal) {
+    return null;
+  }
+
+  return {
+    componentId: supplyTerminal.componentId,
+    terminalId: supplyTerminal.terminalId,
+    supplyVoltage: powerTerminalVoltage(graph, supplyTerminal)
+  };
+}
+
+function lowSideSwitchedGroundForTerminal({ graph, componentReadings, componentId, terminalId }) {
+  const net = graph.findTerminalNet(componentId, terminalId);
+  let known = false;
+
+  if (!net) {
+    return { known: false, active: false };
+  }
+
+  for (const terminal of net.terminals) {
+    if (terminal.componentId === componentId && terminal.terminalId === terminalId) {
+      continue;
+    }
+
+    const component = graph.components.get(terminal.componentId);
+    const reading = componentReadings.get(terminal.componentId);
+
+    if (!component || !reading) {
+      continue;
+    }
+
+    if (component.electricalModel?.type === 'bjt-transistor' && terminal.terminalId === 'collector') {
+      known = true;
+      if (reading.state === 'saturated' && isTerminalConnectedToGround(graph, { componentId: component.id, terminalId: 'emitter' })) {
+        return { known: true, active: true, componentId: component.id };
+      }
+    }
+
+    if (component.electricalModel?.type === 'mosfet' && terminal.terminalId === 'drain') {
+      known = true;
+      if (reading.state === 'on' && isTerminalConnectedToGround(graph, { componentId: component.id, terminalId: 'source' })) {
+        return { known: true, active: true, componentId: component.id };
+      }
+    }
+
+    if (component.electricalModel?.primitive === 'mosfet-module' && terminal.terminalId === 'loadOut') {
+      known = true;
+      if (reading.state === 'active') {
+        return { known: true, active: true, componentId: component.id };
+      }
+    }
+
+    if ((component.electricalModel?.primitive === 'pc817' || component.electricalModel?.type === 'optoisolator') && terminal.terminalId === 'collector') {
+      known = true;
+      if (reading.state === 'conducting' && isTerminalConnectedToGround(graph, { componentId: component.id, terminalId: 'emitter' })) {
+        return { known: true, active: true, componentId: component.id };
+      }
+    }
+
+    if (component.electricalModel?.type === 'darlington-array') {
+      const match = terminal.terminalId.match(/^out(\d+)$/);
+
+      if (match) {
+        known = true;
+        const channel = reading.channels?.find((item) => Number(item.channel) === Number(match[1]));
+
+        if (channel?.active) {
+          return { known: true, active: true, componentId: component.id };
+        }
+      }
+    }
+
+    if (['relay', 'ssr'].includes(component.electricalModel?.primitive)) {
+      const match = terminal.terminalId.match(/^(no|nc)(\d+)$/);
+
+      if (match) {
+        known = true;
+        const contact = match[1].toUpperCase();
+        const channelNumber = Number(match[2]);
+        const channel = reading.channels?.find((item) => Number(item.channel) === channelNumber);
+        const closed = channel && (channel.active && contact === 'NO' || !channel.active && contact === 'NC');
+
+        if (closed && isTerminalConnectedToGround(graph, { componentId: component.id, terminalId: `com${channelNumber}` })) {
+          return { known: true, active: true, componentId: component.id };
+        }
+      }
+    }
+  }
+
+  return { known, active: false };
+}
+
 function findSeriesPath({ graph, resistor, led, drivenHighPins, anodeTerminal }) {
   return drivenHighPins.find((pinTerminal) => {
     const pinToA = graph.areConnected(pinTerminal, { componentId: resistor.id, terminalId: 'a' });
@@ -148,10 +389,631 @@ function isLedAnodeDirectlyDriven({ graph, led, drivenHighPins }) {
   });
 }
 
+function terminalDriveAnalysis({ graph, runtime, runtimesByComponent, componentId, terminalId }) {
+  const terminalNet = graph.findTerminalNet(componentId, terminalId);
+  const result = {
+    connected: Boolean(terminalNet),
+    active: false,
+    voltageVolts: 0,
+    hasSeriesResistor: false,
+    resistorOhms: null,
+    hasPullDown: false,
+    source: null
+  };
+
+  if (!terminalNet) {
+    return result;
+  }
+
+  result.hasPullDown = terminalNet.terminals.some((terminal) => {
+    if (terminal.componentId === componentId && terminal.terminalId === terminalId) {
+      return false;
+    }
+
+    const component = graph.components.get(terminal.componentId);
+    return component?.electricalModel?.primitive === 'resistor'
+      && resistorOtherTerminalHasKind(graph, component.id, terminal.terminalId, 'ground');
+  });
+
+  const directDrive = runtimeDriveOnNet({ graph, runtime, runtimesByComponent, net: terminalNet });
+
+  if (directDrive) {
+    return {
+      ...result,
+      active: directDrive.value === 'HIGH',
+      voltageVolts: directDrive.value === 'HIGH' ? directDrive.voltageVolts : 0,
+      source: directDrive
+    };
+  }
+
+  for (const terminal of terminalNet.terminals) {
+    if (terminal.componentId === componentId && terminal.terminalId === terminalId) {
+      continue;
+    }
+
+    const resistor = graph.components.get(terminal.componentId);
+
+    if (resistor?.electricalModel?.primitive !== 'resistor') {
+      continue;
+    }
+
+    const otherTerminalId = terminal.terminalId === 'a' ? 'b' : terminal.terminalId === 'b' ? 'a' : null;
+    const otherNet = otherTerminalId ? graph.findTerminalNet(resistor.id, otherTerminalId) : null;
+    const drive = otherNet ? runtimeDriveOnNet({ graph, runtime, runtimesByComponent, net: otherNet }) : null;
+
+    if (!drive) {
+      continue;
+    }
+
+    return {
+      ...result,
+      active: drive.value === 'HIGH',
+      voltageVolts: drive.value === 'HIGH' ? drive.voltageVolts : 0,
+      hasSeriesResistor: true,
+      resistorOhms: Math.max(1, Number(resistor.properties.resistanceOhms ?? 220)),
+      source: drive
+    };
+  }
+
+  return result;
+}
+
+function runtimeDriveOnNet({ graph, runtime, runtimesByComponent, net }) {
+  for (const terminal of net.terminals) {
+    const component = graph.components.get(terminal.componentId);
+    const pin = component?.behavior?.pinMap?.[terminal.terminalId];
+
+    if (!pin || !Number.isInteger(pin.number)) {
+      continue;
+    }
+
+    const boardRuntime = runtimesByComponent?.get(component.id) ?? runtime;
+    const state = boardRuntime?.getPin(pin.number);
+
+    if (state?.mode !== 'OUTPUT') {
+      continue;
+    }
+
+    return {
+      componentId: component.id,
+      terminalId: terminal.terminalId,
+      pin: pin.number,
+      value: state.value,
+      pwmValue: state.pwmValue,
+      voltageVolts: Number(pin.highVoltageVolts ?? component.electricalModel?.logicVoltage ?? 5)
+    };
+  }
+
+  return null;
+}
+
+function loadPathAnalysis({ graph, netlist, componentId, terminalId, oppositeRailKind }) {
+  const terminalNet = graph.findTerminalNet(componentId, terminalId);
+
+  if (!terminalNet) {
+    return {
+      hasPath: false,
+      voltageVolts: 0,
+      resistanceOhms: null,
+      currentAmps: 0,
+      loadComponentId: null
+    };
+  }
+
+  const directRail = terminalNet.terminals.some((terminal) => {
+    return !(terminal.componentId === componentId && terminal.terminalId === terminalId)
+      && graph.terminalKind(terminal) === oppositeRailKind;
+  });
+
+  if (directRail) {
+    const voltageVolts = Math.abs((voltageForNet(netlist, terminalNet.id) ?? 0) - railVoltageForKind(oppositeRailKind));
+    return {
+      hasPath: true,
+      voltageVolts,
+      resistanceOhms: 0,
+      currentAmps: Number.POSITIVE_INFINITY,
+      loadComponentId: null
+    };
+  }
+
+  for (const terminal of terminalNet.terminals) {
+    const resistor = graph.components.get(terminal.componentId);
+
+    if (resistor?.electricalModel?.primitive !== 'resistor') {
+      continue;
+    }
+
+    const otherTerminalId = terminal.terminalId === 'a' ? 'b' : terminal.terminalId === 'b' ? 'a' : null;
+    const otherNet = otherTerminalId ? graph.findTerminalNet(resistor.id, otherTerminalId) : null;
+
+    if (!otherNet || !otherNet.terminals.some((candidate) => graph.terminalKind(candidate) === oppositeRailKind)) {
+      continue;
+    }
+
+    const terminalVoltageVolts = voltageForNet(netlist, terminalNet.id) ?? 0;
+    const railVoltageVolts = voltageForNet(netlist, otherNet.id) ?? railVoltageForKind(oppositeRailKind);
+    const voltageVolts = Math.abs(railVoltageVolts - terminalVoltageVolts);
+    const resistanceOhms = Math.max(0, Number(resistor.properties.resistanceOhms ?? 220));
+
+    return {
+      hasPath: true,
+      voltageVolts,
+      resistanceOhms,
+      currentAmps: resistanceOhms > 0 ? voltageVolts / resistanceOhms : Number.POSITIVE_INFINITY,
+      loadComponentId: resistor.id
+    };
+  }
+
+  const ledLoad = ledLoadPathFromSinkNet({ graph, netlist, sinkNet: terminalNet, sinkComponentId: componentId });
+
+  if (ledLoad) {
+    return ledLoad;
+  }
+
+  return {
+    hasPath: false,
+    voltageVolts: 0,
+    resistanceOhms: null,
+    currentAmps: 0,
+    loadComponentId: null
+  };
+}
+
+function switchLoadAnalysis({ graph, netlist, componentId, inputTerminal, outputTerminal }) {
+  const inputNet = graph.findTerminalNet(componentId, inputTerminal);
+  const outputNet = graph.findTerminalNet(componentId, outputTerminal);
+  const inputVoltage = voltageForNet(netlist, inputNet?.id);
+  const outputVoltage = voltageForNet(netlist, outputNet?.id);
+  const load = outputNet ? loadConnectedToSwitchTerminal({ graph, netlist, componentId, terminalId: outputTerminal }) : null;
+  const voltageVolts = inputVoltage !== null && outputVoltage !== null
+    ? Math.abs(inputVoltage - outputVoltage)
+    : load?.voltageVolts ?? 0;
+  const currentAmps = load?.resistanceOhms
+    ? voltageVolts / load.resistanceOhms
+    : load?.hasPath ? Number.POSITIVE_INFINITY : 0;
+
+  return {
+    hasLoad: Boolean(load?.hasPath),
+    voltageVolts,
+    currentAmps,
+    loadComponentId: load?.loadComponentId ?? null
+  };
+}
+
+function loadConnectedToSwitchTerminal({ graph, netlist, componentId, terminalId }) {
+  const net = graph.findTerminalNet(componentId, terminalId);
+
+  if (!net) {
+    return null;
+  }
+
+  for (const terminal of net.terminals) {
+    if (terminal.componentId === componentId && terminal.terminalId === terminalId) {
+      continue;
+    }
+
+    const resistor = graph.components.get(terminal.componentId);
+
+    if (resistor?.electricalModel?.primitive !== 'resistor') {
+      continue;
+    }
+
+    const otherTerminalId = terminal.terminalId === 'a' ? 'b' : terminal.terminalId === 'b' ? 'a' : null;
+    const otherNet = otherTerminalId ? graph.findTerminalNet(resistor.id, otherTerminalId) : null;
+
+    if (!otherNet) {
+      continue;
+    }
+
+    const otherVoltage = voltageForNet(netlist, otherNet.id);
+
+    if (otherVoltage === null) {
+      continue;
+    }
+
+    return {
+      hasPath: true,
+      voltageVolts: Math.abs(otherVoltage - (voltageForNet(netlist, net.id) ?? 0)),
+      resistanceOhms: Math.max(0, Number(resistor.properties.resistanceOhms ?? 220)),
+      loadComponentId: resistor.id
+    };
+  }
+
+  const ledLoad = ledLoadPathFromSinkNet({ graph, netlist, sinkNet: net, sinkComponentId: componentId });
+
+  if (ledLoad) {
+    return ledLoad;
+  }
+
+  return null;
+}
+
+function ledLoadPathFromSinkNet({ graph, netlist, sinkNet, sinkComponentId }) {
+  for (const terminal of sinkNet.terminals) {
+    if (terminal.componentId === sinkComponentId) {
+      continue;
+    }
+
+    const led = graph.components.get(terminal.componentId);
+
+    if (!['led', 'diode-led'].includes(led?.electricalModel?.primitive)) {
+      continue;
+    }
+
+    const cathodeTerminal = led.electricalModel?.cathodeTerminal ?? 'cathode';
+    const anodeTerminal = led.electricalModel?.anodeTerminal ?? 'anode';
+
+    if (terminal.terminalId !== cathodeTerminal) {
+      continue;
+    }
+
+    for (const resistor of findElectricalComponents(graph, 'resistor', 'resistor')) {
+      const anodeFromA = graph.areConnected({ componentId: resistor.id, terminalId: 'a' }, { componentId: led.id, terminalId: anodeTerminal });
+      const anodeFromB = graph.areConnected({ componentId: resistor.id, terminalId: 'b' }, { componentId: led.id, terminalId: anodeTerminal });
+
+      if (!anodeFromA && !anodeFromB) {
+        continue;
+      }
+
+      const supplyTerminalId = anodeFromA ? 'b' : 'a';
+      const supplyNet = graph.findTerminalNet(resistor.id, supplyTerminalId);
+      const supplyTerminal = supplyNet?.terminals.find((candidate) => graph.terminalKind(candidate) === 'power');
+
+      if (!supplyTerminal) {
+        continue;
+      }
+
+      const supplyVoltage = powerTerminalVoltage(graph, supplyTerminal);
+      const forwardVoltage = Number(led.properties.forwardVoltage ?? 2);
+      const resistanceOhms = Math.max(0, Number(resistor.properties.resistanceOhms ?? 220));
+
+      return {
+        hasPath: true,
+        voltageVolts: Math.max(0, supplyVoltage - forwardVoltage),
+        resistanceOhms,
+        currentAmps: resistanceOhms > 0 ? Math.max(0, supplyVoltage - forwardVoltage) / resistanceOhms : Number.POSITIVE_INFINITY,
+        loadComponentId: led.id
+      };
+    }
+  }
+
+  return null;
+}
+
+function ledInputAnalysis({ graph, netlist, runtime, runtimesByComponent, componentId, anodeTerminal, cathodeTerminal }) {
+  const grounded = isTerminalConnectedToGround(graph, { componentId, terminalId: cathodeTerminal });
+  const drive = terminalDriveAnalysis({ graph, runtime, runtimesByComponent, componentId, terminalId: anodeTerminal });
+  const forwardVoltage = 1.2;
+  const currentAmps = grounded && drive.active
+    ? drive.resistorOhms ? Math.max(0, (drive.voltageVolts - forwardVoltage) / drive.resistorOhms) : Number.POSITIVE_INFINITY
+    : 0;
+
+  return {
+    active: currentAmps > 0,
+    currentAmps,
+    hasSeriesResistor: drive.hasSeriesResistor,
+    voltageVolts: drive.voltageVolts
+  };
+}
+
+function bjtBaseCurrent({ isPnp, baseDrive, emitterVoltage, baseEmitterVoltage }) {
+  if (!baseDrive.connected) {
+    return 0;
+  }
+
+  if (baseDrive.resistorOhms) {
+    const voltageDrop = isPnp
+      ? emitterVoltage - baseDrive.voltageVolts - baseEmitterVoltage
+      : baseDrive.voltageVolts - emitterVoltage - baseEmitterVoltage;
+
+    return Math.max(0, voltageDrop / baseDrive.resistorOhms);
+  }
+
+  if (isPnp) {
+    return baseDrive.source?.value === 'LOW' ? Number.POSITIVE_INFINITY : 0;
+  }
+
+  return baseDrive.active ? Number.POSITIVE_INFINITY : 0;
+}
+
+function isPoweredModule({ graph, netlist, component }) {
+  const vcc = graph.findTerminalNet(component.id, 'vcc');
+  const gnd = graph.findTerminalNet(component.id, 'gnd');
+  const vccVoltage = voltageForNet(netlist, vcc?.id);
+  const gndVoltage = voltageForNet(netlist, gnd?.id);
+
+  return vccVoltage !== null && (gndVoltage === 0 || isTerminalConnectedToGround(graph, { componentId: component.id, terminalId: 'gnd' }));
+}
+
+function validateSwitchLoad({ component, terminalLabel, load, active, ratedCurrentAmps, ratedVoltageVolts, diagnostics }) {
+  if (!active) {
+    return;
+  }
+
+  if (!load.hasLoad) {
+    diagnostics.push(`${component.id}.${terminalLabel}: chave ativa sem carga detectável no contato/saída.`);
+  }
+
+  if (ratedVoltageVolts > 0 && load.voltageVolts > ratedVoltageVolts) {
+    diagnostics.push(`${component.id}.${terminalLabel}: tensão ${load.voltageVolts.toFixed(2)} V excede tensão nominal ${ratedVoltageVolts.toFixed(2)} V.`);
+  }
+
+  if (ratedCurrentAmps > 0 && load.currentAmps > ratedCurrentAmps) {
+    diagnostics.push(`${component.id}.${terminalLabel}: corrente estimada ${formatAmps(load.currentAmps)} excede corrente nominal ${formatAmps(ratedCurrentAmps)}.`);
+  }
+}
+
+function terminalVoltage({ graph, netlist, componentId, terminalId }) {
+  const net = graph.findTerminalNet(componentId, terminalId);
+  return voltageForNet(netlist, net?.id);
+}
+
+function terminalHasKind(graph, terminal, kind) {
+  const net = graph.findTerminalNet(terminal.componentId, terminal.terminalId);
+
+  return Boolean(net?.terminals.some((candidate) => graph.terminalKind(candidate) === kind));
+}
+
+function resistorOtherTerminalHasKind(graph, resistorId, terminalId, kind) {
+  const otherTerminalId = terminalId === 'a' ? 'b' : terminalId === 'b' ? 'a' : null;
+  const otherNet = otherTerminalId ? graph.findTerminalNet(resistorId, otherTerminalId) : null;
+
+  return Boolean(otherNet?.terminals.some((terminal) => graph.terminalKind(terminal) === kind));
+}
+
+function railVoltageForKind(kind) {
+  return kind === 'ground' ? 0 : 5;
+}
+
 function findElectricalComponents(graph, ...primitives) {
   return [...graph.components.values()].filter((component) => {
     return primitives.includes(component.electricalPrimitive) || primitives.includes(component.electricalModel?.primitive);
   });
+}
+
+function applyBjtTransistorRules({ graph, netlist, runtime, runtimesByComponent, diagnostics, componentReadings }) {
+  for (const primitive of netlist.primitives.filter((item) => item.model.type === 'bjt-transistor')) {
+    const component = primitive.component;
+    const polarity = String(primitive.model.polarity ?? component.properties.polarity ?? 'NPN').toUpperCase();
+    const isPnp = polarity.includes('PNP');
+    const emitterGrounded = isTerminalConnectedToGround(graph, { componentId: component.id, terminalId: 'emitter' });
+    const emitterPowered = terminalHasKind(graph, { componentId: component.id, terminalId: 'emitter' }, 'power');
+    const collectorGrounded = isTerminalConnectedToGround(graph, { componentId: component.id, terminalId: 'collector' });
+    const baseDrive = terminalDriveAnalysis({ graph, runtime, runtimesByComponent, componentId: component.id, terminalId: 'base' });
+    const collectorLoad = loadPathAnalysis({ graph, netlist, componentId: component.id, terminalId: 'collector', oppositeRailKind: isPnp ? 'ground' : 'power' });
+    const maxCollectorCurrentAmps = Number(component.properties[primitive.model.maxCollectorCurrentProperty ?? 'maxCollectorCurrentAmps'] ?? 0);
+    const gainHfe = Math.max(1, Number(component.properties[primitive.model.gainProperty ?? 'gainHfe'] ?? 100));
+    const baseEmitterVoltage = polarity.includes('DARLINGTON') ? 1.2 : 0.7;
+    const emitterVoltage = terminalVoltage({ graph, netlist, componentId: component.id, terminalId: 'emitter' }) ?? (isPnp ? 5 : 0);
+    const baseCurrentAmps = bjtBaseCurrent({
+      isPnp,
+      baseDrive,
+      emitterVoltage,
+      baseEmitterVoltage
+    });
+    const estimatedCollectorCurrentAmps = collectorLoad.resistanceOhms
+      ? Math.max(0, (collectorLoad.voltageVolts - 0.2) / collectorLoad.resistanceOhms)
+      : collectorLoad.hasPath ? Number.POSITIVE_INFINITY : 0;
+    const requiredBaseCurrentAmps = estimatedCollectorCurrentAmps > 0 && Number.isFinite(estimatedCollectorCurrentAmps)
+      ? estimatedCollectorCurrentAmps / Math.min(gainHfe, 100)
+      : 0;
+    const driven = isPnp ? baseDrive.connected && baseDrive.source?.value === 'LOW' : baseDrive.active;
+    const emitterOk = isPnp ? emitterPowered : emitterGrounded;
+    const saturated = emitterOk
+      && driven
+      && baseCurrentAmps >= requiredBaseCurrentAmps
+      && collectorLoad.hasPath;
+    const state = !driven ? 'off' : saturated ? 'saturated' : 'under-driven';
+
+    componentReadings.set(component.id, {
+      componentId: component.id,
+      type: 'bjt-transistor',
+      state,
+      polarity,
+      baseCurrentAmps,
+      collectorCurrentAmps: saturated ? estimatedCollectorCurrentAmps : 0,
+      requiredBaseCurrentAmps,
+      maxCollectorCurrentAmps
+    });
+
+    if (!isPnp && collectorGrounded && !emitterGrounded) {
+      diagnostics.push(`${component.id}: coletor ligado ao GND e emissor não aterrado; provável inversão C/E para chaveamento NPN.`);
+    }
+
+    if (driven && !baseDrive.hasSeriesResistor) {
+      diagnostics.push(`${component.id}.base: base acionada sem resistor em série; corrente de base pode exceder o pino do microcontrolador.`);
+    }
+
+    if (driven && !isPnp && !emitterGrounded) {
+      diagnostics.push(`${component.id}.emitter: emissor NPN deve estar no GND para chaveamento low-side.`);
+    }
+
+    if (driven && isPnp && !emitterPowered) {
+      diagnostics.push(`${component.id}.emitter: emissor PNP deve estar em VCC para chaveamento high-side.`);
+    }
+
+    if (driven && !collectorLoad.hasPath) {
+      diagnostics.push(`${component.id}.collector: coletor sem carga detectável até uma alimentação.`);
+    }
+
+    if (driven && collectorLoad.hasPath && baseCurrentAmps < requiredBaseCurrentAmps) {
+      diagnostics.push(`${component.id}.base: corrente de base ${formatAmps(baseCurrentAmps)} insuficiente para saturar carga estimada de ${formatAmps(estimatedCollectorCurrentAmps)}.`);
+    }
+
+    if (maxCollectorCurrentAmps > 0 && estimatedCollectorCurrentAmps > maxCollectorCurrentAmps) {
+      diagnostics.push(`${component.id}.collector: corrente estimada ${formatAmps(estimatedCollectorCurrentAmps)} excede limite ${formatAmps(maxCollectorCurrentAmps)}.`);
+    }
+  }
+}
+
+function applyMosfetRules({ graph, netlist, runtime, runtimesByComponent, diagnostics, componentReadings }) {
+  for (const primitive of netlist.primitives.filter((item) => item.model.type === 'mosfet')) {
+    const component = primitive.component;
+    const gateDrive = terminalDriveAnalysis({ graph, runtime, runtimesByComponent, componentId: component.id, terminalId: 'gate' });
+    const sourceVoltage = terminalVoltage({ graph, netlist, componentId: component.id, terminalId: 'source' }) ?? 0;
+    const drainLoad = loadPathAnalysis({ graph, netlist, componentId: component.id, terminalId: 'drain', oppositeRailKind: 'power' });
+    const gateVoltage = gateDrive.connected ? gateDrive.voltageVolts : null;
+    const threshold = Number(component.properties.gateThresholdVolts ?? primitive.model.gateThresholdVolts ?? 2.5);
+    const maxDrainCurrentAmps = Number(component.properties[primitive.model.maxDrainCurrentProperty ?? 'maxDrainCurrentAmps'] ?? 0);
+    const vgs = gateVoltage === null ? null : gateVoltage - sourceVoltage;
+    const on = vgs !== null && vgs >= threshold;
+    const drainCurrentAmps = on && drainLoad.resistanceOhms
+      ? Math.max(0, drainLoad.voltageVolts / drainLoad.resistanceOhms)
+      : on && drainLoad.hasPath ? Number.POSITIVE_INFINITY : 0;
+
+    componentReadings.set(component.id, {
+      componentId: component.id,
+      type: 'mosfet',
+      state: on ? 'on' : gateVoltage === null ? 'floating-gate' : 'off',
+      gateVoltageVolts: gateVoltage,
+      sourceVoltageVolts: sourceVoltage,
+      vgsVolts: vgs,
+      drainCurrentAmps,
+      maxDrainCurrentAmps
+    });
+
+    if (!gateDrive.connected) {
+      diagnostics.push(`${component.id}.gate: gate flutuante; adicione driver e resistor pull-down/pull-up conforme o circuito.`);
+    } else if (!gateDrive.hasPullDown && gateDrive.active) {
+      diagnostics.push(`${component.id}.gate: gate sem resistor de pull-down detectável; o MOSFET pode ligar sozinho em hardware real.`);
+    }
+
+    if (!isTerminalConnectedToGround(graph, { componentId: component.id, terminalId: 'source' })) {
+      diagnostics.push(`${component.id}.source: fonte de MOSFET canal N deve referenciar GND em chaveamento low-side.`);
+    }
+
+    if (gateDrive.active && gateVoltage !== null && vgs < threshold) {
+      diagnostics.push(`${component.id}.gate: Vgs ${vgs.toFixed(2)} V abaixo do limiar ${threshold.toFixed(2)} V; MOSFET não conduz adequadamente.`);
+    }
+
+    if (on && !drainLoad.hasPath) {
+      diagnostics.push(`${component.id}.drain: dreno sem carga detectável até uma alimentação.`);
+    }
+
+    if (maxDrainCurrentAmps > 0 && drainCurrentAmps > maxDrainCurrentAmps) {
+      diagnostics.push(`${component.id}.drain: corrente estimada ${formatAmps(drainCurrentAmps)} excede limite ${formatAmps(maxDrainCurrentAmps)}.`);
+    }
+  }
+}
+
+function applySwitchModuleRules({ graph, netlist, runtime, runtimesByComponent, diagnostics, componentReadings }) {
+  for (const primitive of netlist.primitives.filter((item) => ['relay', 'ssr', 'mosfet-module'].includes(item.kind))) {
+    const component = primitive.component;
+    const model = primitive.model;
+    const channels = Number(model.channels ?? component.properties.channels ?? 1);
+    const powered = isPoweredModule({ graph, netlist, component });
+    const activeHigh = component.properties.activeHigh !== false;
+    const ratedCurrentAmps = Number(component.properties[model.ratedCurrentProperty ?? 'ratedCurrentAmps'] ?? 0);
+    const ratedVoltageVolts = Number(component.properties[model.ratedVoltageProperty ?? 'ratedVoltageVolts'] ?? 0);
+    const channelReadings = [];
+
+    if (!powered) {
+      diagnostics.push(`${component.id}: módulo sem VCC/GND válidos; entradas não devem acionar a saída.`);
+    }
+
+    if (primitive.kind === 'mosfet-module') {
+      const input = terminalDriveAnalysis({ graph, runtime, runtimesByComponent, componentId: component.id, terminalId: 'sig' });
+      const active = powered && (activeHigh ? input.active : input.connected && !input.active);
+      const load = switchLoadAnalysis({ graph, netlist, componentId: component.id, inputTerminal: 'loadIn', outputTerminal: 'loadOut' });
+
+      channelReadings.push({ channel: 1, active, inputLevel: input.active ? 'HIGH' : 'LOW', ...load });
+      validateSwitchLoad({ component, terminalLabel: 'load', load, active, ratedCurrentAmps, ratedVoltageVolts, diagnostics });
+    } else {
+      for (let index = 1; index <= channels; index++) {
+        const input = terminalDriveAnalysis({ graph, runtime, runtimesByComponent, componentId: component.id, terminalId: `in${index}` });
+        const active = powered && (activeHigh ? input.active : input.connected && !input.active);
+        const load = switchLoadAnalysis({ graph, netlist, componentId: component.id, inputTerminal: `com${index}`, outputTerminal: active ? `no${index}` : `nc${index}` });
+
+        channelReadings.push({ channel: index, active, contact: active ? 'NO' : 'NC', inputLevel: input.active ? 'HIGH' : 'LOW', ...load });
+        validateSwitchLoad({ component, terminalLabel: `ch${index}`, load, active, ratedCurrentAmps, ratedVoltageVolts, diagnostics });
+      }
+    }
+
+    componentReadings.set(component.id, {
+      componentId: component.id,
+      type: primitive.kind,
+      state: channelReadings.some((channel) => channel.active) ? 'active' : powered ? 'idle' : 'unpowered',
+      powered,
+      channels: channelReadings,
+      ratedCurrentAmps,
+      ratedVoltageVolts
+    });
+  }
+}
+
+function applyOptoisolatorRules({ graph, netlist, runtime, runtimesByComponent, diagnostics, componentReadings }) {
+  for (const primitive of netlist.primitives.filter((item) => item.kind === 'pc817' || item.model.type === 'optoisolator')) {
+    const component = primitive.component;
+    const input = ledInputAnalysis({ graph, netlist, runtime, runtimesByComponent, componentId: component.id, anodeTerminal: 'anode', cathodeTerminal: 'cathode' });
+    const ctr = Number(component.properties.currentTransferRatioPercent ?? 100) / 100;
+    const collectorLoad = loadPathAnalysis({ graph, netlist, componentId: component.id, terminalId: 'collector', oppositeRailKind: 'power' });
+    const emitterGrounded = isTerminalConnectedToGround(graph, { componentId: component.id, terminalId: 'emitter' });
+    const outputCurrentAmps = input.currentAmps * ctr;
+    const state = input.active && emitterGrounded ? 'conducting' : input.active ? 'input-active-output-floating' : 'off';
+
+    componentReadings.set(component.id, {
+      componentId: component.id,
+      type: 'optoisolator',
+      state,
+      inputCurrentAmps: input.currentAmps,
+      outputCurrentAmps,
+      currentTransferRatio: ctr
+    });
+
+    if (input.active && !input.hasSeriesResistor) {
+      diagnostics.push(`${component.id}.anode: LED interno do PC817 acionado sem resistor em série.`);
+    }
+
+    if (input.active && !emitterGrounded) {
+      diagnostics.push(`${component.id}.emitter: emissor do fototransistor sem referência de GND.`);
+    }
+
+    if (input.active && !collectorLoad.hasPath) {
+      diagnostics.push(`${component.id}.collector: coletor sem carga/pull-up detectável.`);
+    }
+  }
+}
+
+function applyDarlingtonArrayRules({ graph, netlist, runtime, runtimesByComponent, diagnostics, componentReadings }) {
+  for (const primitive of netlist.primitives.filter((item) => item.model.type === 'darlington-array')) {
+    const component = primitive.component;
+    const channels = Number(primitive.model.channels ?? component.properties.channels ?? 7);
+    const grounded = isTerminalConnectedToGround(graph, { componentId: component.id, terminalId: 'gnd' });
+    const maxChannelCurrentAmps = Number(component.properties[primitive.model.maxChannelCurrentProperty ?? 'maxChannelCurrentAmps'] ?? 0);
+    const channelReadings = [];
+
+    if (!grounded) {
+      diagnostics.push(`${component.id}.gnd: ULN precisa de GND comum com o microcontrolador.`);
+    }
+
+    for (let index = 1; index <= channels; index++) {
+      const input = terminalDriveAnalysis({ graph, runtime, runtimesByComponent, componentId: component.id, terminalId: `in${index}` });
+      const load = loadPathAnalysis({ graph, netlist, componentId: component.id, terminalId: `out${index}`, oppositeRailKind: 'power' });
+      const active = grounded && input.active;
+      const currentAmps = active && load.resistanceOhms
+        ? Math.max(0, load.voltageVolts / load.resistanceOhms)
+        : active && load.hasPath ? Number.POSITIVE_INFINITY : 0;
+
+      channelReadings.push({ channel: index, active, inputLevel: input.active ? 'HIGH' : 'LOW', currentAmps });
+
+      if (active && !load.hasPath) {
+        diagnostics.push(`${component.id}.out${index}: saída open-collector ativa sem carga detectável até VCC.`);
+      }
+
+      if (maxChannelCurrentAmps > 0 && currentAmps > maxChannelCurrentAmps) {
+        diagnostics.push(`${component.id}.out${index}: corrente estimada ${formatAmps(currentAmps)} excede limite por canal ${formatAmps(maxChannelCurrentAmps)}.`);
+      }
+    }
+
+    componentReadings.set(component.id, {
+      componentId: component.id,
+      type: 'darlington-array',
+      state: channelReadings.some((channel) => channel.active) ? 'active' : grounded ? 'idle' : 'unpowered',
+      grounded,
+      channels: channelReadings,
+      maxChannelCurrentAmps
+    });
+  }
 }
 
 function terminalsForComponent(graph, component) {

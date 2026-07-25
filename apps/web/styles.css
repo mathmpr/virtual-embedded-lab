@@ -360,6 +360,10 @@ button.active {
   background: radial-gradient(circle at 45% 35%, #fff6b8, #e0b51f 60%, #5f4610);
 }
 
+.led-rgb-icon {
+  background: conic-gradient(#f44747, #ffd447, #50e07d, #5c9dff, #f44747);
+}
+
 .shift-register-icon {
   background:
     repeating-linear-gradient(90deg, transparent 0 9%, #d8e4ff 10% 13%, transparent 14% 19%),
@@ -849,6 +853,18 @@ button.active {
   background: radial-gradient(circle at 35% 30%, #efe8ad, #6c5b20 55%, #261f0c);
 }
 
+.led-rgb {
+  --rgb-led-color: #000000;
+  --rgb-led-brightness: 0;
+}
+
+.led-rgb .rgb-led-glow {
+  background:
+    radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.75), var(--rgb-led-color) 52%, #111827 76%);
+  opacity: max(0.24, calc(0.24 + var(--rgb-led-brightness) * 0.76));
+  box-shadow: none;
+}
+
 .led.on .led-glow {
   opacity: 1;
   box-shadow: 0 0 24px #f44747, 0 0 52px rgb(244 71 71 / 0.5);
@@ -867,6 +883,20 @@ button.active {
 .led-yellow.on .led-glow {
   background: radial-gradient(circle at 35% 30%, #fff8b8, #d8a91e 55%, #44320f);
   box-shadow: 0 0 24px #ffd447, 0 0 52px rgb(255 212 71 / 0.5);
+}
+
+.led-rgb.on .rgb-led-glow {
+  box-shadow:
+    0 0 calc(14px + var(--rgb-led-brightness) * 24px) var(--rgb-led-color),
+    0 0 calc(28px + var(--rgb-led-brightness) * 46px) color-mix(in srgb, var(--rgb-led-color) 55%, transparent);
+}
+
+.rgb-led-readout {
+  font: 700 10px var(--mono);
+  color: #cbd3e2;
+  background: rgb(0 0 0 / 0.18);
+  border-radius: 999px;
+  padding: 3px 8px;
 }
 
 .distance-readout {

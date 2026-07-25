@@ -1,0 +1,55 @@
+{
+  "$schema": "../../../schemas/component.schema.json",
+  "schemaVersion": "1.0.0",
+  "identity": {
+    "id": "input.analog.trimpot.10k",
+    "name": "Trimpot 10 kΩ",
+    "category": "input",
+    "subCategory": "analog"
+  },
+  "simulation": {
+    "kind": "environment-source",
+    "effects": ["environment", "electrical", "firmware", "visual-state"],
+    "implemented": true,
+    "notes": ["Modeled as an adjustable analog voltage source for calibration exercises."]
+  },
+  "properties": {
+    "enabled": { "type": "boolean", "default": true, "simulationUpdate": "live" },
+    "voltageVolts": { "type": "number", "default": 1.65, "minimum": 0, "maximum": 5, "unit": "V", "simulationUpdate": "live" },
+    "resistanceOhms": { "type": "number", "default": 10000, "minimum": 1000, "maximum": 100000, "unit": "Ω", "simulationUpdate": "rerun" }
+  },
+  "terminals": [
+    { "id": "vcc", "label": "VCC", "type": "power-input" },
+    { "id": "wiper", "label": "SIG", "type": "analog-output" },
+    { "id": "gnd", "label": "GND", "type": "ground" }
+  ],
+  "behavior": {
+    "type": "analog-voltage-source",
+    "channel": "analog-voltage",
+    "voltageProperty": "voltageVolts",
+    "activeProperty": "enabled",
+    "outputTerminal": "wiper"
+  },
+  "electricalModel": {
+    "type": "voltage-source",
+    "outputVoltageProperty": "voltageVolts"
+  },
+  "visual": {
+    "type": "trimpot-10k",
+    "title": "Trimpot",
+    "className": "maker-trimpot",
+    "body": "1.65 V",
+    "width": 170,
+    "height": 104,
+    "controls": [
+      { "type": "readout", "className": "analog-readout", "label": "Trim", "property": "voltageVolts", "unit": "V" },
+      { "type": "range", "property": "voltageVolts" }
+    ],
+    "palette": { "group": "Inputs", "subgroup": "Analog", "icon": "trimpot-icon", "order": 35 },
+    "terminals": [
+      { "id": "vcc", "label": "VCC", "side": "left", "x": 0, "y": 28, "kind": "power" },
+      { "id": "wiper", "label": "SIG", "side": "right", "x": 170, "y": 52, "kind": "signal" },
+      { "id": "gnd", "label": "GND", "side": "bottom", "x": 85, "y": 104, "kind": "ground" }
+    ]
+  }
+}
