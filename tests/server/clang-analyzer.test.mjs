@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { readProjectWithCodeReferencesSync } from '../../apps/web/project-code-references.mjs';
 import { normalizeProjectCode } from '../../apps/web/js/project-serializer.js';
 import { runArduinoFirmware } from '../../apps/web/js/simulation/firmware-engine.js';
 import { ArduinoRuntime } from '../../apps/web/js/simulation/arduino-runtime.js';
@@ -18,9 +19,11 @@ import {
 import { clearFirmwareWasmBuildCache, compileFirmwareWasmWithClang } from '../../apps/web/firmware/wasm-compiler.mjs';
 
 const root = new URL('../..', import.meta.url).pathname;
-const referenceCode = normalizeProjectCode(JSON.parse(
-  readFileSync(join(root, 'examples/hc-sr04-led-distance/project.json'), 'utf8')
-).code.files['main.ino']);
+const referenceCode = normalizeProjectCode(readExampleProject('examples/hc-sr04-led-distance/project.json').code.files['main.ino']);
+
+function readExampleProject(relativePath) {
+  return readProjectWithCodeReferencesSync(join(root, relativePath));
+}
 
 test('firmware library resolver maps Arduino includes to supported local libraries', () => {
   const code = `
@@ -171,9 +174,7 @@ test('clang frontend maps ESP32 WiFi member calls into firmware IR', async () =>
 });
 
 test('clang frontend normalizes escaped newlines from project JSON firmware', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/esp32-wifi-signal/project.json'), 'utf8')
-  );
+  const project = readExampleProject('examples/esp32-wifi-signal/project.json');
   const result = await compileFirmwareIrWithClang(project.code.files['main.ino']);
 
   assert.equal(result.available, true);
@@ -185,9 +186,7 @@ test('clang frontend normalizes escaped newlines from project JSON firmware', as
 });
 
 test('clang analyzer accepts ESP32 WiFiClient TCP example', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/esp32-wifi-tcp-jsonplaceholder/project.json'), 'utf8')
-  );
+  const project = readExampleProject('examples/esp32-wifi-tcp-jsonplaceholder/project.json');
   const result = await analyzeFirmwareWithClang(normalizeProjectCode(project.code.files['main.ino']));
 
   assert.equal(result.available, true);
@@ -277,9 +276,7 @@ test('clang analyzer accepts Arduino analog pins and analogRead', async () => {
 });
 
 test('clang analyzer accepts LDR light analog example', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/ldr-light-analog/project.json'), 'utf8')
-  );
+  const project = readExampleProject('examples/ldr-light-analog/project.json');
   const result = await analyzeFirmwareWithClang(normalizeProjectCode(project.code.files['main.ino']));
 
   assert.equal(result.available, true);
@@ -288,9 +285,7 @@ test('clang analyzer accepts LDR light analog example', async () => {
 });
 
 test('clang analyzer accepts BMP280 Wire example', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/bmp280-weather-i2c/project.json'), 'utf8')
-  );
+  const project = readExampleProject('examples/bmp280-weather-i2c/project.json');
   const result = await analyzeFirmwareWithClang(normalizeProjectCode(project.code.files['main.ino']));
 
   assert.equal(result.available, true);
@@ -304,7 +299,7 @@ test('clang analyzer accepts external ADC examples', async () => {
     'examples/ads1115-single-ended/project.json',
     'examples/mcp3008-single-ended/project.json'
   ]) {
-    const project = JSON.parse(readFileSync(join(root, examplePath), 'utf8'));
+    const project = readExampleProject(examplePath);
     const result = await analyzeFirmwareWithClang(normalizeProjectCode(project.code.files['main.ino']));
 
     assert.equal(result.available, true, examplePath);
@@ -493,9 +488,7 @@ test('clang wasm compiler injects board LED_BUILTIN constants before compilation
 });
 
 test('clang wasm compiler supports HC-SR04 firmware timing primitives', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/hc-sr04-led-distance/project.json'), 'utf8')
-  );
+  const project = readExampleProject('examples/hc-sr04-led-distance/project.json');
   const result = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
 
   assert.equal(result.available, true);
@@ -507,9 +500,7 @@ test('clang wasm compiler supports HC-SR04 firmware timing primitives', async ()
 });
 
 test('clang wasm compiler supports counter blink example with increment and modulo', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/esp32-counter-blink/project.json'), 'utf8')
-  );
+  const project = readExampleProject('examples/esp32-counter-blink/project.json');
   const result = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
     constants: {
       LED_BUILTIN: 2
@@ -522,9 +513,7 @@ test('clang wasm compiler supports counter blink example with increment and modu
 });
 
 test('clang wasm compiler supports ESP32 WiFi example', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/esp32-wifi-signal/project.json'), 'utf8')
-  );
+  const project = readExampleProject('examples/esp32-wifi-signal/project.json');
   const result = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
     constants: {
       LED_BUILTIN: 2
@@ -540,9 +529,7 @@ test('clang wasm compiler supports ESP32 WiFi example', async () => {
 });
 
 test('clang wasm compiler supports ESP32 WiFi failover example', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/esp32-wifi-failover/project.json'), 'utf8')
-  );
+  const project = readExampleProject('examples/esp32-wifi-failover/project.json');
   const result = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
     constants: {
       LED_BUILTIN: 2
@@ -557,9 +544,7 @@ test('clang wasm compiler supports ESP32 WiFi failover example', async () => {
 });
 
 test('clang wasm compiler supports FC-37 rain digital example', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/fc-37-rain-digital/project.json'), 'utf8')
-  );
+  const project = readExampleProject('examples/fc-37-rain-digital/project.json');
   const result = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
 
   assert.equal(result.available, true);
@@ -570,9 +555,7 @@ test('clang wasm compiler supports FC-37 rain digital example', async () => {
 });
 
 test('clang wasm compiler supports LDR light analog example', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/ldr-light-analog/project.json'), 'utf8')
-  );
+  const project = readExampleProject('examples/ldr-light-analog/project.json');
   const result = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
 
   assert.equal(result.available, true);
@@ -583,9 +566,7 @@ test('clang wasm compiler supports LDR light analog example', async () => {
 });
 
 test('clang wasm compiler supports BMP280 Wire example', async () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/bmp280-weather-i2c/project.json'), 'utf8')
-  );
+  const project = readExampleProject('examples/bmp280-weather-i2c/project.json');
   const result = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
 
   assert.equal(result.available, true);
@@ -605,7 +586,7 @@ test('clang wasm compiler supports external ADC examples', async () => {
   ];
 
   for (const [examplePath, expectedImport] of expectations) {
-    const project = JSON.parse(readFileSync(join(root, examplePath), 'utf8'));
+    const project = readExampleProject(examplePath);
     const result = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
 
     assert.equal(result.available, true, examplePath);

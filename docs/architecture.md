@@ -136,10 +136,13 @@ O `Project JSON` contém:
 - rede MQTT opcional em `network.mqtt`, virtual por padrão ou real quando `mode` é `"real"`;
 - cores de fios por conexão;
 - código Arduino em `code.files`;
+- referências opcionais para firmware externo em exemplos oficiais, como `{ "path": "./firmware/main.ino" }`;
 - firmwares por placa em `firmwares`, usado por projetos multi-board;
 - metadados básicos do board.
 
 A UI consegue salvar em `localStorage`, carregar, importar e exportar esse formato.
+
+Projetos exportados pela UI continuam autocontidos com código inline em `code.files`. Os exemplos oficiais do repositório podem usar arquivos externos para manter o C/C++ editável e revisável fora do JSON; `GET /api/examples/:id` resolve essas referências antes de enviar o projeto ao frontend.
 
 ## Exemplos com Serviços Externos
 

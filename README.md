@@ -136,6 +136,7 @@ Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
 
 - A UI carrega componentes oficiais por `GET /api/components`.
 - Exemplos ficam em `examples/**/project.json` e são carregados pelo modal `Exemplos`.
+- O firmware C/C++ dos exemplos oficiais fica em `examples/<slug>/firmware/*.ino` e é referenciado por caminho em `project.json`; a API de exemplos resolve esses arquivos antes de entregar o projeto para a UI.
 - O exemplo default atual é `examples/hc-sr04-led-distance/project.json`.
 - Há exemplos WASM para HC-SR04, Arduino Serial LED, Serial bridge multi-board, pull-up button, buzzer beep, BBC micro:bit V2 Heart, ESP32 AC Energy Meter POC, ESP32-S3 HUB75 Snake Game, ESP32 counter blink, ESP32 Wi-Fi Signal, ESP32 Wi-Fi Failover, ESP32 HTTP/TCP, ESP8266 MQTT water pump, FC-37 Rain Digital, LDR Light Analog, BMP280 Weather I2C, ADS1015/ADS1115 Single Ended, MCP3008 Single Ended e ESP Water Control Pump Reservoir.
 - Componentes oficiais ficam em `components/official/**/component.json`.

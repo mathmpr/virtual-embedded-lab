@@ -87,14 +87,18 @@
       "language": "arduino-cpp",
       "entry": "main-arduino-1.ino",
       "files": {
-        "main-arduino-1.ino": "char command[8];\\nint commandLength = 0;\\n\\nbool commandEquals(const char *expected)\\n{\\n    int index = 0;\\n\\n    while (expected[index] != 0 && command[index] != 0) {\\n        if (expected[index] != command[index]) {\\n            return false;\\n        }\\n\\n        index++;\\n    }\\n\\n    return expected[index] == 0 && command[index] == 0;\\n}\\n\\nvoid clearCommand()\\n{\\n    for (int index = 0; index < 8; index++) {\\n        command[index] = 0;\\n    }\\n\\n    commandLength = 0;\\n}\\n\\nvoid handleCommand()\\n{\\n    if (commandEquals(\"ping\")) {\\n        Serial.println(\"pong\");\\n        clearCommand();\\n    }\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    clearCommand();\\n}\\n\\nvoid loop()\\n{\\n    while (Serial.available() > 0) {\\n        const int incoming = Serial.read();\\n\\n        if (incoming == 10 || incoming == 13) {\\n            clearCommand();\\n            continue;\\n        }\\n\\n        if (commandLength < 7) {\\n            command[commandLength] = (char) incoming;\\n            commandLength++;\\n            command[commandLength] = 0;\\n            handleCommand();\\n        } else {\\n            clearCommand();\\n        }\\n    }\\n\\n    delay(10);\\n}\\n"
+        "main-arduino-1.ino": {
+          "path": "./firmware/main-arduino-1.ino"
+        }
       }
     },
     "arduino-2": {
       "language": "arduino-cpp",
       "entry": "main-arduino-2.ino",
       "files": {
-        "main-arduino-2.ino": "const int LED_PIN = 13;\\nchar command[8];\\nint commandLength = 0;\\nbool ledOn = false;\\n\\nbool commandEquals(const char *expected)\\n{\\n    int index = 0;\\n\\n    while (expected[index] != 0 && command[index] != 0) {\\n        if (expected[index] != command[index]) {\\n            return false;\\n        }\\n\\n        index++;\\n    }\\n\\n    return expected[index] == 0 && command[index] == 0;\\n}\\n\\nvoid clearCommand()\\n{\\n    for (int index = 0; index < 8; index++) {\\n        command[index] = 0;\\n    }\\n\\n    commandLength = 0;\\n}\\n\\nvoid toggleLed()\\n{\\n    ledOn = !ledOn;\\n    digitalWrite(LED_PIN, ledOn ? HIGH : LOW);\\n\\n    if (ledOn) {\\n        Serial.println(\"LED ON\");\\n    } else {\\n        Serial.println(\"LED OFF\");\\n    }\\n}\\n\\nvoid handleCommand()\\n{\\n    if (commandEquals(\"pong\")) {\\n        toggleLed();\\n        clearCommand();\\n    }\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    pinMode(LED_PIN, OUTPUT);\\n    digitalWrite(LED_PIN, LOW);\\n    clearCommand();\\n}\\n\\nvoid loop()\\n{\\n    while (Serial.available() > 0) {\\n        const int incoming = Serial.read();\\n\\n        if (incoming == 10 || incoming == 13) {\\n            clearCommand();\\n            continue;\\n        }\\n\\n        if (commandLength < 7) {\\n            command[commandLength] = (char) incoming;\\n            commandLength++;\\n            command[commandLength] = 0;\\n            handleCommand();\\n        } else {\\n            clearCommand();\\n        }\\n    }\\n\\n    delay(10);\\n}\\n"
+        "main-arduino-2.ino": {
+          "path": "./firmware/main-arduino-2.ino"
+        }
       }
     }
   },
@@ -102,7 +106,9 @@
     "language": "arduino-cpp",
     "entry": "main-arduino-1.ino",
     "files": {
-      "main-arduino-1.ino": "char command[8];\\nint commandLength = 0;\\n\\nbool commandEquals(const char *expected)\\n{\\n    int index = 0;\\n\\n    while (expected[index] != 0 && command[index] != 0) {\\n        if (expected[index] != command[index]) {\\n            return false;\\n        }\\n\\n        index++;\\n    }\\n\\n    return expected[index] == 0 && command[index] == 0;\\n}\\n\\nvoid clearCommand()\\n{\\n    for (int index = 0; index < 8; index++) {\\n        command[index] = 0;\\n    }\\n\\n    commandLength = 0;\\n}\\n\\nvoid handleCommand()\\n{\\n    if (commandEquals(\"ping\")) {\\n        Serial.println(\"pong\");\\n        clearCommand();\\n    }\\n}\\n\\nvoid setup()\\n{\\n    Serial.begin(115200);\\n    clearCommand();\\n}\\n\\nvoid loop()\\n{\\n    while (Serial.available() > 0) {\\n        const int incoming = Serial.read();\\n\\n        if (incoming == 10 || incoming == 13) {\\n            clearCommand();\\n            continue;\\n        }\\n\\n        if (commandLength < 7) {\\n            command[commandLength] = (char) incoming;\\n            commandLength++;\\n            command[commandLength] = 0;\\n            handleCommand();\\n        } else {\\n            clearCommand();\\n        }\\n    }\\n\\n    delay(10);\\n}\\n"
+      "main-arduino-1.ino": {
+        "path": "./firmware/main-arduino-1.ino"
+      }
     }
   }
 }

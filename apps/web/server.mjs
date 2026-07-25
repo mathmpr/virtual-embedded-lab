@@ -4,6 +4,7 @@ import { extname, join, normalize } from 'node:path';
 import { compileFirmwareIrWithClang } from './firmware/clang-analyzer.mjs';
 import { compileFirmwareWasmWithClang } from './firmware/wasm-compiler.mjs';
 import { handleMqttBridgeRequest } from './network/mqtt-bridge.mjs';
+import { readProjectWithCodeReferences } from './project-code-references.mjs';
 
 const port = Number(process.env.PORT ?? 4173);
 const host = process.env.HOST ?? '127.0.0.1';
@@ -210,7 +211,7 @@ async function handleExampleProject(pathname, response) {
 }
 
 async function readExampleProject(exampleId) {
-  return JSON.parse(await readFile(join(root, 'examples', exampleId, 'project.json'), 'utf8'));
+  return readProjectWithCodeReferences(join(root, 'examples', exampleId, 'project.json'));
 }
 
 async function readOfficialComponentManifests(directory) {

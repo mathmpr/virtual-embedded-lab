@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readProjectWithCodeReferencesSync } from '../../apps/web/project-code-references.mjs';
 import { normalizeProjectCode } from '../../apps/web/js/project-serializer.js';
 import { compileArduinoFirmware, runArduinoFirmware } from '../../apps/web/js/simulation/firmware-engine.js';
 import { ArduinoRuntime } from '../../apps/web/js/simulation/arduino-runtime.js';
@@ -13,9 +14,11 @@ import {
 import { EventScheduler, VirtualClock } from '../../apps/web/js/simulation/virtual-time.js';
 
 const root = new URL('../..', import.meta.url).pathname;
-const referenceCode = normalizeProjectCode(JSON.parse(
-  readFileSync(join(root, 'examples/hc-sr04-led-distance/project.json'), 'utf8')
-).code.files['main.ino']);
+const referenceCode = normalizeProjectCode(readExampleProject('examples/hc-sr04-led-distance/project.json').code.files['main.ino']);
+
+function readExampleProject(relativePath) {
+  return readProjectWithCodeReferencesSync(join(root, relativePath));
+}
 
 test('firmware engine compiles Arduino setup and loop into executable IR', () => {
   const firmware = compileArduinoFirmware(referenceCode);
@@ -420,7 +423,7 @@ test('project simulation runs repeated loop iterations and records blink pin eve
 test('counter blink example runs through WASM with persisted increment state', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const { runWasmFirmware } = await import('../../apps/web/js/simulation/wasm-firmware-runner.js');
-  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-counter-blink/project.json'), 'utf8'));
+  const project = readExampleProject('examples/esp32-counter-blink/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
     constants: {
       LED_BUILTIN: 2
@@ -469,7 +472,7 @@ test('WASM Arduino random avoids low-bit modulo cycles', async () => {
 test('counter blink WASM session persists globals across simulation frames', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const esp32 = JSON.parse(readFileSync(join(root, 'components/official/esp32-devkit/component.json'), 'utf8'));
-  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-counter-blink/project.json'), 'utf8'));
+  const project = readExampleProject('examples/esp32-counter-blink/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
     constants: {
       LED_BUILTIN: 2
@@ -503,7 +506,7 @@ test('counter blink WASM session persists globals across simulation frames', asy
 
 test('Arduino Serial LED example reacts to RX on and off commands through WASM', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-serial-led/project.json'), 'utf8'));
+  const project = readExampleProject('examples/arduino-serial-led/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
     constants: {
       LED_BUILTIN: 13
@@ -535,7 +538,7 @@ test('Arduino Serial LED example reacts to RX on and off commands through WASM',
 
 test('Arduino Serial bridge example routes TX to another board RX through WASM', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-serial-bridge-led/project.json'), 'utf8'));
+  const project = readExampleProject('examples/arduino-serial-bridge-led/project.json');
   const wasmByComponentId = new Map();
 
   for (const componentId of ['arduino-1', 'arduino-2']) {
@@ -595,7 +598,7 @@ test('ESP32 WiFi example runs through WASM and reads signal environment', async 
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const esp32 = JSON.parse(readFileSync(join(root, 'components/official/esp32-devkit/component.json'), 'utf8'));
   const wifiSignal = JSON.parse(readFileSync(join(root, 'components/official/wifi-signal/component.json'), 'utf8'));
-  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-wifi-signal/project.json'), 'utf8'));
+  const project = readExampleProject('examples/esp32-wifi-signal/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
     constants: {
       LED_BUILTIN: 2
@@ -644,7 +647,7 @@ test('ESP32 WiFi TCP example fetches virtual JSONPlaceholder response through WA
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const esp32 = JSON.parse(readFileSync(join(root, 'components/official/esp32-devkit/component.json'), 'utf8'));
   const wifiSignal = JSON.parse(readFileSync(join(root, 'components/official/wifi-signal/component.json'), 'utf8'));
-  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-wifi-tcp-jsonplaceholder/project.json'), 'utf8'));
+  const project = readExampleProject('examples/esp32-wifi-tcp-jsonplaceholder/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
     constants: {
       LED_BUILTIN: 2
@@ -924,7 +927,7 @@ test('ESP32 WiFi failover example chooses strongest network with internet throug
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const esp32 = JSON.parse(readFileSync(join(root, 'components/official/esp32-devkit/component.json'), 'utf8'));
   const wifiSignal = JSON.parse(readFileSync(join(root, 'components/official/wifi-signal/component.json'), 'utf8'));
-  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-wifi-failover/project.json'), 'utf8'));
+  const project = readExampleProject('examples/esp32-wifi-failover/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
     constants: {
       LED_BUILTIN: 2
@@ -1023,7 +1026,7 @@ test('HC-SR04 WASM session updates distance without resetting virtual time', asy
 
 test('FC-37 rain WASM session updates rain without resetting virtual time', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/fc-37-rain-digital/project.json'), 'utf8'));
+  const project = readExampleProject('examples/fc-37-rain-digital/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const session = await createProjectWasmSimulationSession({
     state: {
@@ -1068,7 +1071,7 @@ test('FC-37 rain WASM session updates rain without resetting virtual time', asyn
 
 test('LDR light WASM session updates analogRead without resetting virtual time', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/ldr-light-analog/project.json'), 'utf8'));
+  const project = readExampleProject('examples/ldr-light-analog/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const session = await createProjectWasmSimulationSession({
     state: {
@@ -1140,7 +1143,7 @@ test('LDR light WASM session updates analogRead without resetting virtual time',
 
 test('BMP280 WASM session updates climate readings without resetting virtual time', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/bmp280-weather-i2c/project.json'), 'utf8'));
+  const project = readExampleProject('examples/bmp280-weather-i2c/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const session = await createProjectWasmSimulationSession({
     state: {
@@ -1225,7 +1228,7 @@ test('external ADC WASM sessions update analog source without resetting virtual 
   ];
 
   for (const item of cases) {
-    const project = JSON.parse(readFileSync(join(root, item.example), 'utf8'));
+    const project = readExampleProject(item.example);
     const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
     const session = await createProjectWasmSimulationSession({
       state: {
@@ -1255,7 +1258,7 @@ test('external ADC WASM sessions update analog source without resetting virtual 
 
 test('pull-up button example toggles blue LED through WASM pulses', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-pull-up-button-toggle-blue-led/project.json'), 'utf8'));
+  const project = readExampleProject('examples/arduino-pull-up-button-toggle-blue-led/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
     constants: {
       LED_BUILTIN: 13
@@ -1308,7 +1311,7 @@ test('pull-up button example toggles blue LED through WASM pulses', async () => 
 
 test('buzzer example updates buzzer visual state through WASM digitalWrite', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-buzzer-beep/project.json'), 'utf8'));
+  const project = readExampleProject('examples/arduino-buzzer-beep/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const components = new Map([
     ['arduino-1', officialComponent('arduino-1', 'arduino', {})],
@@ -1355,7 +1358,7 @@ test('buzzer example updates buzzer visual state through WASM digitalWrite', asy
 
 test('LCD 16x2 I2C example updates display buffer through WASM library shim', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-lcd-16x2-i2c-counter/project.json'), 'utf8'));
+  const project = readExampleProject('examples/arduino-lcd-16x2-i2c-counter/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const lcd = officialComponent('lcd-1', 'lcd-16x2-i2c', {
     i2cAddress: 39,
@@ -1394,7 +1397,7 @@ test('LCD 16x2 I2C example updates display buffer through WASM library shim', as
 
 test('7-segment counter example derives active segments from WASM digitalWrite pins', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-seven-segment-counter/project.json'), 'utf8'));
+  const project = readExampleProject('examples/arduino-seven-segment-counter/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const display = officialComponent('display-1', 'seven-segment-display', {
     commonType: 'cathode',
@@ -1447,7 +1450,7 @@ test('7-segment counter example derives active segments from WASM digitalWrite p
 
 test('74HC595 example drives a 7-segment display through shiftOut', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-74hc595-seven-segment-counter/project.json'), 'utf8'));
+  const project = readExampleProject('examples/arduino-74hc595-seven-segment-counter/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const shift = officialComponent('shift-1', 'shift-register-74hc595', {
     latchedValue: 0,
@@ -1506,7 +1509,7 @@ test('74HC595 example drives a 7-segment display through shiftOut', async () => 
 
 test('ESP32 Simon Says example compiles and drives score display, LEDs and buzzer through WASM', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-simon-says/project.json'), 'utf8'));
+  const project = readExampleProject('examples/esp32-simon-says/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const componentTypeById = {
     'board.esp32.devkit': 'esp32-devkit',
@@ -1577,7 +1580,7 @@ test('ESP32 Simon Says example compiles and drives score display, LEDs and buzze
 
 test('DHT22 example reads climate temperature and humidity through WASM shim', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-dht22-climate/project.json'), 'utf8'));
+  const project = readExampleProject('examples/arduino-dht22-climate/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const dht = officialComponent('dht-1', 'dht22-sensor', {
     temperatureCelsius: 25,
@@ -1621,7 +1624,7 @@ test('DHT22 example reads climate temperature and humidity through WASM shim', a
 
 test('Arduino Nano blink button example uses board LED_BUILTIN and external LED through WASM', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-nano-blink-button/project.json'), 'utf8'));
+  const project = readExampleProject('examples/arduino-nano-blink-button/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']), {
     constants: { LED_BUILTIN: 13 }
   });
@@ -1650,7 +1653,7 @@ test('Arduino Nano blink button example uses board LED_BUILTIN and external LED 
 
 test('BBC micro:bit V2 heart example lights built-in LED matrix through WASM', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/bbc-microbit-v2-heart/project.json'), 'utf8'));
+  const project = readExampleProject('examples/bbc-microbit-v2-heart/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const session = await createProjectWasmSimulationSession({
     state: {
@@ -1678,7 +1681,7 @@ test('BBC micro:bit V2 heart example lights built-in LED matrix through WASM', a
 
 test('ESP32 AC energy meter POC reads two phases through ADS1115 WASM', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-ac-energy-meter-poc/project.json'), 'utf8'));
+  const project = readExampleProject('examples/esp32-ac-energy-meter-poc/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const components = componentsFromProject(project);
   const session = await createProjectWasmSimulationSession({
@@ -1720,7 +1723,7 @@ test('ESP32 AC energy meter POC reads two phases through ADS1115 WASM', async ()
 
 test('ESP32-S3 HUB75 Snake example draws matrix framebuffer through WASM', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/esp32-s3-snake-hub75/project.json'), 'utf8'));
+  const project = readExampleProject('examples/esp32-s3-snake-hub75/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const components = componentsFromProject(project);
   const session = await createProjectWasmSimulationSession({
@@ -1759,7 +1762,7 @@ test('ESP32-S3 HUB75 Snake example draws matrix framebuffer through WASM', async
 
 test('Servo sweep example updates servo angle through Servo WASM shim', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const project = JSON.parse(readFileSync(join(root, 'examples/arduino-servo-sweep/project.json'), 'utf8'));
+  const project = readExampleProject('examples/arduino-servo-sweep/project.json');
   const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(project.code.files['main.ino']));
   const servo = officialComponent('servo-1', 'servo-motor', {
     angleDegrees: 90,

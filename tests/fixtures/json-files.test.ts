@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readProjectWithCodeReferencesSync } from '../../apps/web/project-code-references.mjs';
 import { componentPalette, installComponentCatalog } from '../../apps/web/js/components.js';
 
 const root = new URL('../..', import.meta.url).pathname;
@@ -86,6 +87,10 @@ function officialComponentPaths() {
 }
 
 function readJson(relativePath: string) {
+  if (relativePath.startsWith('examples/')) {
+    return readProjectWithCodeReferencesSync(join(root, relativePath));
+  }
+
   return JSON.parse(readFileSync(join(root, relativePath), 'utf8'));
 }
 
@@ -207,9 +212,7 @@ test('official component manifests keep references internally consistent', () =>
 });
 
 test('HC-SR04 example contains required validation components', () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/hc-sr04-led-distance/project.json'), 'utf8')
-  );
+  const project = readJson('examples/hc-sr04-led-distance/project.json');
 
   assert.deepEqual(
     project.components.map((component: { componentId: string }) => component.componentId).sort(),
@@ -307,9 +310,7 @@ test('BBC micro:bit V2 manifest exposes edge connector pins and simulated LED ma
   const microbit = JSON.parse(
     readFileSync(join(root, 'components/official/bbc-microbit-v2/component.json'), 'utf8')
   );
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/bbc-microbit-v2-heart/project.json'), 'utf8')
-  );
+  const project = readJson('examples/bbc-microbit-v2-heart/project.json');
   const terminalIds = microbit.terminals.map((terminal: { id: string }) => terminal.id);
   const visualTerminalIds = microbit.visual.terminals.map((terminal: { id: string }) => terminal.id);
   const matrixPixels = microbit.behavior.builtInLeds.filter((led: { id: string }) => led.id.startsWith('px-'));
@@ -408,9 +409,7 @@ test('FC-37 rain package exposes sensor, environment and digital example', () =>
   const rain = JSON.parse(
     readFileSync(join(root, 'components/official/rain-toggle/component.json'), 'utf8')
   );
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/fc-37-rain-digital/project.json'), 'utf8')
-  );
+  const project = readJson('examples/fc-37-rain-digital/project.json');
 
   assert.equal(sensor.identity.id, 'sensor.rain.fc-37');
   assert.equal(sensor.simulation.kind, 'behavioral-sensor');
@@ -448,9 +447,7 @@ test('LDR light package exposes sensor, environment and analog example', () => {
   const light = JSON.parse(
     readFileSync(join(root, 'components/official/light-level/component.json'), 'utf8')
   );
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/ldr-light-analog/project.json'), 'utf8')
-  );
+  const project = readJson('examples/ldr-light-analog/project.json');
 
   assert.equal(sensor.identity.id, 'sensor.light.ldr');
   assert.equal(sensor.simulation.kind, 'behavioral-sensor');
@@ -491,9 +488,7 @@ test('BMP280 package exposes sensor, climate environment and I2C example', () =>
   const climate = JSON.parse(
     readFileSync(join(root, 'components/official/climate/component.json'), 'utf8')
   );
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/bmp280-weather-i2c/project.json'), 'utf8')
-  );
+  const project = readJson('examples/bmp280-weather-i2c/project.json');
 
   assert.equal(sensor.identity.id, 'sensor.environment.bmp280');
   assert.equal(sensor.simulation.kind, 'behavioral-sensor');
@@ -563,9 +558,7 @@ test('external ADC package exposes ADS1015, ADS1115, MCP3008 and analog source e
 });
 
 test('ESP32 Wi-Fi example contains standalone Wi-Fi signal and firmware', () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/esp32-wifi-signal/project.json'), 'utf8')
-  );
+  const project = readJson('examples/esp32-wifi-signal/project.json');
 
   assert.deepEqual(
     project.components.map((component: { componentId: string }) => component.componentId).sort(),
@@ -581,9 +574,7 @@ test('ESP32 Wi-Fi example contains standalone Wi-Fi signal and firmware', () => 
 });
 
 test('ESP32 Wi-Fi failover example contains multiple networks and internet validation', () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/esp32-wifi-failover/project.json'), 'utf8')
-  );
+  const project = readJson('examples/esp32-wifi-failover/project.json');
   const wifiSignals = project.components.filter((component: { componentId: string }) => component.componentId === 'environment.wifi-signal');
   const code = project.code.files['main.ino'];
 
@@ -597,9 +588,7 @@ test('ESP32 Wi-Fi failover example contains multiple networks and internet valid
 });
 
 test('ESP32 counter blink example exercises WASM-supported C++ state', () => {
-  const project = JSON.parse(
-    readFileSync(join(root, 'examples/esp32-counter-blink/project.json'), 'utf8')
-  );
+  const project = readJson('examples/esp32-counter-blink/project.json');
   const code = project.code.files['main.ino'];
 
   assert.deepEqual(project.components.map((component: { componentId: string }) => component.componentId), ['board.esp32.devkit']);

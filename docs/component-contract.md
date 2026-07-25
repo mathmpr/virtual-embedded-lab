@@ -37,3 +37,23 @@ Regras atuais:
 ## Testes
 
 Os invariantes do catálogo ficam em `tests/fixtures/json-files.test.ts`. Eles validam o contrato mínimo, presença na palette e consistência entre terminais visuais e lógicos.
+
+## Código dos Exemplos
+
+O manifest do componente não deve embutir sketches de exemplo. Firmware de exemplo deve ficar em arquivos C/C++ dentro do diretório do exemplo, normalmente `examples/<slug>/firmware/main.ino`.
+
+No `project.json`, `code.files` e `firmwares[*].files` podem usar string inline para projetos exportados/importados pelo usuário ou uma referência de arquivo para exemplos oficiais:
+
+```json
+{
+  "code": {
+    "language": "arduino-cpp",
+    "entry": "main.ino",
+    "files": {
+      "main.ino": { "path": "./firmware/main.ino" }
+    }
+  }
+}
+```
+
+A API de exemplos resolve essas referências antes de entregar o projeto à UI.

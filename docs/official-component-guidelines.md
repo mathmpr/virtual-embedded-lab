@@ -38,6 +38,7 @@ Para propriedades simples, UI, terminais, sinais e estados visuais, use manifest
 - [ ] O componente usa `visual.stateBindings` para estados visuais derivados.
 - [ ] Código específico novo fica em adapter/registry, não misturado no editor.
 - [ ] APIs novas de firmware entram via registry de shims/imports, não diretamente no compilador/runner central.
+- [ ] Código C/C++ de exemplo fica em `examples/<slug>/firmware/*.ino`/`*.cpp`, com referência por caminho no `project.json`.
 - [ ] O exemplo oficial roda pelo caminho WASM, sem depender da IR JS depreciada.
 - [ ] Testes cobrem manifest, exemplo, propriedades, behavior, solver ou firmware conforme o escopo.
 
@@ -78,7 +79,7 @@ Casos inválidos:
 1. Escrever ou atualizar o documento em `add-components/` usando `add-components/new-component-example.md`.
 2. Declarar manifest em `components/official/<slug>/component.json`.
 3. Adicionar `ui/`, `simulation/` e `firmware/` dentro do componente somente quando necessário.
-4. Criar exemplo em `examples/<slug>/project.json`.
+4. Criar exemplo em `examples/<slug>/project.json` e colocar o firmware em `examples/<slug>/firmware/*.ino`/`*.cpp`.
 5. Registrar behavior, electrical primitive, import WASM ou shim somente se necessário.
 6. Adicionar/ajustar testes de fixtures e simulação conforme o escopo.
 7. Rodar `npm test`.

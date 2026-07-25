@@ -31,17 +31,11 @@
       "default": []
     },
     "code": {
+      "$ref": "#/$defs/firmwareCode"
+    },
+    "firmwares": {
       "type": "object",
-      "required": ["language", "entry", "files"],
-      "properties": {
-        "language": { "const": "arduino-cpp" },
-        "entry": { "type": "string", "minLength": 1 },
-        "files": {
-          "type": "object",
-          "additionalProperties": { "type": "string" }
-        }
-      },
-      "additionalProperties": false
+      "additionalProperties": { "$ref": "#/$defs/firmwareCode" }
     },
     "network": {
       "type": "object",
@@ -54,6 +48,35 @@
   },
   "additionalProperties": false,
   "$defs": {
+    "firmwareCode": {
+      "type": "object",
+      "required": ["language", "entry", "files"],
+      "properties": {
+        "language": { "const": "arduino-cpp" },
+        "entry": { "type": "string", "minLength": 1 },
+        "files": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "$ref": "#/$defs/codeFileReference" }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "codeFileReference": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+\\.(ino|c|cc|cpp|h|hpp)$"
+        }
+      },
+      "additionalProperties": false
+    },
     "componentInstance": {
       "type": "object",
       "required": ["id", "componentId", "position", "properties"],

@@ -196,7 +196,8 @@ Para cada exemplo:
 - Componentes usados:
 - Conexões elétricas:
 - Conexões ambientais:
-- Código `main.ino`:
+- Arquivo de firmware: `examples/<slug>/firmware/main.ino` ou outro nome explícito.
+- Referência no `project.json`: `code.files["main.ino"] = { "path": "./firmware/main.ino" }`.
 - O que deve aparecer no Serial:
 - O que deve mudar visualmente no board:
 - Problemas esperados, se houver:
