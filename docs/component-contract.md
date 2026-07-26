@@ -1,59 +1,63 @@
-# Contrato de Componentes Oficiais
+# Official Component Contract
 
-Antes de implementar um componente oficial, leia também `docs/official-component-guidelines.md` e `docs/component-description.md`. Este arquivo define o contrato técnico do manifest; os outros guias definem as regras arquiteturais e a estrutura prática do pacote de componente.
+This document defines the minimum contract expected from official components.
 
-Todo componente oficial fica em `components/official/**/component.json` e deve declarar, no mínimo:
+Every official component lives in `components/official/<component>/component.json` and must be valid against `schemas/component.schema.json`.
 
-- `identity`: identificador estável, nome, categoria e subcategoria opcional.
-- `simulation`: classificação explícita do papel do componente na simulação.
-- `terminals`: terminais lógicos usados por conexões, solver e serialização.
-- `visual`: representação visual e, quando o componente aparece no catálogo, `visual.palette`.
+## Required manifest sections
+
+- `identity`: stable component id, name, version, and description.
+- `visual`: UI type, title, size, terminals, and optional palette metadata.
+- `terminals`: electrical/logical/environment terminal definitions.
+- `properties`: user-editable and simulation properties.
+- `simulation`: simulation kind and implementation status.
+
+When a component affects simulation, it must also declare:
+
+- `behavior`: runtime-facing behavior metadata;
+- `electricalModel`: electrical primitive/model when it participates in electrical diagnostics;
+- `contributions`: local behavior/import/style files when component-specific code is required.
 
 ## `simulation`
 
-O bloco `simulation` evita inferência por nome/categoria e separa componentes visuais, passivos e comportamentais.
+`simulation` must communicate what is actually implemented.
 
-Campos obrigatórios:
-
-- `kind`: um de `visual-only`, `passive-electrical`, `active-electrical`, `behavioral-sensor`, `environment-source` ou `microcontroller`.
-- `effects`: lista com `electrical`, `firmware`, `environment` e/ou `visual-state`.
-- `implemented`: indica se o comportamento descrito já é suportado pelo simulador atual.
-
-Regras atuais:
-
-- Componentes com `effects` contendo `electrical` devem declarar `electricalModel`.
-- Componentes `microcontroller`, `behavioral-sensor` e `environment-source` devem declarar `behavior`.
-- Componentes com `visual.palette` devem aparecer no catálogo carregado pela UI.
-- `visual.terminals` deve ter os mesmos IDs de `terminals`.
-
-## Categorias Práticas
-
-- `passive-electrical`: resistor, capacitor e outros passivos com modelo elétrico.
-- `active-electrical`: LED e semicondutores com estado visual derivado do solver.
-- `behavioral-sensor`: sensores que interagem com firmware/runtime, como HC-SR04.
-- `environment-source`: controles ambientais, como distância e Wi-Fi Signal.
-- `microcontroller`: placas que executam firmware e expõem GPIO/periféricos.
-
-## Testes
-
-Os invariantes do catálogo ficam em `tests/fixtures/json-files.test.ts`. Eles validam o contrato mínimo, presença na palette e consistência entre terminais visuais e lógicos.
-
-## Código dos Exemplos
-
-O manifest do componente não deve embutir sketches de exemplo. Firmware de exemplo deve ficar em arquivos C/C++ dentro do diretório do exemplo, normalmente `examples/<slug>/firmware/main.ino`.
-
-No `project.json`, `code.files` e `firmwares[*].files` podem usar string inline para projetos exportados/importados pelo usuário ou uma referência de arquivo para exemplos oficiais:
+Recommended shape:
 
 ```json
 {
-  "code": {
-    "language": "arduino-cpp",
-    "entry": "main.ino",
-    "files": {
-      "main.ino": { "path": "./firmware/main.ino" }
-    }
-  }
+  "kind": "sensor",
+  "implemented": true,
+  "effects": ["firmware-input", "visual-state"]
 }
 ```
 
-A API de exemplos resolve essas referências antes de entregar o projeto à UI.
+Do not mark a component as fully simulated when it is only visual or partially modeled.
+
+## Practical categories
+
+- Passive electrical components: require terminals and `electricalModel`.
+- Sensors: require environment binding and firmware-facing behavior.
+- Actuators: require firmware input and visual/electrical effect.
+- Boards: require pin map, logic voltage, and runtime behavior.
+- Environment components: require environment channels and output terminals.
+
+## Tests
+
+The test suite validates:
+
+- manifest/schema validity;
+- consistency between `visual.terminals` and `terminals`;
+- palette visibility;
+- example references;
+- firmware/simulation behavior for implemented components.
+
+## Example code
+
+Example firmware should live outside the JSON file, under:
+
+```text
+examples/<example>/firmware/*.ino
+```
+
+`project.json` should reference the firmware path. The examples API resolves the referenced file before sending the project to the UI.

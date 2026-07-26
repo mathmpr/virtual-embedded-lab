@@ -1,93 +1,43 @@
 # Add Component: Arduino Nano
 
-Antes de usar este documento, leia `docs/official-component-guidelines.md` e `docs/component-contract.md`. A implementação deve seguir manifests, behaviors e adapters, sem lógica específica no editor/runtime central.
+## Goal
 
-## Objetivo
+Add Arduino Nano as a compact Arduino-compatible board for examples where the UNO footprint is too large.
 
-Adicionar Arduino Nano como microcontrolador oficial compacto, compatível com o ecossistema Arduino UNO para a maior parte dos exemplos.
+## Component identity
 
-- Componentes a adicionar: Arduino Nano.
-- Cenário principal de uso: substituir Arduino UNO em projetos menores mantendo pinos ATmega328P.
-- Exemplo final esperado: Arduino Nano blink em LED built-in e leitura de botão.
-- O componente afeta a simulação: sim, como microcontrolador.
-- O exemplo precisa rodar em WASM: sim.
+- Suggested id: `board.arduino.nano`
+- Category: board / microcontroller
+- Visual: Nano-style board with USB connector and two pin rows.
 
-## Componente
+## Terminals
 
-### Arduino Nano
+- Digital GPIO: `d0` to `d13`
+- Analog inputs: `a0` to `a7`
+- Power: `5v`, `3v3`, `vin`, `gnd`
+- Serial: `tx0`, `rx0`
+- I²C: `sda`, `scl`
+- SPI: `mosi`, `miso`, `sck`, `ss`
+- Reset: `rst`
 
-#### Identidade
+## Simulated behavior
 
-- `identity.id`: `board.arduino.nano`.
-- `identity.name`: `Arduino Nano`.
-- `identity.category`: `microcontroller`.
-- `identity.subCategory`: `arduino`.
-- Caminho esperado: `components/official/arduino-nano/component.json`.
+- Runs Arduino-style firmware using the existing WASM firmware engine.
+- Mirrors UNO-compatible digital, analog, PWM, I²C, and SPI behavior where pin mappings overlap.
+- Shows live pin state in the board visual while the simulation runs.
+- Components connected to Nano pins must depend on physical wires, not hard-coded IDs.
 
-#### Papel na Simulação
+## Required example
 
-- `simulation.kind`: `microcontroller`.
-- `simulation.effects`: `firmware`, `electrical`, `visual-state`.
-- `simulation.implemented`: `true`.
+Blink an LED and read one analog input using Arduino Nano.
 
-#### Terminais
+## Required tests
 
-Terminais mínimos esperados:
+- Pin labels and pin mapping are correct.
+- Digital output state appears in the board visual.
+- Analog reads reflect connected analog sources.
+- Existing UNO behavior is not regressed.
 
-| grupo | ids |
-| --- | --- |
-| Digital | `d0` a `d13` |
-| Analógico | `a0` a `a7` |
-| Alimentação | `vin`, `5v`, `3v3`, `gnd` |
-| Reset/referência | `rst`, `aref` |
-| I2C | `a4` SDA, `a5` SCL por capacidade |
-| SPI | `d10` SS, `d11` MOSI, `d12` MISO, `d13` SCK por capacidade |
-| UART | `d0` RX, `d1` TX por capacidade |
+## Out of scope
 
-`visual.terminals` deve posicionar os pinos nos dois headers laterais.
-
-#### Propriedades
-
-| property | type | default | min | max | unit | simulationUpdate | editável na UI? |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `logicVoltage` | number | 5 | 3.3 | 5 | `V` | `rerun` | sim |
-| `clockMHz` | number | 16 | 8 | 16 | `MHz` | `rerun` | nao |
-| `usbPowered` | boolean | true |  |  |  | `rerun` | sim |
-
-#### Modelo Elétrico
-
-- `electricalModel.type`: `microcontroller`.
-- `electricalModel.primitive`: `atmega328p-board`.
-- Pino digital recomendado: 20 mA por pino, 40 mA absoluto.
-- Pinos de alimentação devem fornecer 5 V/3.3 V simplificados como no UNO.
-
-#### Comportamento Simulado
-
-- Reutilizar resolver/capabilities de microcontrolador por manifest.
-- `LED_BUILTIN` deve mapear para D13.
-- `A0..A7` devem compilar no shim; `A6/A7` são analógicos-only no Nano.
-
-#### Firmware/WASM
-
-| API | precisa compilar? | precisa simular comportamento? | biblioteca/shim | observação |
-| --- | --- | --- | --- | --- |
-| `LED_BUILTIN` | sim | sim | Arduino core | D13 |
-| `A0..A7` | sim | sim | Arduino core | A6/A7 analog-only |
-| `pinMode/digitalRead/digitalWrite` | sim | sim | Arduino core | GPIO |
-| `analogRead` | sim | sim | Arduino core | ADC |
-| `Wire` | sim | sim | Wire | A4/A5 por capacidade |
-| `SPI` | sim | sim | SPI | D10-D13 por capacidade |
-
-#### Exemplo Obrigatório
-
-##### `examples/arduino-nano-blink-button/project.json`
-
-- Componentes: Arduino Nano, Pull-up Button, LED e resistor.
-- Código: botão alterna LED built-in e LED externo.
-
-#### Fora de Escopo
-
-- Bootloader real.
-- Diferenças entre clones CH340/FTDI.
-- Limites térmicos detalhados.
-- EEPROM/ADC ruído real.
+Exact bootloader behavior, USB serial chip emulation, and board-specific fuse settings.

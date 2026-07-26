@@ -1,63 +1,63 @@
 # Virtual Embedded Lab
 
-Ambiente visual local-first para criação, programação e simulação comportamental de projetos eletrônicos embarcados.
+Local-first visual environment for creating, programming, and behaviorally simulating embedded electronics projects.
 
-O projeto já possui um protótipo web funcional com board visual, catálogo oficial de componentes, editor CodeMirror, runtime Arduino inicial, análise de firmware com Clang local, Serial TX/RX, Wi-Fi simulado para ESP32/ESP8266, entradas analógicas por WASM, I2C/SPI inicial para sensores e ADCs, HTTP virtual, MQTT virtual/real, solver elétrico incremental, simulação multi-board e exemplos completos para HC-SR04 + LED, FC-37, LDR, BMP280, ADCs externos e controle de bomba d'água por broker MQTT.
+The project already includes a functional web prototype with a visual board, official component catalog, CodeMirror editor, Arduino-compatible WASM firmware runtime, local Clang diagnostics, Serial TX/RX, simulated ESP32/ESP8266 Wi-Fi, analog inputs through WASM, initial I2C/SPI support for sensors and ADCs, virtual HTTP, virtual/real MQTT, an incremental electrical solver, multi-board simulation, and complete examples for HC-SR04 + LED, FC-37, LDR, BMP280, external ADCs, and water-pump control through MQTT.
 
-A arquitetura atual trata componentes como pacotes: cada componente oficial descreve seu manifest e pode carregar CSS, behavior de simulação, bibliotecas de firmware, shims C++ e imports WASM a partir da própria pasta.
+The current architecture treats components as packages: each official component owns its manifest and can load CSS, simulation behavior, firmware libraries, C++ shims, and WASM imports from its own folder.
 
-## Licença
+## License
 
-Este projeto é open source sob a licença GNU Affero General Public License v3.0 ou posterior (`AGPL-3.0-or-later`).
+This project is open source under the GNU Affero General Public License v3.0 or later (`AGPL-3.0-or-later`).
 
-Em termos práticos:
+In practical terms:
 
-- Você pode usar, estudar, modificar e redistribuir o código.
-- Se você modificar o projeto e oferecer essa versão modificada como serviço de rede, deve disponibilizar o código-fonte correspondente aos usuários desse serviço, conforme a AGPLv3.
-- O projeto é fornecido sem garantias. Simulações são ferramentas educacionais e não substituem validação física, medições reais ou boas práticas de segurança.
+- You may use, study, modify, and redistribute the code.
+- If you modify the project and offer that modified version as a network service, you must make the corresponding source code available to the users of that service, as required by the AGPLv3.
+- The project is provided without warranties. Simulations are educational tools and do not replace physical validation, real measurements, or proper safety practices.
 
-Consulte [LICENSE](./LICENSE) e [NOTICE](./NOTICE).
+See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
-## Marca e identidade
+## Name and visual identity
 
-O nome "Virtual Embedded Lab", logo, identidade visual e marcas confundíveis não são concedidos para uso de forma que sugira que uma versão, fork, hospedagem ou distribuição não oficial seja o projeto oficial.
+The name "Virtual Embedded Lab", the logo, visual identity, and confusingly similar marks are not granted for uses that imply that an unofficial version, fork, hosted instance, or distribution is the official project.
 
-Você pode usar o nome para atribuição verdadeira, referência ao projeto original, compatibilidade e cumprimento da licença. Ao redistribuir ou hospedar uma versão modificada, deixe claro que se trata de uma versão não oficial, salvo autorização explícita dos mantenedores.
+You may use the name for truthful attribution, reference to the original project, compatibility statements, and license compliance. When redistributing or hosting a modified version, make it clear that it is unofficial unless the maintainers explicitly authorize otherwise.
 
-## Contribuindo
+## Contributing
 
-Contribuições são bem-vindas. Leia [CONTRIBUTING.md](./CONTRIBUTING.md) antes de enviar mudanças.
+Contributions are welcome. Read [CONTRIBUTING.md](./CONTRIBUTING.md) before submitting changes.
 
-Ao contribuir, você concorda que sua contribuição seja distribuída sob a mesma licença do projeto: `AGPL-3.0-or-later`.
+By contributing, you agree that your contribution is distributed under the same project license: `AGPL-3.0-or-later`.
 
 ## Requirements
 
-Obrigatórios:
+Required:
 
-- Node.js 24 ou superior.
-- Dependências do projeto instaladas com `npm install`.
-- `clang++` disponível no `PATH`, ou configurado por `CLANGXX`/`CLANG_PATH`.
-- `lld`/`wasm-ld` disponível no toolchain do Clang.
+- Node.js 24 or newer.
+- Project dependencies installed with `npm install`.
+- `clang++` available in `PATH`, or configured through `CLANGXX`/`CLANG_PATH`.
+- `lld`/`wasm-ld` available in the Clang toolchain.
 
-Opcionais por cenário:
+Optional, depending on the scenario:
 
-- Docker ou Podman para isolar compilação WASM em uso público.
-- Broker MQTT TCP acessível pela rede quando um projeto usa `network.mqtt.mode: "real"`.
-- Para o exemplo `ESP Water Control Pump Reservoir`, o fluxo real depende do contrato MQTT/backend do projeto externo `https://github.com/mathmpr/water-control`.
+- Docker or Podman to isolate WASM firmware compilation in public deployments.
+- A network-accessible MQTT TCP broker when a project uses `network.mqtt.mode: "real"`.
+- For the `ESP Water Control Pump Reservoir` example, the real flow depends on the MQTT/backend contract from the external project `https://github.com/mathmpr/water-control`.
 
-A UI usa WASM como caminho único de execução de firmware. Portanto, `clang++` e `wasm-ld` são necessários para rodar simulações de firmware localmente. Sem `clang++`, o servidor retorna `CLANG_UNAVAILABLE`. Sem `wasm-ld`, o job de `/api/firmware/compile-wasm` termina com `WASM_TOOLCHAIN_UNAVAILABLE`.
+The UI uses WASM as the only firmware execution path. Therefore, `clang++` and `wasm-ld` are required to run firmware simulations locally. Without `clang++`, the server returns `CLANG_UNAVAILABLE`. Without `wasm-ld`, the `/api/firmware/compile-wasm` job finishes with `WASM_TOOLCHAIN_UNAVAILABLE`.
 
-Para uso público, não execute compilação de firmware diretamente no host sem isolamento. O compilador WASM suporta sandbox por container via `WASM_COMPILER_SANDBOX=docker` ou `WASM_COMPILER_SANDBOX=podman`.
+For public use, do not compile firmware directly on the host without isolation. The WASM compiler supports container sandboxing with `WASM_COMPILER_SANDBOX=docker` or `WASM_COMPILER_SANDBOX=podman`. The production instance can also use an external sandbox runner through `WASM_COMPILER_SANDBOX=external`.
 
-## How To Install / Configure
+## Installation and configuration
 
-### 1. Instalar dependências Node
+### 1. Install Node dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Instalar Clang e wasm-ld
+### 2. Install Clang and wasm-ld
 
 Ubuntu/Debian:
 
@@ -78,13 +78,13 @@ Arch Linux:
 sudo pacman -S clang lld
 ```
 
-macOS com Homebrew:
+macOS with Homebrew:
 
 ```bash
 brew install llvm
 ```
 
-No macOS, se `clang++` do LLVM instalado pelo Homebrew não estiver no `PATH`, configure `CLANGXX`:
+On macOS, if the Homebrew LLVM `clang++` is not in `PATH`, configure `CLANGXX`:
 
 ```bash
 export CLANGXX="$(brew --prefix llvm)/bin/clang++"
@@ -92,124 +92,140 @@ export CLANGXX="$(brew --prefix llvm)/bin/clang++"
 
 Windows:
 
-- Instale LLVM pelo instalador oficial ou pelo gerenciador de pacotes usado no seu ambiente.
-- Garanta que `clang++.exe` e `wasm-ld.exe` estejam no `PATH`.
-- Alternativamente, defina `CLANGXX` apontando para o executável.
+- Install LLVM through the official installer or through the package manager used by your environment.
+- Make sure `clang++.exe` and `wasm-ld.exe` are in `PATH`.
+- Alternatively, set `CLANGXX` to the executable path.
 
-Exemplo:
+Example:
 
 ```powershell
 $env:CLANGXX="C:\Program Files\LLVM\bin\clang++.exe"
 ```
 
-### 3. Validar Clang e wasm-ld
+### 3. Validate Clang and wasm-ld
 
 ```bash
 clang++ --version
 wasm-ld --version
 ```
 
-Ou, se estiver usando variável de ambiente:
+Or, if you use an environment variable:
 
 ```bash
 $CLANGXX --version
 wasm-ld --version
 ```
 
-### 4. Executar o projeto
+### 4. Run the project
 
 ```bash
 npm ci
 npm run dev
 ```
 
-A aplicação sobe em `http://127.0.0.1:4173` por padrão.
+The application starts at `http://127.0.0.1:4173` by default.
 
-### 5. Configurar sandbox de compilação WASM
+### 5. Configure WASM compilation sandboxing
 
-Por padrão, o ambiente local usa `clang++` diretamente no host. Para um deploy público, configure um runtime de container:
+By default, local development calls `clang++` directly on the host. For public deployments, configure a container runtime:
 
 ```bash
 export WASM_COMPILER_SANDBOX=docker
 export WASM_COMPILER_IMAGE=virtual-embedded-lab-wasm-toolchain:latest
 ```
 
-Também é possível usar Podman:
+Podman is also supported:
 
 ```bash
 export WASM_COMPILER_SANDBOX=podman
 export WASM_COMPILER_IMAGE=virtual-embedded-lab-wasm-toolchain:latest
 ```
 
-O runner de container é chamado com rede desabilitada, limite de CPU, limite de memória e limite de processos. Variáveis opcionais:
+The container runner is called with networking disabled, CPU limits, memory limits, and process limits. Optional variables:
 
-- `WASM_COMPILER_CONTAINER_RUNTIME`: sobrescreve o binário `docker`/`podman`.
-- `WASM_COMPILER_CPUS`: padrão `1`.
-- `WASM_COMPILER_MEMORY`: padrão `256m`.
-- `WASM_COMPILER_PIDS_LIMIT`: padrão `64`.
+- `WASM_COMPILER_CONTAINER_RUNTIME`: overrides the `docker`/`podman` binary.
+- `WASM_COMPILER_CPUS`: default `1`.
+- `WASM_COMPILER_MEMORY`: default `256m`.
+- `WASM_COMPILER_PIDS_LIMIT`: default `64`.
 
-## Como Validar
+For hardened server deployments, the external runner mode can delegate compilation to a separate unprivileged user:
+
+```bash
+export WASM_COMPILER_SANDBOX=external
+export WASM_COMPILER_SANDBOX_RUNNER=/usr/bin/sudo
+export WASM_COMPILER_SANDBOX_RUNNER_ARGS='["-n","/usr/local/sbin/virtual-lab-wasm-compile"]'
+```
+
+The public server should also configure:
+
+```bash
+export MAX_FIRMWARE_SOURCE_BYTES=30720
+export COMPILE_RATE_LIMIT_WINDOW_MS=60000
+export COMPILE_RATE_LIMIT_MAX=8
+```
+
+## Validation
 
 ```bash
 npm test
 ```
 
-Os testes usam o runner nativo do Node 24 com `--experimental-transform-types`.
+The tests use the native Node.js 24 runner with `--experimental-transform-types`.
 
-## Estado Atual
+## Current status
 
-- A UI carrega componentes oficiais por `GET /api/components`.
-- Exemplos ficam em `examples/**/project.json` e são carregados pelo modal `Exemplos`.
-- O firmware C/C++ dos exemplos oficiais fica em `examples/<slug>/firmware/*.ino` e é referenciado por caminho em `project.json`; a API de exemplos resolve esses arquivos antes de entregar o projeto para a UI.
-- O exemplo default atual é `examples/esp32-s3-snake-hub75/project.json`.
-- Há exemplos WASM para HC-SR04, Arduino Serial LED, Serial bridge multi-board, pull-up button, buzzer beep, BBC micro:bit V2 Heart, ESP32 AC Energy Meter POC, ESP32-S3 HUB75 Snake Game, ESP32-C3 LED Blink, ESP32 counter blink, ESP32 Wi-Fi Signal, ESP32 Wi-Fi Failover, ESP32 HTTP/TCP, ESP8266 MQTT water pump, FC-37 Rain Digital, LDR Light Analog, BMP280 Weather I2C, ADS1015/ADS1115 Single Ended, MCP3008 Single Ended e ESP Water Control Pump Reservoir.
-- Há exemplos maker adicionais para entradas analógicas com potenciômetro/LM35/umidade do solo, sensores digitais com PIR, TTP223, tilt, SW-420, Hall, reed, IR e chave deslizante, uma galeria de chaveamento com transistores, MOSFETs, relés, SSR, PC817 e drivers ULN, e um exemplo ESP8266 com LDR controlando LED RGB por PWM.
-- Componentes oficiais ficam em `components/official/**/component.json`.
-- Componentes podem declarar contribuições locais em `ui/`, `simulation/` e `firmware/`; o core carrega esses arquivos por `contributions.styles`, `contributions.simulationBehaviors` e `contributions.wasmImports`.
-- Novos componentes oficiais devem seguir `docs/official-component-guidelines.md`, `docs/component-description.md`, `docs/component-contract.md` e o template `add-components/new-component-example.md` antes da implementação.
-- O catálogo oficial já inclui Arduino UNO, Arduino Nano, BBC micro:bit V2, ESP32 DevKitC V4, ESP32-C3 DevKit, ESP32-S3 DevKit, ESP8266 NodeMCU, HC-SR04, FC-37 Rain Sensor, LDR Light Sensor, BMP280, ADS1015, ADS1115, MCP3008, ZMPT101B, SCT, LM35, PIR HC-SR501, TTP223, tilt switch, SW-420, A3144 Hall, reed switch, sensor IR de obstáculo, potenciômetro, trimpot, sensor capacitivo de solo, transistores BJT maker, MOSFETs canal N maker, módulos MOSFET, relés eletromecânicos, relés de estado sólido, PC817, ULN2003A, ULN2803A, AC Mains Environment, AC Load, P5 RGB HUB75 64x32, fonte DC 5V, 74AHCT245, pull-up button, buzzer, distância, Rain Environment, Light Environment, Climate Environment, Analog Voltage Source, Wi-Fi Signal, water pump, solid-state relay, water reservoir, resistores, capacitores, LEDs vermelho/verde/azul/amarelo e LED RGB comum-cátodo.
-- O Arduino UNO expõe LED built-in `L` em D13/`LED_BUILTIN`; o ESP32 DevKitC V4 expõe `PWR` e LED programável `LD` em GPIO2/`LED_BUILTIN`.
-- Sketches de blink em LED built-in rodam continuamente até Pause/Reset, respeitando `delay()` por tempo virtual e animando a timeline de `digitalWrite`; `LED_PIN`/`PIN` sem declaração são tratados como aliases de `LED_BUILTIN`.
-- O board suporta pan/zoom, drag-and-drop, fios coloridos, remoção de fios/componentes, Undo/Redo em memória e import/export JSON.
-- O painel inferior possui Código, Console, Serial e Problemas, com troca de view principal.
-- O monitor de sinais fica acoplado ao inspector.
-- O solver atual cobre caminho série simples LED/resistor, corrente, potência, sobrecorrente, resistência excessiva, tensão insuficiente e curtos básicos.
-- A UI executa firmware pelo caminho WASM; falha de compilação WASM bloqueia a simulação e exibe diagnósticos, sem fallback para IR.
-- A IR JavaScript ainda existe no código como legado/testes, mas está depreciada como caminho de execução de firmware, isolada em `legacy-ir-simulation.js` e não deve receber novas features.
-- O servidor possui uma fila em memória para compilação WASM. `POST /api/firmware/compile-wasm` cria um job e responde `202` com `jobId`; `GET /api/firmware/compile-wasm/:jobId` retorna o status e, quando terminar, o WASM pronto. No máximo duas compilações rodam simultaneamente.
-- O botão Run mostra um loader, fica desabilitado durante a compilação e mantém a animação por no mínimo 3 segundos para evitar flicker visual em compilações muito rápidas.
-- O compartilhamento público inicial não usa conta nem banco de dados. `POST /api/shared-projects` cria um identificador opaco de 32 caracteres, salva o projeto em `shared/<id>/project.json` e a URL da UI passa a usar `/<id>` sem refresh. `PUT /api/shared-projects/:id` atualiza o mesmo projeto e `GET /api/shared-projects/:id` carrega o projeto público.
-- Builds WASM bem-sucedidos são cacheados em memória por hash do código, constantes e configuração de toolchain/sandbox.
-- O suporte ESP32/ESP8266/Wi-Fi cobre `WiFi.mode`, `WiFi.begin`, `WiFi.status`, `WiFi.softAP`, `WiFi.scanNetworks`, `WiFi.RSSI`, `WiFi.RSSI(ssid)`, `WiFi.internetAvailable()`, `WiFiClient` TCP/HTTP virtual e `AsyncMqttClient` MQTT virtual ou real via imports WASM conectados ao `ArduinoRuntime`.
-- Projetos multi-board podem manter firmwares separados por microcontrolador; o seletor de firmware permite alternar o código ativo no editor e o runtime executa uma sessão WASM por placa.
-- A BBC micro:bit V2 expõe o edge connector principal e uma matriz LED 5x5 simulada como pixels built-in controláveis por `digitalWrite` no exemplo do coração.
-- O exemplo `ESP32 AC Energy Meter POC` modela duas fases residenciais com ZMPT101B, SCT, ADS1115 e cargas A-N/B-N/A-B, calculando Vrms, Irms, W, VA, fator de potência e kWh no firmware WASM.
-- O exemplo `ESP32-C3 LED Blink` modela um ESP32-C3 DevKit acionando um LED vermelho externo por GPIO4 com resistor limitador de corrente.
-- O exemplo `ESP32-S3 HUB75 Snake Game` modela um painel P5 RGB HUB75 64x32, quatro botões pull-up direcionais, botão start/pause, buzzer, fonte 5V/10A e 74AHCT245. O firmware desenha a cobrinha em 32x32 à esquerda e pontuação/nível à direita via framebuffer RGB simulado.
-- O exemplo `ESP Water Control Pump Reservoir` modela ESP32 sender, ESP8266 asker, SSR, bomba e reservatório. Ele usa MQTT real e espera tópicos/payloads/tokens compatíveis com `https://github.com/mathmpr/water-control`.
-- O suporte FC-37 cobre leitura digital por `digitalRead` em `DO`, alimentada pelo Rain Environment standalone sem resetar o tempo virtual quando a chuva muda.
-- O suporte LDR cobre `analogRead(A0)` via divisor de tensão com resistor, alimentado pelo Light Environment standalone sem resetar o tempo virtual quando a luminosidade muda.
-- O suporte BMP280 cobre `Wire.begin()` e uma classe shim `BMP280` mínima, registrada por endereço I2C, alimentada pelo Climate Environment standalone sem resetar o tempo virtual quando temperatura/pressão mudam.
-- O suporte a ADCs externos cobre `ADS1015`, `ADS1115` e `MCP3008` por classes shim mínimas, alimentadas por Analog Voltage Source sem resetar o tempo virtual quando a tensão muda.
+- The UI loads official components through `GET /api/components`.
+- Examples live in `examples/**/project.json` and are loaded through the Examples modal.
+- Official example C/C++ firmware lives in `examples/<slug>/firmware/*.ino` and is referenced by path in `project.json`; the examples API resolves those files before returning the project to the UI.
+- The current default example is `examples/esp32-s3-snake-hub75/project.json`.
+- WASM examples cover HC-SR04, Arduino Serial LED, Serial bridge multi-board, pull-up button, buzzer beep, BBC micro:bit V2 Heart, ESP32 AC Energy Meter POC, ESP32-S3 HUB75 Snake Game, ESP32-C3 LED Blink, ESP32 counter blink, ESP32 Wi-Fi Signal, ESP32 Wi-Fi Failover, ESP32 HTTP/TCP, ESP8266 MQTT water pump, FC-37 Rain Digital, LDR Light Analog, BMP280 Weather I2C, ADS1015/ADS1115 Single Ended, MCP3008 Single Ended, and ESP Water Control Pump Reservoir.
+- Additional maker examples cover analog inputs with potentiometer/LM35/soil moisture, digital sensors with PIR, TTP223, tilt, SW-420, Hall, reed, IR obstacle sensor and slide switch, a switching gallery with BJTs, MOSFETs, relays, SSRs, PC817 and ULN drivers, and an ESP8266 example where an LDR controls an RGB LED through PWM.
+- Official components live in `components/official/**/component.json`.
+- Components may declare local contributions in `ui/`, `simulation/`, and `firmware/`; the core loads those files through `contributions.styles`, `contributions.simulationBehaviors`, and `contributions.wasmImports`.
+- New official components must follow `docs/official-component-guidelines.md`, `docs/component-description.md`, `docs/component-contract.md`, and the template `add-components/new-component-example.md` before implementation.
+- The official catalog includes Arduino UNO, Arduino Nano, BBC micro:bit V2, ESP32 DevKitC V4, ESP32-C3 DevKit, ESP32-S3 DevKit, ESP8266 NodeMCU, HC-SR04, FC-37 Rain Sensor, LDR Light Sensor, BMP280, ADS1015, ADS1115, MCP3008, ZMPT101B, SCT, LM35, PIR HC-SR501, TTP223, tilt switch, SW-420, A3144 Hall, reed switch, IR obstacle sensor, potentiometer, trimpot, capacitive soil sensor, maker BJTs, maker N-channel MOSFETs, MOSFET modules, electromechanical relays, solid-state relays, PC817, ULN2003A, ULN2803A, AC Mains Environment, AC Load, P5 RGB HUB75 64x32, 5V DC supply, 74AHCT245, pull-up button, buzzer, distance environment, Rain Environment, Light Environment, Climate Environment, Analog Voltage Source, Wi-Fi Signal, water pump, solid-state relay, water reservoir, resistors, capacitors, red/green/blue/yellow LEDs, and common-cathode RGB LED.
+- Arduino UNO exposes the built-in `L` LED on D13/`LED_BUILTIN`; ESP32 DevKitC V4 exposes `PWR` and programmable `LD` on GPIO2/`LED_BUILTIN`.
+- Built-in LED blink sketches run continuously until Pause/Reset, respect `delay()` through virtual time, and animate the `digitalWrite` timeline; undeclared `LED_PIN`/`PIN` identifiers are treated as aliases for `LED_BUILTIN`.
+- The board supports pan/zoom, drag-and-drop, colored wires, wire/component removal, in-memory Undo/Redo, and JSON import/export.
+- The bottom panel has Code, Console, Serial, and Problems tabs, with main-view switching.
+- The signal monitor is attached to the inspector.
+- The current solver covers simple LED/resistor series paths, current, power, overcurrent, excessive resistance, insufficient voltage, and basic shorts.
+- The UI executes firmware through the WASM path; WASM compilation failures block simulation and display diagnostics, with no IR fallback.
+- The JavaScript IR still exists as legacy/test code, but is deprecated as a firmware execution path, isolated in `legacy-ir-simulation.js`, and should not receive new features.
+- The server has an in-memory WASM compilation queue. `POST /api/firmware/compile-wasm` creates a job and returns `202` with a `jobId`; `GET /api/firmware/compile-wasm/:jobId` returns the status and, once finished, the compiled WASM. At most two compilations run simultaneously.
+- The Run button shows a loader, stays disabled while compiling, and keeps the animation visible for at least 3 seconds to avoid flicker on very fast compilations.
+- Initial public sharing does not use accounts or a database. `POST /api/shared-projects` creates an opaque 32-character identifier, saves the project to `shared/<id>/project.json`, and updates the UI URL to `/<id>` without a refresh. `PUT /api/shared-projects/:id` updates the same project, and `GET /api/shared-projects/:id` loads the public project.
+- Successful WASM builds are cached in memory by a hash of the code, constants, and toolchain/sandbox configuration.
+- ESP32/ESP8266/Wi-Fi support covers `WiFi.mode`, `WiFi.begin`, `WiFi.status`, `WiFi.softAP`, `WiFi.scanNetworks`, `WiFi.RSSI`, `WiFi.RSSI(ssid)`, `WiFi.internetAvailable()`, virtual `WiFiClient` TCP/HTTP, and virtual or real `AsyncMqttClient` MQTT through WASM imports connected to `ArduinoRuntime`.
+- Multi-board projects can keep separate firmware per microcontroller; the firmware selector changes the active code in the editor and the runtime executes one WASM session per board.
+- BBC micro:bit V2 exposes the main edge connector and a simulated 5x5 built-in LED matrix controlled by `digitalWrite` in the heart example.
+- `ESP32 AC Energy Meter POC` models two residential phases with ZMPT101B, SCT, ADS1115, and A-N/B-N/A-B loads, calculating Vrms, Irms, W, VA, power factor, and kWh in WASM firmware.
+- `ESP32-C3 LED Blink` models an ESP32-C3 DevKit driving an external red LED through GPIO4 with a current-limiting resistor.
+- `ESP32-S3 HUB75 Snake Game` models a P5 RGB HUB75 64x32 panel, four pull-up direction buttons, start/pause button, buzzer, 5V/10A power supply, and 74AHCT245. The firmware draws the snake in a 32x32 left area and score/level on the right through a simulated RGB framebuffer.
+- `ESP Water Control Pump Reservoir` models ESP32 sender, ESP8266 asker, SSR, pump, and reservoir. It uses real MQTT and expects topics/payloads/tokens compatible with `https://github.com/mathmpr/water-control`.
+- FC-37 support covers digital reading through `digitalRead` on `DO`, driven by the standalone Rain Environment without resetting virtual time when rain changes.
+- LDR support covers `analogRead(A0)` through a voltage divider with a resistor, driven by the standalone Light Environment without resetting virtual time when light changes.
+- BMP280 support covers `Wire.begin()` and a minimal `BMP280` shim class, registered by I2C address and driven by the standalone Climate Environment without resetting virtual time when temperature/pressure change.
+- External ADC support covers `ADS1015`, `ADS1115`, and `MCP3008` through minimal shim classes, driven by Analog Voltage Source without resetting virtual time when voltage changes.
 
-## Documentação de Componentes
+## Component documentation
 
-- `docs/component-description.md`: explica como um componente é empacotado, incluindo manifest, visual, contribuições, firmware, shims e behaviors.
-- `docs/component-contract.md`: define o contrato mínimo validado pelos testes.
-- `docs/official-component-guidelines.md`: define regras arquiteturais para evitar acoplamento novo no core.
-- `add-components/new-component-example.md`: template para planejar e aceitar um novo componente oficial.
+- `docs/component-description.md`: explains how a component is packaged, including manifest, visual model, contributions, firmware, shims, and behaviors.
+- `docs/component-contract.md`: defines the minimum contract validated by tests.
+- `docs/official-component-guidelines.md`: defines architectural rules to avoid new coupling in the core.
+- `add-components/new-component-example.md`: template for planning and accepting a new official component.
 
-## Limites Atuais
+## Current limitations
 
-- Ainda não há Electron integrado.
-- O solver ainda não é nodal/SPICE geral.
-- A conexão ambiental ainda é desenhada como fio visual comum, apesar de ser serializada separadamente.
-- O mapeamento de pinos por manifest existe para cenários principais, mas ainda não cobre todo o modelo elétrico/periférico de ESP32/ESP8266.
-- O firmware WASM ainda cobre um subset de Arduino/C++; APIs fora do shim bloqueiam a simulação até serem implementadas no caminho WASM.
-- `WiFiClient` usa HTTP virtual por adapter separado, com rotas declaráveis em `network.http`; `AsyncMqttClient` usa broker MQTT virtual declarado em `network.mqtt` ou broker MQTT real via bridge backend quando `network.mqtt.mode` é `"real"`. TLS/HTTPS criptográfico real, autenticação MQTT e sessões persistentes de broker ainda não fazem parte do simulador determinístico.
-- O suporte I2C/SPI ainda é inicial: `Wire`/`SPI` existem como subsets mínimos para dispositivos registrados pelo runtime; não há barramento bruto completo nem bibliotecas Adafruit/MCP completas.
-- O FC-37 já expõe `AO` no manifest, mas leitura analógica do FC-37 ainda está fora da entrega inicial.
-- O exemplo de caixa d'água não é autossuficiente em modo real: ele depende de um broker/backend compatível com `https://github.com/mathmpr/water-control`, tokens válidos para `asker`/`sender` e broker MQTT TCP acessível.
-- Fallback de compilação no browser foi avaliado e não faz parte do MVP público; o caminho recomendado é servidor com `clang++`/`wasm-ld` isolado por container.
-- Undo/Redo existe apenas durante a sessão atual.
-- O monitor de sinais ainda é contextual/ilustrativo, sem waveform temporal real.
+- Electron integration is not included yet.
+- The solver is not a general nodal/SPICE solver.
+- Environment connections are still drawn as regular visual wires, although they are serialized separately.
+- Manifest-based pin mapping exists for main scenarios, but does not yet cover the full ESP32/ESP8266 electrical/peripheral model.
+- Firmware WASM covers a subset of Arduino/C++; APIs outside the shim block simulation until implemented in the WASM path.
+- `WiFiClient` uses virtual HTTP through a separate adapter, with routes declared in `network.http`; `AsyncMqttClient` uses a virtual MQTT broker declared in `network.mqtt` or a real MQTT broker through the backend bridge when `network.mqtt.mode` is `"real"`. Real cryptographic TLS/HTTPS, MQTT authentication, and persistent broker sessions are not part of the deterministic simulator yet.
+- I2C/SPI support is still initial: `Wire`/`SPI` exist as small subsets for devices registered by the runtime; there is no full raw bus model and no complete Adafruit/MCP library support.
+- FC-37 exposes `AO` in the manifest, but analog FC-37 reading is outside the initial delivery.
+- The water-tank example is not self-contained in real mode: it depends on a broker/backend compatible with `https://github.com/mathmpr/water-control`, valid `asker`/`sender` tokens, and a network-accessible MQTT TCP broker.
+- Browser-side compilation fallback was evaluated and is not part of the public MVP; the recommended path is a server with isolated `clang++`/`wasm-ld`.
+- Undo/Redo only exists during the current session.
+- The signal monitor is contextual/illustrative and does not render a real time waveform yet.

@@ -1,121 +1,73 @@
-# Bibliotecas de firmware WASM
+# WASM Firmware Libraries
 
-O caminho principal de execução de firmware é WASM. A IR JavaScript é legado para testes/debug temporário e não deve receber novas APIs.
+This document lists firmware libraries supported by the WASM path and the rules for extending them.
 
-## Bibliotecas suportadas
+## Supported libraries
 
-- `Arduino` / core: `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`, `delay`, `delayMicroseconds`, `pulseIn`, `millis`, `micros`.
-- `Serial`: `Serial.begin`, `Serial.print`, `Serial.println`, `Serial.write`, `Serial.available`, `Serial.read`.
-- `Wire`: `Wire.begin`, `Wire.beginTransmission`, `Wire.write`, `Wire.endTransmission`, `Wire.requestFrom`, `Wire.available`, `Wire.read`.
-- `SPI`: `SPI.begin`, `SPI.transfer`.
-- `WiFi`: `WiFi.mode`, `WiFi.begin`, `WiFi.status`, `WiFi.softAP`, `WiFi.scanNetworks`, `WiFi.RSSI`, `WiFi.internetAvailable`.
-- `WiFiClient`: `connect`, `print`, `println`, `available`, `read`, `stop`, `connected`.
-- `ESP8266WiFi`: alias compatível com o shim `WiFi`, incluindo `WiFi.disconnect`, `WiFi.setAutoReconnect`, `WiFi.persistent`, `WiFi.scanDelete` e `WiFi.SSID`.
-- `AsyncMqttClient`: `setServer`, `onConnect`, `onDisconnect`, `onMessage`, `connect`, `disconnect`, `connected`, `subscribe`, `publish`.
-- `SimpleTimer`: `setInterval`, `run`.
-- `BMP280`: `BMP280.begin`, `BMP280.readTemperature`, `BMP280.readPressure`.
-- `ADS1015` / `ADS1115`: `begin`, `readADC_SingleEnded`, `computeVolts`.
-- `MCP3008`: `begin`, `read`.
+Supported libraries are registered by `apps/web/firmware/wasm-shim-registry.mjs` and by component-local firmware contributions.
 
-## Regra de extensão
+Current examples use minimal shims for:
 
-Novas bibliotecas devem ser adicionadas no registry de shims/imports, não diretamente no compiler ou no runner central:
+- Arduino core APIs used by the runtime.
+- `WiFi` / `WiFiClient`.
+- `AsyncMqttClient`.
+- `SimpleTimer`.
+- `Wire`.
+- `SPI`.
+- `BMP280`.
+- `ADS1015`.
+- `ADS1115`.
+- `MCP3008`.
+- Servo support.
+- LCD/display helpers when declared by component contributions.
 
-- Compiler: `apps/web/firmware/wasm-shim-registry.mjs`.
-- Runner: `apps/web/js/simulation/wasm-import-adapters.js`.
+These are intentionally small compatibility layers, not full upstream library ports.
 
-## Rede HTTP virtual
+## Extension rule
 
-`WiFiClient` roda dentro do runtime virtual e exige que o componente Wi-Fi Signal esteja conectado e com internet ativa. A etapa atual modela sockets TCP e respostas HTTP virtuais para cenários suportados, como `jsonplaceholder.typicode.com/todos/1`.
+Add only the API surface required by an example or component. Keep unsupported calls explicit and diagnostic-friendly.
 
-O HTTP foi isolado em `apps/web/js/simulation/virtual-http-server.js`. O parser reconhece linha de request, headers case-insensitive com múltiplos valores, query string, body com `Content-Length` e request body com `Transfer-Encoding: chunked` básico.
+When a library belongs to a specific component, prefer placing the shim/import contribution in that component package instead of hardcoding it in the core.
 
-Métodos suportados: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS` e `HEAD`. `HEAD` reutiliza rotas `GET` sem enviar body. `OPTIONS` pode ser respondido automaticamente a partir das rotas registradas.
+## Virtual HTTP network
 
-Rotas podem ser declaradas no `project.json`:
+`WiFiClient` can talk to a deterministic virtual HTTP adapter. Routes are declared in project JSON under `network.http`.
 
-```json
-"network": {
-  "http": {
-    "hosts": {
-      "api.local": {
-        "routes": [
-          {
-            "method": "GET",
-            "path": "/status",
-            "statusCode": 200,
-            "body": { "ok": true }
-          }
-        ]
-      }
-    }
-  }
-}
+The virtual adapter supports common request/response scenarios used by examples, including:
+
+- method;
+- host;
+- path;
+- query;
+- request body;
+- response status;
+- response headers;
+- response body.
+
+This is not real TLS/HTTPS networking. It is a deterministic simulation adapter.
+
+## Virtual and real MQTT
+
+`AsyncMqttClient` supports:
+
+- a virtual broker declared in `network.mqtt`;
+- a real MQTT bridge through the Node backend when `network.mqtt.mode` is `"real"`.
+
+The virtual broker is deterministic and suitable for examples. The real bridge is intentionally scoped to controlled demos and should document external dependencies.
+
+Not included yet:
+
+- full QoS semantics;
+- persistent retained messages;
+- durable sessions;
+- TLS/authentication as part of the deterministic simulator.
+
+## External example: water-control
+
+The `ESP Water Control Pump Reservoir` example can use a real broker/backend compatible with:
+
+```text
+https://github.com/mathmpr/water-control
 ```
 
-TLS/HTTPS real ainda deve entrar como biblioteca/adapter próprio, sem expandir a IR JS depreciada. MQTT externo já existe pelo bridge backend Node, porque o browser/WASM não abre sockets TCP MQTT diretamente.
-
-## MQTT virtual e real
-
-`AsyncMqttClient` pode rodar contra dois backends:
-
-- Broker virtual determinístico em `apps/web/js/simulation/virtual-mqtt-broker.js`.
-- Broker real via `apps/web/network/mqtt-bridge.mjs`, usando o pacote Node `mqtt`.
-
-O broker virtual suporta conexão, desconexão, `subscribe`, `publish`, tópicos com curingas `+` e `#`, mensagens iniciais declaradas no projeto e snapshot dos publishes realizados pelo firmware.
-
-O broker real é ativado com `network.mqtt.mode: "real"`. Nesse modo, o firmware WASM chama imports síncronos, o `ArduinoRuntime` encaminha as operações para `/api/network/mqtt/*`, e o backend mantém a conexão TCP MQTT real. Esse caminho permite publicar em brokers da rede local, como `192.168.200.70:1883`.
-
-Cada runtime de microcontrolador usa um `clientId` derivado do componente no board. Em projetos multi-board, isso permite que ESP32 e ESP8266 mantenham conexões, subscriptions e filas de mensagens separadas mesmo usando o mesmo broker. O bridge entrega mensagens recebidas por drain ordenado, uma mensagem por chamada, e o shim `AsyncMqttClient` drena múltiplas mensagens por poll para preservar comandos consecutivos como `toggle/water = 1` seguido de `toggle/water = 0`.
-
-`SimpleTimer` usa o `millis()` virtual do firmware. Timers periódicos disparam quando o sketch chama `timer.run()` no `loop()` e o tempo virtual avança por APIs como `delay()`. Isso permite modelar keepalive MQTT com intervalos reais, como `keepAliveTimer.setInterval(8300, publishKeepAlive)`.
-
-Broker e mensagens iniciais podem ser declarados no `project.json`:
-
-```json
-"network": {
-  "mqtt": {
-    "mode": "virtual",
-    "brokers": {
-      "mqtt.local": {
-        "port": 1883,
-        "online": true,
-        "messages": [
-          { "topic": "toggle/water", "payload": "1" }
-        ]
-      }
-    }
-  }
-}
-```
-
-Para broker real:
-
-```json
-"network": {
-  "mqtt": {
-    "mode": "real",
-    "brokers": {
-      "192.168.200.70": {
-        "port": 1883,
-        "online": true
-      }
-    }
-  }
-}
-```
-
-Limite atual: o bridge MQTT real ainda cobre conexão, `subscribe`, `publish` e drain de mensagens recebidas. Ele não implementa autenticação/TLS, QoS completo, retained messages persistentes ou sessões duráveis.
-
-## Exemplo externo: water-control
-
-`examples/esp-water-control-pump-reservoir/project.json` é um exemplo de integração com broker/backend real. Ele foi escrito para o contrato MQTT do projeto externo `https://github.com/mathmpr/water-control`.
-
-Regras importantes desse exemplo:
-
-- o ESP8266 `asker` e o ESP32 `sender` usam tokens diferentes;
-- o backend externo identifica o usuário pelo token no início do payload, não apenas pelo campo `iam`;
-- se o ESP32 publicar `detect/water` com token do `asker`, o backend interpreta o evento como `asker` e pode não republicar `toggle/water`;
-- os firmwares do exemplo possuem comentários apontando para o repositório externo porque tópicos, payloads e tokens precisam bater com aquele backend.
-
-Esse contrato externo é opcional para o simulador. Projetos que não precisam conversar com um broker real devem preferir o broker virtual em `network.mqtt`.
+That mode requires valid tokens, expected topics/payloads, and a reachable MQTT TCP broker.

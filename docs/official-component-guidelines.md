@@ -1,92 +1,72 @@
-# Guia para Novos Componentes Oficiais
+# Guidelines for New Official Components
 
-Leia este guia antes de qualquer documento em `add-components/`. Ele define as regras arquiteturais mínimas para evitar que novos componentes voltem a acoplar lógica específica no editor, no runtime ou no compilador central.
+Use this guide before adding a new official component.
 
-Para o formato completo de um componente, leia também `docs/component-description.md`.
+The main goal is to keep the core generic. Component-specific behavior should live in the component package whenever possible.
 
-## Regra Principal
+## Main rule
 
-Um componente novo deve ser descrito por manifest em `components/official/<slug>/component.json`. Arquivos auxiliares ficam dentro da mesma pasta do componente: `ui/styles.css`, `simulation/behavior.js`, `firmware/library*.json`, `firmware/wasm-imports.js` e `firmware/shims/*.cpp`.
+Do not add new hardcoded rules to the core if the behavior can be expressed through:
 
-Código específico só é aceitável quando houver comportamento físico, elétrico, firmware ou adapter realmente novo. A adição de componentes deve ser append-only sempre que possível.
+- the component manifest;
+- `electricalModel`;
+- `behavior`;
+- local `simulation/` contribution;
+- local `firmware/` contribution;
+- local `ui/` contribution.
 
-Não adicione lógica do tipo:
+The core should provide reusable infrastructure. Components should provide their own metadata and specialized logic.
 
-```js
-if (component.type === "novo-componente") {
-  // propriedade, visual ou sinal simples
-}
-```
+## Required checklist
 
-Para propriedades simples, UI, terminais, sinais e estados visuais, use manifest.
+- [ ] Create or update `components/official/<component>/component.json`.
+- [ ] Validate against `schemas/component.schema.json`.
+- [ ] Declare all terminals in both `terminals` and `visual.terminals`.
+- [ ] Add palette metadata if the component should appear in the UI.
+- [ ] Add default properties for all user-editable state.
+- [ ] Add `simulation.implemented` truthfully.
+- [ ] Add `behavior` if firmware/runtime interaction is needed.
+- [ ] Add `electricalModel` if electrical diagnostics are needed.
+- [ ] Add local contributions instead of hardcoding behavior in core files.
+- [ ] Add at least one example when the component introduces new behavior.
+- [ ] Add/update tests when behavior can regress.
+- [ ] Document limitations clearly.
 
-## Checklist Obrigatório
+## Where to declare each thing
 
-- [ ] O componente não adiciona `if (component.type === "novo-componente")` no editor para propriedades simples.
-- [ ] O componente usa propriedades declaradas em `properties` e `propertySchema`.
-- [ ] O componente declara terminais lógicos em `terminals`.
-- [ ] O componente mantém `visual.terminals` com os mesmos IDs de `terminals`.
-- [ ] O componente declara `simulation.kind`, `simulation.effects` e `simulation.implemented`.
-- [ ] O componente declara `behavior` quando participa do runtime, ambiente, firmware ou barramentos.
-- [ ] O componente declara `electricalModel` quando participa do solver elétrico.
-- [ ] CSS específico do componente fica em `components/official/<slug>/ui/styles.css` e é declarado em `contributions.styles`.
-- [ ] Bibliotecas de firmware específicas ficam em `components/official/<slug>/firmware/library*.json`.
-- [ ] Shims C++ específicos ficam em `components/official/<slug>/firmware/shims/*.cpp`.
-- [ ] Imports WASM específicos ficam em `components/official/<slug>/firmware/wasm-imports.js`.
-- [ ] Behaviors especializados ficam em `components/official/<slug>/simulation/behavior.js`.
-- [ ] O componente usa `visual.controls` para controles inline no board.
-- [ ] O componente usa `visual.stateBindings` para estados visuais derivados.
-- [ ] Código específico novo fica em adapter/registry, não misturado no editor.
-- [ ] APIs novas de firmware entram via registry de shims/imports, não diretamente no compilador/runner central.
-- [ ] Código C/C++ de exemplo fica em `examples/<slug>/firmware/*.ino`/`*.cpp`, com referência por caminho no `project.json`.
-- [ ] O exemplo oficial roda pelo caminho WASM, sem depender da IR JS depreciada.
-- [ ] Testes cobrem manifest, exemplo, propriedades, behavior, solver ou firmware conforme o escopo.
+- Visual size, body, terminals, palette: `visual`.
+- Editable/default values: `properties`.
+- Runtime meaning and bus/pin mapping: `behavior`.
+- Electrical primitive and ratings: `electricalModel`.
+- CSS: `contributions.styles`.
+- Simulation behavior: `contributions.simulationBehaviors`.
+- WASM imports/shims/libraries: `contributions.wasmImports` and local firmware files.
 
-## Onde Declarar Cada Coisa
+## When to create specific code
 
-- `properties`: valores editáveis e estado persistido do componente.
-- `variants`: opções conhecidas para propriedades como resistores, capacitores e faixas fixas.
-- `terminals`: pontos conectáveis usados por grafo, solver, firmware e serialização.
-- `visual.controls`: controles inline renderizados genericamente no board.
-- `visual.stateBindings`: classes e textos derivados de sinais, nets, ambiente ou leituras elétricas.
-- `contributions.styles`: CSS visual específico carregado a partir da pasta do componente.
-- `contributions.wasmImports`: módulos JS que registram imports WASM específicos.
-- `contributions.simulationBehaviors`: módulos JS que registram behaviors específicos.
-- `simulation`: papel do componente dentro da simulação.
-- `behavior`: runtime, pinos, barramentos, canais ambientais e adapters especializados.
-- `electricalModel`: primitivas elétricas, limites e validações do solver.
+Create component-specific code when:
 
-## Quando Criar Código Específico
+- the component has a protocol or runtime state;
+- the component interacts with environment channels;
+- the component drives visual state from firmware;
+- the component needs custom WASM imports or C++ shims;
+- the generic electrical solver cannot express the component's educational diagnostic.
 
-Crie adapter específico apenas quando o componente introduzir comportamento novo.
+Avoid specific code when a manifest-only declaration is enough.
 
-Casos válidos:
+## Recommended flow
 
-- Sensor que converte ambiente em leitura de firmware, como HC-SR04, FC-37, LDR ou BMP280.
-- Conversor/barramento que exige protocolo, como ADS1115 por I2C ou MCP3008 por SPI.
-- Biblioteca de firmware nova, como `WiFi.h`, `AsyncMqttClient.h` ou bibliotecas de sensores.
-- Modelo elétrico novo que não pode ser representado por primitivas existentes.
+1. Write the component proposal in `add-components/<component>.md`.
+2. Define manifest terminals/properties/behavior.
+3. Add the official manifest.
+4. Add local contributions when needed.
+5. Add an example project.
+6. Add or update tests.
+7. Run `npm test`.
 
-Casos inválidos:
+## Related documents
 
-- Renderizar propriedade simples no inspector.
-- Adicionar slider, checkbox ou select inline.
-- Mostrar texto ON/OFF, valor numérico ou badge de estado.
-- Descobrir pino por regex ou por nome fixo quando o manifest já declara capacidade.
-
-## Fluxo Recomendado
-
-1. Escrever ou atualizar o documento em `add-components/` usando `add-components/new-component-example.md`.
-2. Declarar manifest em `components/official/<slug>/component.json`.
-3. Adicionar `ui/`, `simulation/` e `firmware/` dentro do componente somente quando necessário.
-4. Criar exemplo em `examples/<slug>/project.json` e colocar o firmware em `examples/<slug>/firmware/*.ino`/`*.cpp`.
-5. Registrar behavior, electrical primitive, import WASM ou shim somente se necessário.
-6. Adicionar/ajustar testes de fixtures e simulação conforme o escopo.
-7. Rodar `npm test`.
-
-## Relação com Outros Documentos
-
-- Use `docs/component-contract.md` como contrato técnico do manifest.
-- Use `docs/component-description.md` como guia prático da estrutura de um componente.
-- Use `docs/wasm-firmware-libraries.md` para APIs de firmware suportadas.
-- Use `docs/hardcoded-coupling-map.md` apenas como histórico/TODO de remoção de acoplamentos.
+- `docs/component-description.md`
+- `docs/component-contract.md`
+- `docs/hardcoded-coupling-map.md`
+- `add-components/new-component-example.md`

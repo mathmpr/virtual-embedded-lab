@@ -1,197 +1,199 @@
-# Decisões de UI
+# UI Decisions
 
-Este documento registra as decisões atuais da interface web do Virtual Embedded Lab.
+This document records the current web UI decisions for Virtual Embedded Lab.
 
-## Direção Visual
+## Visual direction
 
-A UI segue uma linguagem inspirada em Darcula/JetBrains/IntelliJ/PhpStorm:
+The UI follows a Darcula/JetBrains/IntelliJ/PhpStorm-inspired language:
 
-- fundo escuro;
-- painéis com divisórias fortes;
-- topbar de IDE;
-- tool windows laterais;
-- board central;
-- painel inferior com abas;
-- tipografia monoespaçada para código, sinais e valores técnicos;
-- acentos em azul para seleção/sinais e verde para execução.
+- dark background;
+- panels with strong dividers;
+- IDE-like topbar;
+- side tool windows;
+- central board;
+- bottom tab panel;
+- monospaced typography for code, signals, and technical values;
+- blue accents for selection/signals and green accents for execution.
 
-O objetivo é parecer uma ferramenta técnica local-first, não um dashboard genérico.
+The goal is to feel like a local-first technical tool, not a generic dashboard.
 
 ## Layout
 
-A tela principal é dividida em:
+The main screen is split into:
 
-- topbar com botão funcional `Exemplos` e controles de simulação;
-- paleta categorizada de componentes à esquerda;
-- board visual no centro;
-- inspector de propriedades e sinais contextuais à direita;
-- painel inferior com Código, Console, Serial e Problemas.
+- topbar with `Examples` and simulation controls;
+- categorized component palette on the left;
+- visual board in the center;
+- property and contextual signal inspector on the right;
+- bottom panel with Code, Console, Serial, and Problems.
 
-O painel inferior é redimensionável verticalmente por `--bottom-panel-height`. As abas do painel inferior trocam a view principal: a aba ativa ocupa a área larga e as demais ficam empilhadas na coluna lateral.
+The bottom panel is vertically resizable through `--bottom-panel-height`. Bottom tabs switch the main view: the active tab occupies the wide area, and inactive views stay stacked in the side column.
 
-O inspector possui um único scroll vertical. As propriedades e o monitor de sinais ficam no mesmo fluxo para manter o contexto do componente selecionado.
+The inspector has a single vertical scroll. Properties and the signal monitor share the same flow to keep selected-component context.
 
-## Catálogo de Componentes
+## Component catalog
 
-A fonte de verdade dos componentes oficiais fica em `components/official/**/component.json`.
+The official component source of truth is `components/official/**/component.json`.
 
-O backend expõe `GET /api/components`, lendo todos os manifests oficiais e retornando o catálogo para o frontend. O módulo `js/components.js` não declara componentes manualmente; ele normaliza os manifests recebidos em:
+The backend exposes `GET /api/components`, reads all official manifests, and returns the catalog to the frontend. `js/components.js` does not declare components manually; it normalizes received manifests into:
 
-- definições visuais;
-- mapas de serialização;
-- propriedades default;
-- variantes;
-- itens da paleta.
+- visual definitions;
+- serialization maps;
+- default properties;
+- variants;
+- palette items.
 
-A paleta possui scroll vertical próprio e cards compactos. Os componentes são agrupados por categorias como `Boards`, `Sensors`, `Inputs` e `Electronic`, com subcategorias como `ESP32`, `Wireless`, `Resistors`, `LEDs` e `Capacitors`.
+The palette has its own vertical scroll and compact cards. Components are grouped by categories such as `Boards`, `Sensors`, `Inputs`, and `Electronic`, with subcategories such as `ESP32`, `Wireless`, `Resistors`, `LEDs`, and `Capacitors`.
 
-## Exemplos
+## Examples
 
-Exemplos ficam em `examples/**/project.json`.
+Examples live in `examples/**/project.json`.
 
-A topbar possui apenas a ação `Exemplos`, que abre um modal. O modal chama:
+The topbar exposes only the `Examples` action, which opens a modal. The modal calls:
 
-- `GET /api/examples` para listar projetos disponíveis;
-- `GET /api/examples/:id` para carregar o projeto completo.
+- `GET /api/examples` to list projects;
+- `GET /api/examples/:id` to load a full project.
 
-Ao selecionar um exemplo, a UI restaura board, conexões, cores de fios e código no CodeMirror. O exemplo default também é carregado pelo JSON real, não por montagem hardcoded no frontend.
+When an example is selected, the UI restores board, connections, wire colors, and code in CodeMirror. The default example is also loaded from real JSON, not assembled through hardcoded frontend logic.
 
-## Componentes Editáveis
+## Editable components
 
-Resistores possuem variantes declaradas em `variants.resistanceOhms`. Cada variante possui `value` numérico em ohms e `label` legível usando `Ω`, como `220 Ω`, `1 kΩ` e `10 kΩ`.
+Resistors declare variants in `variants.resistanceOhms`. Each variant has a numeric ohm `value` and readable `label` using `Ω`, such as `220 Ω`, `1 kΩ`, and `10 kΩ`.
 
-Capacitores usam `variants.capacitanceMicrofarads`. O `value` fica normalizado em microfarads e o `label` pode usar unidades mais legíveis, como `100 nF`, `10 µF` e `4700 µF`.
+Capacitors use `variants.capacitanceMicrofarads`. Values are normalized in microfarads and labels may use readable units such as `100 nF`, `10 µF`, and `4700 µF`.
 
-Resistência, capacitância, distância e sinal Wi-Fi podem ser editados pelo componente no board ou pelo inspector. O controle Wi-Fi expõe SSID, internet ativa e força de sinal de 0 a 100%. Ele é standalone: não possui terminais e não precisa ser conectado por fio ao ESP32.
+Resistance, capacitance, distance, and Wi-Fi signal can be edited on the board component or in the inspector. Wi-Fi exposes SSID, active internet, and signal strength from 0 to 100%. It is standalone: it has no terminals and does not need to be wired to the ESP32.
 
-LEDs vermelho, verde e azul ficam em `Electronic/LEDs`. Cada LED possui tipo visual próprio, mas todos compartilham `electricalModel.primitive = led`, permitindo reutilizar a mesma regra elétrica.
+Red, green, and blue LEDs live in `Electronic/LEDs`. Each LED has its own visual type, but all share `electricalModel.primitive = led`, allowing reuse of the same electrical rule.
 
-O ESP32 DevKitC V4 fica em `Boards/ESP32` e seu manifesto declara os pinos dos headers J2/J3 com base na documentação oficial da Espressif. D0, D1, D2, D3, CMD e CLK são mantidos no catálogo, mas marcados como reservados para SPI flash no comportamento do componente.
+ESP32 DevKitC V4 lives in `Boards/ESP32` and its manifest declares J2/J3 header pins based on Espressif documentation. D0, D1, D2, D3, CMD, and CLK remain in the catalog, but are marked as reserved for SPI flash in component behavior.
 
-O Arduino UNO possui indicador built-in `L` associado ao D13/`LED_BUILTIN`. O ESP32 DevKitC V4 possui `PWR` sempre ligado e `LD` programável associado ao GPIO2/`LED_BUILTIN`, mapeamento comum em placas ESP32 DevKit. O valor de `LED_BUILTIN` é resolvido pelo manifest do microcontrolador presente no projeto.
+Arduino UNO has a built-in `L` indicator associated with D13/`LED_BUILTIN`. ESP32 DevKitC V4 has always-on `PWR` and programmable `LD` associated with GPIO2/`LED_BUILTIN`, a common mapping on ESP32 DevKit boards. `LED_BUILTIN` is resolved from the microcontroller manifest present in the project.
 
-Para tornar o exemplo clássico de blink observável, o Run mantém a simulação ativa até Pause/Reset. Cada frame executa iterações de `loop()`, respeita `delay()` no tempo virtual e registra eventos temporais de `digitalWrite`. A UI usa essa timeline para animar LEDs built-in em escala curta, preservando o estado final do pino ao término de cada frame. Quando o usuário usa `LED_PIN` ou `PIN` sem declarar o constante, o firmware assume esse nome como alias de `LED_BUILTIN` do board atual.
+To make the classic blink example observable, Run keeps simulation active until Pause/Reset. Each frame executes `loop()` iterations, respects `delay()` through virtual time, and records timed `digitalWrite` events. The UI uses that timeline to animate built-in LEDs over a short scale, preserving final pin state at the end of each frame. If the user uses undeclared `LED_PIN` or `PIN`, firmware treats it as an alias of the current board's `LED_BUILTIN`.
 
 ## Board
 
-O board usa uma viewport visual com `overflow: hidden` e uma superfície interna maior.
+The board uses a visual viewport with `overflow: hidden` and a larger inner surface.
 
-Decisões atuais:
+Current decisions:
 
-- `#board` é a janela visível;
-- `#boardViewport` é a superfície transformável;
-- componentes são HTML posicionados em `#componentLayer`;
-- fios são SVG em `#wireLayer`;
-- pan usa barra de espaço + arraste;
-- zoom usa scroll do mouse preservando o ponto sob o cursor;
-- carregar exemplo/projeto centraliza o conteúdo na área visível.
+- `#board` is the visible window;
+- `#boardViewport` is the transformable surface;
+- components are positioned HTML in `#componentLayer`;
+- wires are SVG in `#wireLayer`;
+- pan uses spacebar + drag;
+- zoom uses mouse wheel while preserving the point under the cursor;
+- loading an example/project centers the content in the visible area.
 
-HTML facilita inputs, hover, foco e inspector. SVG facilita fios, hit testing, seleção e remoção.
+HTML makes inputs, hover, focus, and inspector interactions simpler. SVG makes wires, hit testing, selection, and removal easier.
 
-## Terminais e Fios
+## Terminals and wires
 
-Terminais são botões HTML circulares com tipo visual:
+Terminals are circular HTML buttons with visual type:
 
 - `power`;
 - `ground`;
 - `signal`;
 - `environment`.
 
-Fluxo de criação:
+Creation flow:
 
-1. Usuário clica em um terminal.
-2. O terminal fica pendente.
-3. Usuário clica em outro terminal.
-4. Um fio SVG é criado entre eles.
+1. User clicks a terminal.
+2. That terminal becomes pending.
+3. User clicks another terminal.
+4. An SVG wire is created between them.
 
-Fios podem receber `color` no `Project JSON`. Quando não há cor explícita, a UI infere:
+Wires may receive `color` in `Project JSON`. When no explicit color exists, the UI infers:
 
-- vermelho para `power`;
-- branco para `ground`;
-- verde para ambiente;
-- azul para sinais.
+- red for `power`;
+- white for `ground`;
+- green for environment;
+- blue for signals.
 
-O desenho usa segmentos ortogonais e escolhe a melhor rota entre candidatas Manhattan. A pontuação considera comprimento, quantidade de dobras, proximidade de cards e cruzamento com componentes. Isso evita a antiga saída fixa por lado do terminal e reduz fios escondidos atrás dos componentes.
+Wires use orthogonal segments and choose the best route among Manhattan candidates. The score considers length, number of bends, proximity to cards, and component crossings. This avoids the old fixed terminal-side exit and reduces wires hidden behind components.
 
 ## Nets
 
-O editor possui nets derivadas dos fios existentes.
+The editor derives nets from existing wires.
 
-Decisões atuais:
+Current decisions:
 
-- fios continuam existindo para renderização, remoção e Undo/Redo;
-- Union-Find agrupa terminais conectados;
-- exportação grava nets elétricas em `connections`;
-- conexões ambientais são gravadas em `environmentConnections`;
-- clicar em um fio seleciona a net correspondente no inspector;
-- remover um fio recalcula as nets a partir dos fios restantes.
+- wires continue to exist for rendering, removal, and Undo/Redo;
+- Union-Find groups connected terminals;
+- export writes electrical nets to `connections`;
+- environment connections are written to `environmentConnections`;
+- clicking a wire selects the corresponding net in the inspector;
+- removing a wire recalculates nets from remaining wires.
 
-Validações atuais:
+Current validations:
 
-- bloqueia curto direto entre `power` e `ground`;
-- permite `ENV` apenas ligado a terminal de sinal/comportamento;
-- ainda não valida todos os conflitos elétricos possíveis.
+- blocks direct short between `power` and `ground`;
+- allows `ENV` only when connected to signal/behavior terminals;
+- does not yet validate every possible electrical conflict.
 
-## Editor de Código
+## Code editor
 
-O editor usa CodeMirror 6 com:
+The editor uses CodeMirror 6 with:
 
 - `@codemirror/lang-cpp`;
 - `@codemirror/theme-one-dark`;
-- import map local apontando para `node_modules`;
-- wrapper simples em `js/code-editor.js`.
+- local import map pointing to `node_modules`;
+- a simple wrapper in `js/code-editor.js`.
 
-Ao executar a simulação, a UI chama `POST /api/firmware/analyze` para diagnósticos e `POST /api/firmware/compile-wasm` para gerar o firmware executável. O painel Problemas exibe diagnósticos de Clang, `clang-wasm`, runtime e solver.
+When running simulation, the UI calls `POST /api/firmware/compile-wasm` to generate executable firmware. The Problems panel displays Clang, `clang-wasm`, runtime, and solver diagnostics.
 
-Limite atual: ainda não há markers inline no CodeMirror.
+Current limitation: there are no inline CodeMirror markers yet.
 
-## Simulação Visual
+## Visual simulation
 
-O arquivo `js/visual-simulation.js` é um adaptador fino entre UI e kernel web.
+`js/visual-simulation.js` is a thin adapter between the UI and the web kernel.
 
-Hoje:
+Today:
 
-- o board é convertido em grafo de circuito;
-- nets alimentam conectividade;
-- controles ambientais criam canais no `EnvironmentEngine`;
-- sensores HC-SR04 são ligados a `Hcsr04Behavior`;
-- pinos Arduino são manipulados por `ArduinoRuntime`;
-- firmware é executado por WASM compilado via `clang++`/`wasm-ld`;
-- resultados atualizam LED, sinais, Serial, Console e Problemas.
+- the board is converted into a circuit graph;
+- nets feed connectivity;
+- environment controls create channels in `EnvironmentEngine`;
+- sensors are bound to behaviors;
+- Arduino pins are manipulated by `ArduinoRuntime`;
+- firmware is executed as WASM compiled through `clang++`/`wasm-ld`;
+- results update LEDs, signals, Serial, Console, and Problems.
 
-A simulação deixou de depender de regras visuais hardcoded no exemplo e não usa fallback visual para IR. Se o firmware WASM não compila, a execução é bloqueada com diagnóstico.
+Simulation no longer depends on example-specific hardcoded visual rules and does not use visual fallback for IR. If WASM firmware does not compile, execution is blocked with diagnostics.
 
-## Solver Elétrico
+## Electrical solver
 
-O solver atual cobre caminho série simples:
+The current solver covers the simple series path:
 
-`GPIO HIGH -> resistor -> LED anodo -> LED catodo -> GND`
+```text
+GPIO HIGH -> resistor -> LED anode -> LED cathode -> GND
+```
 
-Ele calcula:
+It calculates:
 
-- corrente do LED;
-- queda de tensão;
-- potência do resistor;
-- brilho aproximado;
-- estado visual do LED.
+- LED current;
+- voltage drop;
+- resistor power;
+- approximate brightness;
+- LED visual state.
 
-Também diagnostica:
+It also diagnoses:
 
-- LED sem resistor efetivo;
-- sobrecorrente;
-- potência excedida no resistor;
-- resistência excessiva que deixa corrente abaixo do mínimo visível;
-- tensão insuficiente;
-- curto 5V/GND;
-- saída HIGH ligada ao GND.
+- LED without effective resistor;
+- overcurrent;
+- exceeded resistor power;
+- excessive resistance below visible-current threshold;
+- insufficient voltage;
+- 5V/GND short;
+- HIGH output connected to GND.
 
-O estado visual do LED é baseado na corrente calculada, não apenas na existência de conexão.
+LED visual state is based on calculated current, not only on the existence of a connection.
 
-Limite atual: ainda não é um solver nodal/SPICE geral.
+Current limitation: it is not a general nodal/SPICE solver yet.
 
 ## Serial
 
-O runtime Arduino possui Serial integrada ao tempo virtual:
+The Arduino runtime has Serial integrated with virtual time:
 
 - `Serial.begin`;
 - `Serial.print`;
@@ -200,60 +202,60 @@ O runtime Arduino possui Serial integrada ao tempo virtual:
 - `Serial.available`;
 - `Serial.read`.
 
-O painel Serial separa `TX` e `RX`, mostra baud rate e tempo virtual, mantém histórico append-only limitado aos últimos 1000 eventos e possui botão `Clear`. `Auto-scroll` e `Clear` ficam juntos em uma barra fixa no rodapé do card Serial, fora da área rolável de logs.
+The Serial panel separates `TX` and `RX`, shows baud rate and virtual time, keeps an append-only history limited to the last 1000 events, and has a `Clear` button. `Auto-scroll` and `Clear` are placed together in a fixed footer bar, outside the scrollable log area.
 
-Limite atual: Serial ainda é buffer textual simples. Não há temporização por bit, framing UART, paridade, stop bits ou componente físico RX/TX.
+Current limitation: Serial is still a simple text buffer. There is no bit timing, UART framing, parity, stop bits, or physical RX/TX component.
 
 ## Wi-Fi
 
-O componente ambiental Wi-Fi Signal representa uma rede sem fio no cenário. O projeto pode ter múltiplos Wi-Fi Signal simultâneos, cada um com SSID, checkbox de internet ativa e slider de força de sinal.
+The Wi-Fi Signal environment component represents a wireless network in the scenario. A project may include multiple Wi-Fi Signal components, each with SSID, active-internet checkbox, and signal-strength slider.
 
-O runtime interpreta chamadas ESP32/Arduino Core iniciais:
+The runtime interprets initial ESP32/Arduino Core calls:
 
 - `WiFi.mode`;
 - `WiFi.begin`;
 - `WiFi.status`;
 - `WiFi.softAP`;
-- `WiFi.scanNetworks`.
-- `WiFi.RSSI`.
+- `WiFi.scanNetworks`;
+- `WiFi.RSSI`;
 - `WiFi.RSSI(ssid)`;
 - `WiFi.internetAvailable`.
 
-No modo station, `WiFi.begin` conecta quando algum Wi-Fi Signal possui força maior que zero e o SSID corresponde ao ambiente. `WiFi.RSSI(ssid)` permite comparar redes antes de conectar. O checkbox de internet ativa não altera RSSI nem associação ao access point; ele representa se a rede conectada teria saída para internet e é lido por `WiFi.internetAvailable()`. No modo access point, `WiFi.softAP` registra o AP virtual no snapshot do runtime.
+In station mode, `WiFi.begin` connects when a Wi-Fi Signal has matching SSID and strength above zero. `WiFi.RSSI(ssid)` allows comparing networks before connecting. The active-internet checkbox does not change RSSI or access-point association; it represents whether the connected network would have internet access and is read by `WiFi.internetAvailable()`. In access-point mode, `WiFi.softAP` registers the virtual AP in the runtime snapshot.
 
-Rede atual: `WiFiClient` expõe um modelo TCP/HTTP virtual suficiente para requests textuais e rotas declaradas no projeto; `AsyncMqttClient` pode usar broker virtual ou broker MQTT real via bridge backend Node. Ainda não há pilha TCP/IP completa, DNS real, TLS/HTTPS criptográfico, autenticação MQTT, QoS completo ou sockets arbitrários no browser/WASM.
+Current networking: `WiFiClient` exposes a virtual TCP/HTTP model sufficient for textual requests and project-declared routes; `AsyncMqttClient` can use a virtual broker or a real MQTT broker through the Node backend bridge. There is no full TCP/IP stack, real DNS, cryptographic TLS/HTTPS, MQTT authentication, full QoS, or arbitrary browser/WASM sockets yet.
 
-## Monitor de Sinais
+## Signal monitor
 
-O monitor de sinais fica no inspector e depende do componente selecionado:
+The signal monitor lives in the inspector and depends on the selected component:
 
-- Arduino mostra cards de Ultrassom e LED;
-- HC-SR04 mostra TRIG/ECHO;
-- LED mostra ON/OFF;
-- Wi-Fi Signal mostra internet ativa e força de sinal;
-- outros componentes mostram mensagem de ausência de sinais monitoráveis.
+- Arduino shows Ultrasonic and LED cards;
+- HC-SR04 shows TRIG/ECHO;
+- LED shows ON/OFF;
+- Wi-Fi Signal shows active internet and signal strength;
+- other components show a message when no monitorable signals exist.
 
-O painel inferior não possui aba de sinais para evitar misturar sinais globais com propriedades locais.
+The bottom panel does not include a signal tab to avoid mixing global signals with local properties.
 
-## Persistência
+## Persistence
 
-A UI possui:
+The UI supports:
 
-- salvar em `localStorage`;
-- carregar do `localStorage`;
-- exportar `.json`;
-- importar `.json`;
-- Undo/Redo em memória.
+- save to `localStorage`;
+- load from `localStorage`;
+- export `.json`;
+- import `.json`;
+- in-memory Undo/Redo.
 
-O `Project JSON` preserva componentes, posições, propriedades, conexões, cores de fios e código.
+`Project JSON` preserves components, positions, properties, connections, wire colors, and code.
 
-## Limitações Conhecidas
+## Known limitations
 
-- Conexão ambiental ainda usa aparência de fio comum.
-- Nets ainda não são editadas como entidade própria.
-- Validação elétrica ainda é parcial.
-- Não há seleção múltipla.
-- Não há snap-to-grid.
-- Undo/Redo não persiste entre sessões.
-- Não há Electron integrado.
-- Não há waveform temporal real no monitor de sinais.
+- Environment connections still look like regular wires.
+- Nets are not edited as first-class entities yet.
+- Electrical validation is still partial.
+- No multi-selection.
+- No snap-to-grid.
+- Undo/Redo does not persist across sessions.
+- No Electron integration.
+- No real temporal waveform in the signal monitor.

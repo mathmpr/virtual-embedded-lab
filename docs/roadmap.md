@@ -1,93 +1,73 @@
-# Roadmap Técnico
+# Technical Roadmap
 
-## Concluído
+## Completed
 
-### Fundação
+### Foundation
 
-- Schemas JSON de projeto e componente.
-- Estrutura inicial em `apps/`, `packages/`, `components/`, `examples/`, `schemas/`, `docs/` e `tests/`.
-- Testes com Node 24.
-- Núcleo temporal determinístico.
-- Runtime Arduino inicial.
-- Ambiente com canais versionados.
+- Project structure for app, schemas, components, examples, docs, and tests.
+- Node.js 24 native test runner.
+- Project and component JSON schemas.
+- Official component catalog loaded by API.
+- Example catalog loaded by API.
 
-### Editor Web
+### Web editor
 
-- UI web local em `apps/web`.
-- Board com pan/zoom, drag-and-drop, terminais e fios.
-- Paleta carregada via manifests oficiais.
-- Inspector de propriedades e sinais.
-- Painel inferior com Código, Console, Serial e Problemas.
-- CodeMirror para Arduino/C++.
-- Import/export JSON e persistência em `localStorage`.
-- Undo/Redo em memória.
+- Visual board with pan/zoom.
+- Component palette.
+- Component placement by click and drag-and-drop.
+- Visual terminals and SVG wires.
+- Orthogonal wire routing.
+- Net model with merge/removal behavior.
+- Inspector, console, serial monitor, problems panel, and CodeMirror editor.
+- Import/export JSON and `localStorage` persistence.
 
-### Catálogo e Exemplos
+### Catalog and examples
 
-- Componentes oficiais em `components/official`.
-- Arduino UNO expandido com pinos digitais, analógicos e alimentação.
-- Resistores com variantes.
-- Capacitor com variantes.
-- LEDs vermelho, verde e azul.
-- HC-SR04 e controle ambiental de distância.
-- ESP32 DevKitC V4 e controle ambiental Wi-Fi Signal.
-- ESP8266 NodeMCU para cenários Wi-Fi/MQTT.
-- FC-37 Rain Sensor e controle ambiental Rain Environment.
-- Pull-up Button para entradas momentâneas.
-- LDR Light Sensor, controle ambiental Light Environment e exemplo analógico com `analogRead(A0)`.
-- BMP280 Pressure/Temperature, Climate Environment e exemplo I2C com classe shim `BMP280`.
-- ADS1015, ADS1115, MCP3008 e Analog Voltage Source para validar ADCs externos por I2C/SPI.
-- Water Pump, 1-Channel Solid State Relay e Water Reservoir para cenário hidráulico simplificado.
-- API `GET /api/components`.
-- API `GET /api/examples` e `GET /api/examples/:id`.
-- Exemplo HC-SR04 + LED carregado a partir de `examples/hc-sr04-led-distance/project.json`.
-- Exemplos ESP32 counter blink, ESP32 Wi-Fi Signal e ESP32 Wi-Fi Failover.
-- Exemplo FC-37 Rain Digital.
-- Exemplos Serial, Serial bridge multi-board, pull-up button, ESP32 HTTP/TCP, ESP8266 MQTT water pump e ESP Water Control Pump Reservoir.
+- Arduino UNO, ESP32, ESP8266, ESP32-C3, ESP32-S3, Arduino Nano, BBC micro:bit V2.
+- Passive parts: resistors, capacitors, LEDs, RGB LED.
+- Sensors: HC-SR04, FC-37, LDR, BMP280, DHT, LM35, PIR, TTP223, Hall, reed, tilt, vibration, IR obstacle, soil moisture.
+- ADCs: ADS1015, ADS1115, MCP3008.
+- Displays and drivers: LCD 16x2 I2C, seven-segment, HUB75, 74HC595, 74AHCT245.
+- Actuators and switching: buzzer, servo, pump, relays, SSRs, MOSFETs, BJTs, PC817, ULN2003A/ULN2803A.
+- Environment components: distance, rain, light, climate, Wi-Fi, analog voltage, AC mains/load, water reservoir.
+- Examples covering WASM firmware, sensors, ADCs, Wi-Fi, MQTT, AC metering, HUB75 game, and maker circuits.
 
-### Firmware e Simulação
+### Firmware and simulation
 
-- Firmware WASM como caminho único de execução na UI.
-- Integração com Clang local para diagnósticos e compilação WASM.
-- Dependência documentada de `clang++` e `wasm-ld`.
-- `Serial.begin`, `print`, `println`, `write`, `available` e `read`.
-- Separação visual de Serial TX/RX.
-- HC-SR04 respondendo ao runtime.
-- ESP32/Wi-Fi inicial por imports WASM, incluindo múltiplas redes e failover por RSSI/internet ativa.
-- ESP8266/Wi-Fi inicial por imports WASM.
-- `WiFiClient` com HTTP virtual e `AsyncMqttClient` com MQTT virtual ou MQTT real via bridge backend.
-- Simulação multi-board com uma sessão WASM por microcontrolador.
-- Solver incremental para caminho série LED/resistor.
-- Diagnósticos de resistor ausente, sobrecorrente, potência excedida, resistência excessiva, tensão insuficiente e curtos básicos.
+- Deterministic virtual clock and scheduler.
+- Arduino-compatible runtime APIs.
+- WASM firmware compilation with Clang/wasm-ld.
+- WASM import bridge for GPIO, time, Serial, Wi-Fi, HTTP, MQTT, I2C/SPI subsets, and component libraries.
+- In-memory compile queue with two concurrent jobs.
+- Build cache by source/toolchain/sandbox hash.
+- Public-deployment sandbox support.
+- Incremental electrical solver and educational diagnostics.
 
-## Próximos Marcos
+## Next milestones
 
-### Catálogo Extensível
+### Extensible catalog
 
-- Validar consistência entre `terminals` e `visual.terminals` em todos os manifests.
-- Definir contrato mínimo para componentes com comportamento simulado.
-- Adicionar novos sensores, inputs, atuadores e microcontroladores.
-- Generalizar o mapeamento de pinos por manifest de microcontrolador.
+- Reduce remaining hardcoded coupling in the core.
+- Move more component-specific behavior into component packages.
+- Expand manifest-driven pin/bus/electrical declarations.
+- Improve documentation for component authors.
 
-### Solver Elétrico
+### Electrical solver
 
-- Evoluir para análise nodal ou solver incremental mais geral.
-- Diferenciar visualmente conexões ambientais de conexões elétricas.
-- Modelar componentes passivos além de resistor/LED no cálculo.
-- Melhorar mensagens de problema para múltiplas topologias.
+- Harden power/GND/logical-connection validation across all active components.
+- Improve switch/load propagation for relays, MOSFETs, BJTs, optocouplers, and drivers.
+- Add better diagnostics for incomplete buses and floating inputs.
+- Consider a future nodal solver for broader circuit coverage.
 
 ### Firmware
 
-- Ampliar cobertura do shim/imports WASM para novas APIs Arduino/ESP32.
-- Ampliar cobertura ESP32/ESP8266 para periféricos reais como PWM, ADC avançado, timers, interrupções, I2C/SPI bruto e bibliotecas mais completas.
-- Remover ou rebaixar a IR JavaScript depreciada para ferramenta auxiliar/testes.
-- Exibir diagnósticos inline no CodeMirror.
-- Avaliar cache persistente/distribuído para builds WASM em deploy público.
-- Reavaliar fallback WASM/browser após MVP público, se o custo de infraestrutura justificar.
+- Expand WASM Arduino/C++ shims only when examples need them.
+- Keep unsupported APIs explicit and diagnostic-driven.
+- Continue isolating public compilation with sandbox, limits, and rate limiting.
 
 ### Desktop
 
-- Integrar Electron.
-- Definir processo main/preload/renderer.
-- Salvar projetos no filesystem local.
-- Preparar empacotamento desktop.
+- Evaluate Electron packaging.
+- Define main/preload/renderer boundaries.
+- Add local filesystem save/load.
+- Package desktop builds after the web MVP stabilizes.

@@ -1,69 +1,68 @@
 # Contributing to Virtual Embedded Lab
 
-Obrigado pelo interesse em contribuir.
+Thank you for your interest in contributing.
 
-Este projeto é open source sob AGPLv3-or-later. Ao contribuir, você concorda que sua contribuição seja distribuída sob a mesma licença do projeto.
+This project is open source under `AGPL-3.0-or-later`. By contributing, you agree that your contribution is distributed under the same license.
 
-## Como rodar localmente
+## Running locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-A aplicação roda por padrão em:
+The application runs at:
 
 ```text
 http://127.0.0.1:4173
 ```
 
-## Como validar mudanças
+## Validating changes
 
-Antes de enviar alterações, rode:
+Before submitting changes, run:
 
 ```bash
 npm test
 ```
 
-## Diretrizes gerais
+## General guidelines
 
-- Preserve o fluxo local-first: o projeto deve continuar funcionando bem clonado do Git e executado localmente.
-- Evite acoplamento novo no core quando um componente puder ser descrito por manifesto, contribuição local ou behavior próprio.
-- Novos componentes oficiais devem seguir:
+- Preserve the local-first workflow: the project should keep working when cloned from Git and run locally.
+- Avoid adding new coupling to the core when a component can be described through its manifest, local contributions, or its own behavior module.
+- New official components must follow:
   - `docs/official-component-guidelines.md`
   - `docs/component-description.md`
   - `docs/component-contract.md`
   - `add-components/new-component-example.md`
-- Exemplos em `examples/**/project.json` devem ter descrição em `description` e versões em `descriptionI18n.pt-BR`, `descriptionI18n.en` e `descriptionI18n.es`.
-- Mudanças de UI devem manter o padrão visual existente e incluir teste quando houver risco de regressão.
-- Mudanças de simulação elétrica devem preferir diagnósticos explicáveis e didáticos.
+- Examples in `examples/**/project.json` must provide `description` and translated descriptions in `descriptionI18n.pt-BR`, `descriptionI18n.en`, and `descriptionI18n.es`.
+- UI changes should preserve the current visual standard and include tests when there is regression risk.
+- Electrical simulation changes should prefer clear, educational diagnostics.
 
-## Relatando bugs
+## Reporting bugs
 
-Ao abrir uma issue, inclua:
+When opening an issue, include:
 
-- sistema operacional;
-- versão do Node.js;
-- navegador;
-- exemplo/projeto usado;
-- passos para reproduzir;
-- comportamento esperado;
-- comportamento observado;
-- mensagens do painel Problemas/Console, quando existirem.
+- operating system;
+- Node.js version;
+- browser;
+- example/project used;
+- steps to reproduce;
+- expected behavior;
+- observed behavior;
+- messages from the Problems/Console panels, when available.
 
 ## Pull requests
 
-Um PR deve conter:
+A pull request should include:
 
-- descrição objetiva da mudança;
-- motivação;
-- screenshots ou gravações curtas para mudanças visuais relevantes;
-- testes executados;
-- limitações conhecidas, se houver.
+- objective description of the change;
+- motivation;
+- screenshots or short recordings for relevant visual changes;
+- tests executed;
+- known limitations, when applicable.
 
-## Licença e marca
+## License and trademark
 
-O código é licenciado sob AGPLv3-or-later. Se você modificar o projeto e oferecer uma versão pela rede, a AGPL exige que o código-fonte correspondente também seja disponibilizado aos usuários desse serviço.
+The code is licensed under `AGPL-3.0-or-later`. If you modify the project and offer that modified version over a network, the AGPL requires the corresponding source code to be made available to users of that service.
 
-O nome "Virtual Embedded Lab", logo e identidade visual não devem ser usados para apresentar forks, hospedagens ou distribuições não oficiais como se fossem o projeto oficial. Use atribuição clara quando redistribuir ou modificar.
-
+The name "Virtual Embedded Lab", logo, and visual identity must not be used to present forks, hosted versions, or unofficial distributions as the official project. Use clear attribution when redistributing or modifying the project.

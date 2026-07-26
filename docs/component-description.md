@@ -1,12 +1,12 @@
-# Como um Componente e Descrito
+# How a Component Is Described
 
-Este documento descreve como um componente oficial e empacotado no Virtual Embedded Lab. Use isto como referencia pratica ao criar ou revisar componentes.
+This document explains how an official component is packaged in Virtual Embedded Lab. Use it as a practical reference when creating or reviewing components.
 
-## Estrutura
+## Structure
 
-Um componente oficial fica em `components/official/<slug>/`.
+An official component lives in `components/official/<slug>/`.
 
-Estrutura recomendada:
+Recommended structure:
 
 ```text
 components/official/<slug>/
@@ -22,27 +22,27 @@ components/official/<slug>/
       <library-or-api>.cpp
 ```
 
-Nem todo componente precisa de todos os arquivos. Componentes puramente visuais ou passivos normalmente usam apenas `component.json`. Arquivos extras devem existir apenas quando o componente introduz visual especifico, comportamento simulado, APIs de firmware ou shims C++.
+Not every component needs every file. Purely visual or passive components usually only need `component.json`. Extra files should exist only when the component introduces specific visuals, simulated behavior, firmware APIs, or C++ shims.
 
-## Fonte de Verdade
+## Source of truth
 
-`component.json` e a fonte de verdade do componente. Ele descreve:
+`component.json` is the component source of truth. It describes:
 
-- identidade e categoria;
-- propriedades editaveis;
-- terminais logicos;
-- modelo eletrico;
-- comportamento de simulacao;
-- contribuicoes carregaveis;
-- representacao visual no board e no catalogo.
+- identity and category;
+- editable properties;
+- logical terminals;
+- electrical model;
+- simulation behavior;
+- loadable contributions;
+- visual representation on the board and catalog.
 
-O core deve ler essas informacoes de forma generica. Evite adicionar regras como `if (component.type === "...")` em `board-editor.js`, `arduino-runtime.js`, `wasm-import-adapters.js`, `wasm-compiler.mjs` ou `clang-analyzer.mjs` para casos que podem ser declarados no componente.
+The core should read this information generically. Avoid rules such as `if (component.type === "...")` in `board-editor.js`, `arduino-runtime.js`, `wasm-import-adapters.js`, `wasm-compiler.mjs`, or `clang-analyzer.mjs` for cases that can be declared in the component.
 
-## Campos Principais do Manifest
+## Main manifest fields
 
 ### `identity`
 
-Identifica o componente de forma estavel.
+Identifies the component in a stable way.
 
 ```json
 {
@@ -55,11 +55,11 @@ Identifica o componente de forma estavel.
 }
 ```
 
-Use `identity.id` como identificador semantico estavel. O tipo visual usado em projetos fica em `visual.type`.
+Use `identity.id` as the stable semantic identifier. The visual type stored in projects is `visual.type`.
 
 ### `simulation`
 
-Declara o papel do componente.
+Declares the component role.
 
 ```json
 {
@@ -71,20 +71,20 @@ Declara o papel do componente.
 }
 ```
 
-Valores comuns de `kind`:
+Common `kind` values:
 
-- `visual-only`: elemento sem impacto eletrico ou firmware.
-- `passive-electrical`: resistor, capacitor e outros passivos.
-- `active-electrical`: LED, buzzer, relay e cargas ativas simples.
-- `behavioral-sensor`: sensor que gera leitura para firmware.
-- `environment-source`: fonte ambiental, como clima, chuva, luz ou Wi-Fi.
-- `microcontroller`: placa que executa firmware.
+- `visual-only`: element with no electrical or firmware impact.
+- `passive-electrical`: resistor, capacitor, and other passive parts.
+- `active-electrical`: LED, buzzer, relay, and simple active loads.
+- `behavioral-sensor`: sensor that produces firmware readings.
+- `environment-source`: environmental source such as climate, rain, light, or Wi-Fi.
+- `microcontroller`: board that runs firmware.
 
-Use `effects` para declarar quais subsistemas o componente afeta: `electrical`, `firmware`, `environment` e `visual-state`.
+Use `effects` to declare which subsystems the component affects: `electrical`, `firmware`, `environment`, and `visual-state`.
 
-### `properties` e `variants`
+### `properties` and `variants`
 
-`properties` guarda estado persistido e valores editaveis no inspector.
+`properties` stores persisted state and inspector-editable values.
 
 ```json
 {
@@ -106,11 +106,11 @@ Use `effects` para declarar quais subsistemas o componente afeta: `electrical`, 
 }
 ```
 
-Use `simulationUpdate: "live"` quando a mudanca pode ser aplicada sem reiniciar o firmware. Use `"rerun"` quando o estado do firmware precisa ser reconstruido.
+Use `simulationUpdate: "live"` when the change can be applied without restarting firmware. Use `"rerun"` when firmware state must be rebuilt.
 
 ### `terminals`
 
-Declara os pontos conectaveis logicos usados por conexoes, solver, barramentos e serializacao.
+Declares logical connectable points used by connections, solver, buses, and serialization.
 
 ```json
 {
@@ -123,11 +123,11 @@ Declara os pontos conectaveis logicos usados por conexoes, solver, barramentos e
 }
 ```
 
-Todo terminal logico deve ter um terminal visual correspondente em `visual.terminals` com o mesmo `id`.
+Every logical terminal must have a matching visual terminal in `visual.terminals` with the same `id`.
 
 ### `electricalModel`
 
-Obrigatorio quando `simulation.effects` contem `electrical`.
+Required when `simulation.effects` contains `electrical`.
 
 ```json
 {
@@ -141,11 +141,11 @@ Obrigatorio quando `simulation.effects` contem `electrical`.
 }
 ```
 
-Esse bloco deve conter somente dados do modelo eletrico. Regras genericas pertencem ao solver; excecoes muito especificas devem ser justificadas.
+This block should contain only electrical-model data. Generic rules belong in the solver; highly specific exceptions must be justified.
 
 ### `behavior`
 
-Obrigatorio para `microcontroller`, `behavioral-sensor` e `environment-source`.
+Required for `microcontroller`, `behavioral-sensor`, and `environment-source`.
 
 ```json
 {
@@ -160,11 +160,11 @@ Obrigatorio para `microcontroller`, `behavioral-sensor` e `environment-source`.
 }
 ```
 
-`behavior.type` seleciona o adapter registrado em `simulation/behavior.js` ou em adapters core existentes. O manifest deve apontar canais, terminais, propriedades e barramentos; o adapter deve implementar apenas a logica que nao cabe no contrato declarativo.
+`behavior.type` selects the adapter registered by `simulation/behavior.js` or by existing core adapters. The manifest should point to channels, terminals, properties, and buses; the adapter should implement only logic that cannot fit the declarative contract.
 
 ### `contributions`
 
-Declara arquivos carregados pelo core.
+Declares files loaded by the core.
 
 ```json
 {
@@ -182,17 +182,17 @@ Declara arquivos carregados pelo core.
 }
 ```
 
-Contribuicoes devem ser append-only sempre que possivel:
+Contributions should be append-only whenever possible:
 
-- `styles.files`: CSS visual especifico do componente.
-- `simulationBehaviors.modules`: registro de behavior especializado.
-- `wasmImports.modules`: imports WASM exigidos por bibliotecas do componente.
+- `styles.files`: component-specific visual CSS.
+- `simulationBehaviors.modules`: specialized behavior registration.
+- `wasmImports.modules`: WASM imports required by component libraries.
 
-O caminho e resolvido a partir de `resources.baseUrl`, preenchido pelo carregador de componentes oficiais.
+Paths are resolved from `resources.baseUrl`, filled by the official component loader.
 
 ### `visual`
 
-Define como o componente aparece no board e no catalogo.
+Defines how the component appears on the board and in the catalog.
 
 ```json
 {
@@ -218,13 +218,13 @@ Define como o componente aparece no board e no catalogo.
 }
 ```
 
-Use `visual.controls` para elementos inline como sliders, checkboxes, selects, containers e readouts. Use `visual.stateBindings` para textos e classes derivados de sinais, nets, ambiente, propriedades ou leituras do runtime.
+Use `visual.controls` for inline elements such as sliders, checkboxes, selects, containers, and readouts. Use `visual.stateBindings` for text and classes derived from signals, nets, environment channels, properties, or runtime readings.
 
-CSS especifico deve ficar em `ui/styles.css`; `apps/web/styles.css` deve conter layout, editor, board, inspector e estilos compartilhados.
+Component-specific CSS belongs in `ui/styles.css`; `apps/web/styles.css` should contain layout, editor, board, inspector, and shared styles.
 
 ## Firmware
 
-Bibliotecas de firmware especificas de componente ficam em `firmware/library*.json`.
+Component-specific firmware libraries live in `firmware/library*.json`.
 
 ```json
 {
@@ -236,33 +236,33 @@ Bibliotecas de firmware especificas de componente ficam em `firmware/library*.js
 }
 ```
 
-O resolver combina:
+The resolver combines:
 
-- `apps/web/firmware/core-libraries.json`, para Arduino core, Serial, Wire e SPI;
-- `components/official/**/firmware/library*.json`, para bibliotecas adicionadas por componentes.
+- `apps/web/firmware/core-libraries.json` for Arduino core, Serial, Wire, and SPI;
+- `components/official/**/firmware/library*.json` for libraries added by components.
 
-Shims C++ especificos ficam em `firmware/shims/*.cpp`. Shims genericos do Arduino ficam em `apps/web/firmware/shims/arduino-wasm/**`.
+Component-specific C++ shims live in `firmware/shims/*.cpp`. Generic Arduino shims live in `apps/web/firmware/shims/arduino-wasm/**`.
 
-Imports WASM especificos ficam em `firmware/wasm-imports.js` e devem registrar imports apenas para as bibliotecas ou capacidades declaradas.
+Component-specific WASM imports live in `firmware/wasm-imports.js` and must register imports only for the declared libraries or capabilities.
 
-## Regras de Evolucao
+## Evolution rules
 
-- Adicionar componente novo deve ser majoritariamente append-only dentro de `components/official/<slug>/`.
-- Editar core e aceitavel quando o projeto ganha uma capacidade generica nova, como um tipo de barramento, primitive eletrica, formato de binding ou API Arduino core.
-- Editar `arduino-runtime.js` deve significar comportamento runtime generico, nao regra visual de componente.
-- Editar `wasm-import-adapters.js` deve significar import Arduino/core reutilizavel, nao import especifico de biblioteca externa.
-- Editar `wasm-compiler.mjs` ou `clang-analyzer.mjs` deve ser excecao ligada a toolchain, descoberta de libraries, diagnostico ou montagem de shims.
+- Adding a new component should be mostly append-only inside `components/official/<slug>/`.
+- Editing the core is acceptable when the project gains a new generic capability, such as a bus type, electrical primitive, binding format, or Arduino core API.
+- Editing `arduino-runtime.js` should mean generic runtime behavior, not visual component rules.
+- Editing `wasm-import-adapters.js` should mean reusable Arduino/core imports, not imports specific to an external library.
+- Editing `wasm-compiler.mjs` or `clang-analyzer.mjs` should be an exception tied to toolchain, library discovery, diagnostics, or shim assembly.
 
-## Checklist Rapido
+## Quick checklist
 
-- `component.json` e valido e aponta para `schemas/component.schema.json`.
-- `simulation` declara papel, efeitos e `implemented`.
-- `terminals` e `visual.terminals` possuem os mesmos IDs.
-- `properties` tem defaults e `simulationUpdate` quando afeta runtime.
-- `visual.palette` existe se o componente aparece no catalogo.
-- CSS especifico fica em `ui/styles.css` e e declarado em `contributions.styles`.
-- Bibliotecas especificas ficam em `firmware/library*.json`.
-- Shims especificos ficam em `firmware/shims/*.cpp`.
-- Behaviors especificos ficam em `simulation/behavior.js`.
-- Exemplo oficial em `examples/<slug>/project.json` cobre o caminho principal.
-- Testes relevantes passam.
+- `component.json` is valid and points to `schemas/component.schema.json`.
+- `simulation` declares role, effects, and `implemented`.
+- `terminals` and `visual.terminals` have the same IDs.
+- `properties` has defaults and `simulationUpdate` when it affects runtime.
+- `visual.palette` exists if the component appears in the catalog.
+- Specific CSS lives in `ui/styles.css` and is declared in `contributions.styles`.
+- Specific libraries live in `firmware/library*.json`.
+- Specific shims live in `firmware/shims/*.cpp`.
+- Specific behaviors live in `simulation/behavior.js`.
+- An official example in `examples/<slug>/project.json` covers the main path.
+- Relevant tests pass.
