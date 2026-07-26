@@ -6,7 +6,16 @@ The project already includes a functional web prototype with a visual board, off
 
 The current architecture treats components as packages: each official component owns its manifest and can load CSS, simulation behavior, firmware libraries, C++ shims, and WASM imports from its own folder.
 
-Temporary URL at: https://virtual-lab.mathmpr.com
+> Virtual Embedded Lab is currently in public alpha.
+> Some components and embedded APIs may have partial support.
+
+- Try online at temporary URL: https://virtual-lab.mathmpr.com;
+- Report a bug into the [issue tracker](https://github.com/mathmpr/virtual-embedded-lab/issues);
+- If you want to contribute, read [CONTRIBUTING.md](./CONTRIBUTING.md) and submit a pull request;
+- Request a new component via issues also;
+- If you can, sponsor the project through GitHub Sponsors;
+- Current version is: `0.1.0-alpha.1` (pre-release);
+- Questions? Send an email to `matheusprador@gmail.com`;
 
 ## Demo
 [Drag and compile an existing project.webm](https://github.com/user-attachments/assets/8c7dc686-4a15-4c67-b680-6b51b9273020)
