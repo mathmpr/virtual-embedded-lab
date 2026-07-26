@@ -7,9 +7,9 @@ The project already includes a functional web prototype with a visual board, off
 The current architecture treats components as packages: each official component owns its manifest and can load CSS, simulation behavior, firmware libraries, C++ shims, and WASM imports from its own folder.
 
 ## Demo
-[Drag elements and compile an example project](https://github.com/user-attachments/assets/97e0db10-073d-4c91-881c-1623085e1b3e)
+[Drag and compile an existing project.webm](https://github.com/user-attachments/assets/8c7dc686-4a15-4c67-b680-6b51b9273020)
 
-[Creating a new project](https://github.com/user-attachments/assets/2f48b087-20d9-47e4-b58f-e613bbe095b6)
+[Creating a new project and run it.webm](https://github.com/user-attachments/assets/9f4c4eae-37a2-4513-903b-f22a79902f56)
 ## License
 
 This project is open source under the GNU Affero General Public License v3.0 or later (`AGPL-3.0-or-later`).
