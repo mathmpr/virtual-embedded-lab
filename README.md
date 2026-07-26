@@ -6,6 +6,8 @@ The project already includes a functional web prototype with a visual board, off
 
 The current architecture treats components as packages: each official component owns its manifest and can load CSS, simulation behavior, firmware libraries, C++ shims, and WASM imports from its own folder.
 
+Temporary URL at: https://virtual-lab.mathmpr.com
+
 ## Demo
 [Drag and compile an existing project.webm](https://github.com/user-attachments/assets/8c7dc686-4a15-4c67-b680-6b51b9273020)
 
