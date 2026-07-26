@@ -16,13 +16,33 @@ const wasmBuildCache = new Map();
 
 export async function compileFirmwareWasmWithClang(code, options = {}) {
   const clangCommand = options.command ?? process.env.CLANGXX ?? process.env.CLANG_PATH ?? 'clang++';
-  const workDir = await mkdtemp(join(tmpdir(), 'virtual-lab-wasm-'));
-  const sourcePath = join(workDir, 'main.ino.cpp');
-  const wasmPath = join(workDir, 'firmware.wasm');
   const constantExports = firmwareConstantExports(code);
   const libraries = resolveWasmShimLibraries(code);
-  const source = wasmShim(code, { constants: options.constants ?? {}, constantExports, libraries });
   const sandbox = resolveWasmSandbox(options.sandbox);
+  const normalizedSource = normalizeFirmwareSource(code);
+  const strippedSource = stripRegisteredFirmwareIncludes(normalizedSource, libraries);
+  const unsupportedInclude = findUnsupportedInclude(strippedSource);
+
+  if (unsupportedInclude) {
+    return {
+      available: true,
+      ok: false,
+      diagnostics: [
+        {
+          source: 'clang-wasm',
+          severity: 'error',
+          code: 'WASM_UNSUPPORTED_INCLUDE',
+          message: `Include não suportado na compilação WASM: ${unsupportedInclude}. Use apenas bibliotecas suportadas pelo simulador.`
+        }
+      ],
+      wasmBase64: null,
+      cacheHit: false,
+      cacheKey: null,
+      sandbox: sandbox.name
+    };
+  }
+
+  const source = wasmShim(normalizedSource, { constants: options.constants ?? {}, constantExports, strippedSource });
   const cacheKey = wasmBuildCacheKey({
     source,
     constantExports,
@@ -38,6 +58,9 @@ export async function compileFirmwareWasmWithClang(code, options = {}) {
     };
   }
 
+  const workDir = await mkdtemp(join(tmpdir(), 'virtual-lab-wasm-'));
+  const sourcePath = join(workDir, 'main.ino.cpp');
+  const wasmPath = join(workDir, 'firmware.wasm');
   let invocationCommand = clangCommand;
 
   try {
@@ -146,6 +169,21 @@ function createCompilerInvocation({ clangCommand, sourcePath, wasmPath, workDir,
     };
   }
 
+  if (sandbox.name === 'external') {
+    return {
+      command: sandbox.command,
+      args: [
+        ...sandbox.args,
+        workDir,
+        clangCommand,
+        ...compilerArgs,
+        'main.ino.cpp',
+        '-o',
+        'firmware.wasm'
+      ]
+    };
+  }
+
   return {
     command: sandbox.runtime,
     args: [
@@ -207,6 +245,14 @@ function resolveWasmSandbox(sandbox = {}) {
     return { name: 'none' };
   }
 
+  if (mode === 'external') {
+    return {
+      name: 'external',
+      command: sandbox.command ?? process.env.WASM_COMPILER_SANDBOX_RUNNER ?? '/usr/local/sbin/virtual-lab-wasm-compile',
+      args: sandbox.args ?? parseSandboxRunnerArgs(process.env.WASM_COMPILER_SANDBOX_RUNNER_ARGS)
+    };
+  }
+
   if (mode !== 'docker' && mode !== 'podman') {
     return { name: 'none' };
   }
@@ -219,6 +265,19 @@ function resolveWasmSandbox(sandbox = {}) {
     memory: sandbox.memory ?? process.env.WASM_COMPILER_MEMORY ?? '256m',
     pidsLimit: sandbox.pidsLimit ?? process.env.WASM_COMPILER_PIDS_LIMIT ?? '64'
   };
+}
+
+function parseSandboxRunnerArgs(value) {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return String(value).split(' ').map((part) => part.trim()).filter(Boolean);
+  }
 }
 
 function wasmBuildCacheKey({ source, constantExports, clangCommand, sandbox }) {
@@ -274,8 +333,15 @@ function isMissingWasmLinker(error) {
 
 function wasmShim(code, options = {}) {
   const source = normalizeFirmwareSource(code);
+  const strippedSource = options.strippedSource ?? stripRegisteredFirmwareIncludes(source, options.libraries ?? []);
 
-  return `${arduinoWasmShimSource(options.constants ?? {})}\n${inferredAliasSource(source)}${stripRegisteredFirmwareIncludes(source, options.libraries ?? [])}\n${constantExportWrappers(options.constantExports ?? [])}${entrypointWrappers()}\n`;
+  return `${arduinoWasmShimSource(options.constants ?? {})}\n${inferredAliasSource(source)}${strippedSource}\n${constantExportWrappers(options.constantExports ?? [])}${entrypointWrappers()}\n`;
+}
+
+function findUnsupportedInclude(code) {
+  const includePattern = /^\s*#\s*include\s*([<"])([^>"]+)[>"]/gm;
+  const match = includePattern.exec(code);
+  return match?.[2] ?? null;
 }
 
 function inferredAliasSource(code) {

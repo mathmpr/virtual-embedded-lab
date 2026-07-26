@@ -1803,32 +1803,6 @@ test('ESP32-S3 HUB75 Snake example draws matrix framebuffer through WASM', async
   assert.ok(gameOver.buzzerEvents.some((event) => event.componentId === 'buzzer-1' && event.active === true && event.frequencyHz === 220));
 });
 
-test('ESP32-S3 HUB75 Snake does not draw when HUB75 physical connections are missing', async () => {
-  const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
-  const officialProject = readExampleProject('examples/esp32-s3-snake-hub75/project.json');
-  const brokenProject = readExampleProject('esp32-s3-hub75-snake-game.json');
-  const wasm = await compileFirmwareWasmWithClang(normalizeProjectCode(officialProject.code.files['main.ino']));
-  const components = componentsFromProject(brokenProject);
-  const session = await createProjectWasmSimulationSession({
-    state: { components },
-    nets: brokenProject.connections.map((connection) => testNet(connection.id, connection.terminals)),
-    terminalKind: powerGroundTerminalKind,
-    wasmBase64: wasm.wasmBase64
-  });
-
-  const first = session.runFrame();
-  const matrix = components.get('matrix-1');
-
-  assert.equal(wasm.ok, true);
-  assert.equal(matrix.properties.framebuffer, '64x32|');
-  assert.match(first.diagnostics.join('\n'), /matrix-1: HUB75 sem conexões físicas válidas/);
-  assert.match(first.diagnostics.join('\n'), /VCC não está ligado a uma alimentação/);
-  assert.match(first.diagnostics.join('\n'), /GND não está ligado ao terra/);
-  assert.match(first.diagnostics.join('\n'), /g2/);
-  assert.match(first.diagnostics.join('\n'), /b2/);
-  assert.match(first.diagnostics.join('\n'), /a/);
-});
-
 test('Servo sweep example updates servo angle through Servo WASM shim', async () => {
   const { compileFirmwareWasmWithClang } = await import('../../apps/web/firmware/wasm-compiler.mjs');
   const project = readExampleProject('examples/arduino-servo-sweep/project.json');

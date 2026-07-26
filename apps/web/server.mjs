@@ -15,6 +15,10 @@ const host = process.env.HOST ?? '127.0.0.1';
 const root = process.cwd();
 const webRoot = join(root, 'apps', 'web');
 const sharedProjectsRoot = join(root, 'shared');
+const maxFirmwareSourceBytes = Number(process.env.MAX_FIRMWARE_SOURCE_BYTES ?? 30 * 1024);
+const compileRateLimitWindowMs = Number(process.env.COMPILE_RATE_LIMIT_WINDOW_MS ?? 60 * 1000);
+const compileRateLimitMax = Number(process.env.COMPILE_RATE_LIMIT_MAX ?? 8);
+const compileRateLimitBuckets = new Map();
 
 const contentTypes = new Map([
   ['.html', 'text/html; charset=utf-8'],
@@ -60,6 +64,27 @@ const server = createServer(async (request, response) => {
       try {
         await handleFirmwareWasmCompile(request, response);
       } catch (error) {
+        if (error?.httpStatus) {
+          response.writeHead(error.httpStatus, {
+            'Content-Type': 'application/json; charset=utf-8',
+            ...(error.retryAfterSeconds ? { 'Retry-After': String(error.retryAfterSeconds) } : {})
+          });
+          response.end(JSON.stringify({
+            available: false,
+            ok: false,
+            diagnostics: [
+              {
+                source: 'server',
+                severity: 'error',
+                code: error.code ?? 'FIRMWARE_WASM_COMPILE_REJECTED',
+                message: error.message
+              }
+            ],
+            wasmBase64: null
+          }));
+          return;
+        }
+
         response.writeHead(500, {
           'Content-Type': 'application/json; charset=utf-8'
         });
@@ -168,9 +193,29 @@ async function handleFirmwareWasmCompile(request, response) {
     return;
   }
 
+  const rateLimit = consumeCompileRateLimit(clientIp(request));
+
+  if (!rateLimit.allowed) {
+    const error = new Error(`Muitas compilações em pouco tempo. Tente novamente em ${rateLimit.retryAfterSeconds} segundos.`);
+    error.httpStatus = 429;
+    error.code = 'FIRMWARE_WASM_RATE_LIMITED';
+    error.retryAfterSeconds = rateLimit.retryAfterSeconds;
+    throw error;
+  }
+
   const payload = JSON.parse(await readRequestBody(request, 256 * 1024));
+  const code = String(payload.code ?? '');
+  const sourceBytes = Buffer.byteLength(code, 'utf8');
+
+  if (sourceBytes > maxFirmwareSourceBytes) {
+    const error = new Error(`Código C++ excede o limite de ${maxFirmwareSourceBytes} bytes por arquivo.`);
+    error.httpStatus = 413;
+    error.code = 'FIRMWARE_SOURCE_TOO_LARGE';
+    throw error;
+  }
+
   const job = enqueueFirmwareWasmCompile({
-    code: String(payload.code ?? ''),
+    code,
     constants: typeof payload.constants === 'object' && payload.constants !== null ? payload.constants : {}
   });
 
@@ -204,6 +249,39 @@ async function handleFirmwareWasmCompileStatus(pathname, response) {
     'Content-Type': 'application/json; charset=utf-8'
   });
   response.end(JSON.stringify(job));
+}
+
+function clientIp(request) {
+  const forwardedFor = String(request.headers['x-forwarded-for'] ?? '').split(',')[0].trim();
+  return forwardedFor || request.socket.remoteAddress || 'unknown';
+}
+
+function consumeCompileRateLimit(key) {
+  const now = Date.now();
+  const bucket = compileRateLimitBuckets.get(key) ?? { resetAt: now + compileRateLimitWindowMs, count: 0 };
+
+  if (now >= bucket.resetAt) {
+    bucket.resetAt = now + compileRateLimitWindowMs;
+    bucket.count = 0;
+  }
+
+  bucket.count += 1;
+  compileRateLimitBuckets.set(key, bucket);
+
+  for (const [bucketKey, value] of compileRateLimitBuckets.entries()) {
+    if (now >= value.resetAt + compileRateLimitWindowMs) {
+      compileRateLimitBuckets.delete(bucketKey);
+    }
+  }
+
+  if (bucket.count <= compileRateLimitMax) {
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
+
+  return {
+    allowed: false,
+    retryAfterSeconds: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000))
+  };
 }
 
 async function handleComponentsCatalog(response) {

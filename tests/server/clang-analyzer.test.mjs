@@ -438,6 +438,49 @@ if (outIndex >= 0) {
   }
 });
 
+test('clang wasm compiler can invoke an external sandbox runner', async () => {
+  clearFirmwareWasmBuildCache();
+  const dir = await mkdtemp(join(tmpdir(), 'virtual-lab-fake-wasm-external-'));
+  const fakeRunner = join(dir, 'virtual-lab-wasm-compile');
+  const argsFile = join(dir, 'args.json');
+
+  await writeFile(fakeRunner, `#!/usr/bin/env node
+const { writeFileSync } = require('node:fs');
+const { join } = require('node:path');
+const args = process.argv.slice(2);
+writeFileSync(${JSON.stringify(argsFile)}, JSON.stringify(args));
+const workDir = args[1];
+const outIndex = args.indexOf('-o');
+if (outIndex >= 0) {
+  writeFileSync(join(workDir, args[outIndex + 1]), Buffer.from([0, 97, 115, 109, 1, 0, 0, 0]));
+}
+`, 'utf8');
+  await chmod(fakeRunner, 0o755);
+
+  try {
+    const result = await compileFirmwareWasmWithClang('void setup() {}\nvoid loop() {}', {
+      command: 'clang++',
+      sandbox: {
+        mode: 'external',
+        command: fakeRunner,
+        args: ['--fixed-runner-arg']
+      }
+    });
+    const args = JSON.parse(readFileSync(argsFile, 'utf8'));
+
+    assert.equal(result.ok, true);
+    assert.equal(result.sandbox, 'external');
+    assert.equal(args[0], '--fixed-runner-arg');
+    assert.equal(args[2], 'clang++');
+    assert.ok(args.includes('main.ino.cpp'));
+    assert.ok(args.includes('firmware.wasm'));
+    assert.ok(!args.includes('/workspace/main.ino.cpp'));
+  } finally {
+    clearFirmwareWasmBuildCache();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('clang wasm compiler reports unavailable command without throwing', async () => {
   const result = await compileFirmwareWasmWithClang('void setup() {}\nvoid loop() {}', {
     command: 'definitely-missing-wasm-clang-for-virtual-lab'
@@ -446,6 +489,17 @@ test('clang wasm compiler reports unavailable command without throwing', async (
   assert.equal(result.available, false);
   assert.equal(result.ok, false);
   assert.equal(result.diagnostics[0].code, 'WASM_TOOLCHAIN_UNAVAILABLE');
+});
+
+test('clang wasm compiler rejects unsupported includes before invoking clang', async () => {
+  const result = await compileFirmwareWasmWithClang('#include "/etc/passwd"\nvoid setup() {}\nvoid loop() {}', {
+    command: 'definitely-must-not-run-for-unsupported-include'
+  });
+
+  assert.equal(result.available, true);
+  assert.equal(result.ok, false);
+  assert.equal(result.diagnostics[0].code, 'WASM_UNSUPPORTED_INCLUDE');
+  assert.ok(result.diagnostics[0].message.includes('/etc/passwd'));
 });
 
 test('clang wasm compile queue limits concurrent builds to two jobs', async () => {
