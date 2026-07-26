@@ -1,5 +1,7 @@
 # Virtual Embedded Lab
 
+### Version: 0.1.0-alpha.1
+
 Local-first visual environment for creating, programming, and behaviorally simulating embedded electronics projects.
 
 The project already includes a functional web prototype with a visual board, official component catalog, CodeMirror editor, Arduino-compatible WASM firmware runtime, local Clang diagnostics, Serial TX/RX, simulated ESP32/ESP8266 Wi-Fi, analog inputs through WASM, initial I2C/SPI support for sensors and ADCs, virtual HTTP, virtual/real MQTT, an incremental electrical solver, multi-board simulation, and complete examples for HC-SR04 + LED, FC-37, LDR, BMP280, external ADCs, and water-pump control through MQTT.
