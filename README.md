@@ -6,6 +6,10 @@ The project already includes a functional web prototype with a visual board, off
 
 The current architecture treats components as packages: each official component owns its manifest and can load CSS, simulation behavior, firmware libraries, C++ shims, and WASM imports from its own folder.
 
+## Demo
+[Gravação de tela de 2026-07-25 23-27-31.webm](https://github.com/user-attachments/assets/97e0db10-073d-4c91-881c-1623085e1b3e)
+
+[Gravação de tela de 2026-07-25 23-32-48.webm](https://github.com/user-attachments/assets/2f48b087-20d9-47e4-b58f-e613bbe095b6)
 ## License
 
 This project is open source under the GNU Affero General Public License v3.0 or later (`AGPL-3.0-or-later`).
