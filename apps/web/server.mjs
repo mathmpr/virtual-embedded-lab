@@ -11,7 +11,7 @@ import { handleMqttBridgeRequest } from './network/mqtt-bridge.mjs';
 import { readProjectWithCodeReferences } from './project-code-references.mjs';
 
 const port = Number(process.env.PORT ?? 4173);
-const host = process.env.HOST ?? '127.0.0.1';
+const host = process.env.HOST ?? '0.0.0.0';
 const root = process.cwd();
 const webRoot = join(root, 'apps', 'web');
 const sharedProjectsRoot = join(root, 'shared');

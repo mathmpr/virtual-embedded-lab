@@ -1,0 +1,21 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: virtual-embedded-lab-web:local
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4173
+      CLANGXX: clang++
+      MAX_FIRMWARE_SOURCE_BYTES: 30720
+      COMPILE_RATE_LIMIT_WINDOW_MS: 60000
+      COMPILE_RATE_LIMIT_MAX: 8
+    ports:
+      - "4173:4173"
+    volumes:
+      - shared-projects:/app/shared
+    restart: unless-stopped
+
+volumes:
+  shared-projects:

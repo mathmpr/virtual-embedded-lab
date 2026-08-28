@@ -51,13 +51,14 @@ By contributing, you agree that your contribution is distributed under the same 
 
 Required:
 
-- Node.js 24 or newer.
-- Project dependencies installed with `npm install`.
-- `clang++` available in `PATH`, or configured through `CLANGXX`/`CLANG_PATH`.
-- `lld`/`wasm-ld` available in the Clang toolchain.
+- Docker with Docker Compose.
 
 Optional, depending on the scenario:
 
+- Node.js 24 or newer for local development without containers.
+- Project dependencies installed with `npm install` for local development without containers.
+- `clang++` available in `PATH`, or configured through `CLANGXX`/`CLANG_PATH`, for local development without containers.
+- `lld`/`wasm-ld` available in the Clang toolchain, for local development without containers.
 - Docker or Podman to isolate WASM firmware compilation in public deployments.
 - A network-accessible MQTT TCP broker when a project uses `network.mqtt.mode: "real"`.
 - For the `ESP Water Control Pump Reservoir` example, the real flow depends on the MQTT/backend contract from the external project `https://github.com/mathmpr/water-control`.
@@ -67,6 +68,20 @@ The UI uses WASM as the only firmware execution path. Therefore, `clang++` and `
 For public use, do not compile firmware directly on the host without isolation. The WASM compiler supports container sandboxing with `WASM_COMPILER_SANDBOX=docker` or `WASM_COMPILER_SANDBOX=podman`. The production instance can also use an external sandbox runner through `WASM_COMPILER_SANDBOX=external`.
 
 ## Installation and configuration
+
+### 1. Run with Docker
+
+The web server runs from the repository root because `apps/web/server.mjs` serves files from `apps/web`, `components`, `examples`, and `node_modules`.
+
+```bash
+docker compose up --build
+```
+
+The application is available at `http://127.0.0.1:4173`.
+
+The Docker image includes Node.js 24, `clang++`, and `wasm-ld`, so firmware analysis and WASM compilation work inside the container. Shared projects are persisted through the `shared-projects` Docker volume declared in `docker-compose.yml`.
+
+## Local development without containers
 
 ### 1. Install Node dependencies
 
@@ -140,7 +155,7 @@ npm ci
 npm run dev
 ```
 
-The application starts at `http://127.0.0.1:4173` by default.
+The application listens on `0.0.0.0:4173` by default and is available locally at `http://127.0.0.1:4173`.
 
 ### 5. Configure WASM compilation sandboxing
 
